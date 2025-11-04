@@ -71,8 +71,6 @@ class Melderlinie(Gtk.Box):
 
     def __init__(self, melderlinie_number, *args, **kwargs):
         super().__init__(*args, orientation=Gtk.Orientation.VERTICAL, spacing=5)
-        # A set to keep track of which melder is active
-        self.active_melder_set = set()
 
         self.melderlinie_label = Gtk.Label()
         self.melderlinie_label.set_markup(f"<span size='large'>Melderlinie {melderlinie_number}</span>")
@@ -96,7 +94,7 @@ class Melderlinie(Gtk.Box):
         if melder_number is None:
             melder_number = len(melder_dict[melderlinie_number])
         melder = Melder(melder_number)
-        melder_dict[melderlinie_number][melder_number] = melder
+        melder_dict[melderlinie_number][melder_number] = {"melder" : melder, "alarm" : False}
 
         melder.melder_switch.connect('state-set', self.on_melder_toggled, melderlinie_number, melder_number)
         self.append(melder)
@@ -105,20 +103,25 @@ class Melderlinie(Gtk.Box):
     def delete_melder(self, melderlinie_number):
         """Remove a melder"""
         self.index = len(melder_dict[melderlinie_number]) - 1
-        melder = melder_dict[melderlinie_number][self.index]
+        melder = melder_dict[melderlinie_number][self.index]["melder"]
 
         del melder_dict[melderlinie_number][self.index]
         self.remove(melder)
-        self.active_melder_set.discard(self.index + 1)
+        self.print_melder_state()
+
 
     def on_melder_toggled(self, melder_switch, state, melderlinie_number, melder_number):
-        if state:
-            self.active_melder_set.add([melderlinie_number, melder_number])
-        else:
-            self.active_melder_set.discard()
+        melder_dict[melderlinie_number][melder_number]["alarm"] = state
+        print(f"Melder {melder_number} in Melderlinie {melderlinie_number} {'aktiviert' if state else 'deaktiviert'}")
+        self.print_melder_state()
 
-        print(f"Melder {melder_number} in Melderlinie {melderlinie_number} {'activated' if state else 'deactivated'}")
-        print(f"Currently active melders: {sorted(self.active_melder_set)}")
+    def print_melder_state(self):
+        print(f"Aktive Melder: ")
+        for melderlinie_number in melder_dict.keys():
+            for melder_number in melder_dict[melderlinie_number].keys():
+                if isinstance(melder_number, int):
+                    if melder_dict[melderlinie_number][melder_number]["alarm"]:
+                        print(f"Melder {melder_number} in Melderlinie {melderlinie_number}")
 
 
 class MyApp(Gtk.Application):
