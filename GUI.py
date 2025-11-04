@@ -1,3 +1,4 @@
+import json
 import sys
 
 import gi
@@ -22,10 +23,15 @@ class MainWindow(Gtk.ApplicationWindow):
         self.main_box.set_spacing(5)
         self.set_child(self.main_box)
 
-        # Buttons to add or delete a melderlinie
+
         self.header = Gtk.HeaderBar()
         self.set_titlebar(self.header)
 
+        self.save_button = Gtk.Button(label="Speichern")
+        self.save_button.connect("clicked", lambda button, *args: self.save_configuration())
+        self.header.pack_end(self.save_button)
+
+        # Buttons to add or delete a melderlinie
         self.create_melderlinie_button = Gtk.Button(label="Melderlinie hinzufügen")
         self.create_melderlinie_button.connect("clicked", lambda button, *args: self.create_melderlinie())
         self.header.pack_start(self.create_melderlinie_button)
@@ -52,6 +58,15 @@ class MainWindow(Gtk.ApplicationWindow):
             self.main_box.remove(melderlinie)
             del melder_dict[self.index]
 
+    def save_configuration(self):
+        save_dict = melder_dict
+        for melderlinie_number in save_dict.keys():
+            del save_dict[melderlinie_number]["melderlinie"]
+            for melder_number in save_dict[melderlinie_number].keys():
+                del save_dict[melderlinie_number][melder_number]["melder"]
+        print(save_dict)
+        with open("dictionary_save.json", "w") as file_dict:
+            json.dump(save_dict, file_dict)
 
 class Melder(Gtk.Box):
     def __init__(self, melder_number, *args, **kwargs):
