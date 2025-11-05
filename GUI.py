@@ -6,9 +6,6 @@ import gi
 gi.require_version('Gtk', '4.0')
 from gi.repository import Gtk
 
-# A list to manage Melderlinie instances
-melder_dict = {}
-
 
 class MainWindow(Gtk.ApplicationWindow):
     def __init__(self, *args, **kwargs):
@@ -27,116 +24,138 @@ class MainWindow(Gtk.ApplicationWindow):
         self.header = Gtk.HeaderBar()
         self.set_titlebar(self.header)
 
+        # Buttons to save and load configurations
         self.save_button = Gtk.Button(label="Speichern")
-        self.save_button.connect("clicked", lambda button, *args: self.save_configuration())
+        self.save_button.connect("clicked", lambda button, *args: save_configuration())
         self.header.pack_end(self.save_button)
 
-        # Buttons to add or delete a melderlinie
-        self.create_melderlinie_button = Gtk.Button(label="Melderlinie hinzufügen")
-        self.create_melderlinie_button.connect("clicked", lambda button, *args: self.create_melderlinie())
-        self.header.pack_start(self.create_melderlinie_button)
+        self.load_button = Gtk.Button(label="Öffnen")
+        self.load_button.connect("clicked", lambda button, *args: load_configuration())
+        self.header.pack_end(self.load_button)
 
-        self.delete_melderlinie_button = Gtk.Button(label="Melderlinie löschen")
-        self.delete_melderlinie_button.connect("clicked", lambda button, *args: self.delete_melderlinie())
-        self.header.pack_start(self.delete_melderlinie_button)
+        # Buttons to add or delete a circuit
+        self.create_circuit_button = Gtk.Button(label="Melderlinie hinzufügen")
+        self.create_circuit_button.connect("clicked", lambda button, *args: create_circuit())
+        self.header.pack_start(self.create_circuit_button)
 
-    def create_melderlinie(self, number=None):
-        """Creates a new Melderlinie instance with automatic numbering"""
-        if number is None:
-            number = len(melder_dict) + 1
+        self.delete_circuit_button = Gtk.Button(label="Melderlinie löschen")
+        self.delete_circuit_button.connect("clicked", lambda button, *args: delete_circuit())
+        self.header.pack_start(self.delete_circuit_button)
 
-        melderlinie = Melderlinie(number)
-        self.main_box.append(melderlinie)
-        melder_dict[number] = {"melderlinie": melderlinie}
-        return melderlinie
 
-    def delete_melderlinie(self):
-        """Remove a Melderlinie"""
-        if len(melder_dict) > 0:
-            self.index = len(melder_dict)
-            melderlinie = melder_dict[self.index]["melderlinie"]
-            self.main_box.remove(melderlinie)
-            del melder_dict[self.index]
 
-    def save_configuration(self):
-        save_dict = melder_dict
-        for melderlinie_number in save_dict.keys():
-            del save_dict[melderlinie_number]["melderlinie"]
-            for melder_number in save_dict[melderlinie_number].keys():
-                del save_dict[melderlinie_number][melder_number]["melder"]
-        print(save_dict)
-        with open("dictionary_save.json", "w") as file_dict:
-            json.dump(save_dict, file_dict)
-
-class Melder(Gtk.Box):
-    def __init__(self, melder_number, *args, **kwargs):
+class Detector(Gtk.Box):
+    alarm_status: bool = False
+    def __init__(self, detector_number, *args, **kwargs):
         super().__init__(*args, orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
 
-        self.melder_switch = Gtk.Switch()
-        self.melder_switch.set_active(False)
+        self.detector_switch = Gtk.Switch()
+        self.detector_switch.set_active(False)
 
-        self.melder_label = Gtk.Label(label=f"Melder {melder_number}")
+        self.detector_label = Gtk.Label(label=f"Melder {detector_number}")
 
-        self.append(self.melder_switch)
-        self.append(self.melder_label)
+        self.append(self.detector_switch)
+        self.append(self.detector_label)
 
 
-class Melderlinie(Gtk.Box):
+class Circuit(Gtk.Box):
     """A container for managing multiple Melder instances"""
-
-    def __init__(self, melderlinie_number, *args, **kwargs):
+    def __init__(self, circuit_number, *args, **kwargs):
         super().__init__(*args, orientation=Gtk.Orientation.VERTICAL, spacing=5)
 
-        self.melderlinie_label = Gtk.Label()
-        self.melderlinie_label.set_markup(f"<span size='large'>Melderlinie {melderlinie_number}</span>")
-        self.append(self.melderlinie_label)
+        self.circuit_label = Gtk.Label()
+        self.circuit_label.set_markup(f"<span size='large'>Melderlinie {circuit_number}</span>")
+        self.append(self.circuit_label)
 
-        # Buttons to add or delete melders
+        # Buttons to add or delete detectors
         self.button_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         self.append(self.button_box)
-        self.add_melder_button = Gtk.Button(label="Melder hinzufügen")
-        self.add_melder_button.connect("clicked",
-                                       lambda button, *args: self.create_melder(melderlinie_number=melderlinie_number),
-                                       )
-        self.button_box.append(self.add_melder_button)
-        self.delete_melder_button = Gtk.Button(label="Melder löschen")
-        self.delete_melder_button.connect("clicked",
-                                          lambda button, *args: self.delete_melder(melderlinie_number))
-        self.button_box.append(self.delete_melder_button)
+        self.add_detector_button = Gtk.Button(label="Melder hinzufügen")
+        self.add_detector_button.connect("clicked",
+                                         lambda button, *args: create_detector(circuit_number=circuit_number),
+                                         )
+        self.button_box.append(self.add_detector_button)
+        self.delete_detector_button = Gtk.Button(label="Melder löschen")
+        self.delete_detector_button.connect("clicked",
+                                            lambda button, *args: delete_detector(circuit_number))
+        self.button_box.append(self.delete_detector_button)
 
-    def create_melder(self, melderlinie_number, melder_number=None):
-        """Creates a new Melder instance with automatic numbering"""
-        if melder_number is None:
-            melder_number = len(melder_dict[melderlinie_number])
-        melder = Melder(melder_number)
-        melder_dict[melderlinie_number][melder_number] = {"melder" : melder, "alarm" : False}
-
-        melder.melder_switch.connect('state-set', self.on_melder_toggled, melderlinie_number, melder_number)
-        self.append(melder)
-        return melder
-
-    def delete_melder(self, melderlinie_number):
-        """Remove a melder"""
-        self.index = len(melder_dict[melderlinie_number]) - 1
-        melder = melder_dict[melderlinie_number][self.index]["melder"]
-
-        del melder_dict[melderlinie_number][self.index]
-        self.remove(melder)
-        self.print_melder_state()
+        # A dictionary to manage detectors within this circuit
+        self.detector_dict = {}
 
 
-    def on_melder_toggled(self, melder_switch, state, melderlinie_number, melder_number):
-        melder_dict[melderlinie_number][melder_number]["alarm"] = state
-        print(f"Melder {melder_number} in Melderlinie {melderlinie_number} {'aktiviert' if state else 'deaktiviert'}")
-        self.print_melder_state()
+class Building:
+    def __init__(self):
+        self.circuit_dict = {}
 
-    def print_melder_state(self):
-        print(f"Aktive Melder: ")
-        for melderlinie_number in melder_dict.keys():
-            for melder_number in melder_dict[melderlinie_number].keys():
-                if isinstance(melder_number, int):
-                    if melder_dict[melderlinie_number][melder_number]["alarm"]:
-                        print(f"Melder {melder_number} in Melderlinie {melderlinie_number}")
+
+def save_configuration():
+    pass
+
+def load_configuration():
+    pass
+
+def create_circuit(circuit_number=None):
+    """Creates a new Circuit instance with automatic numbering"""
+    if circuit_number is None:
+        circuit_number = len(building.circuit_dict) + 1
+
+    circuit = Circuit(circuit_number)
+    app.window.main_box.append(circuit)
+    building.circuit_dict[circuit_number] = circuit
+    return circuit
+
+def delete_circuit():
+    """Remove a circuit"""
+    if len(building.circuit_dict) > 0:
+        index = len(building.circuit_dict)
+        circuit = building.circuit_dict[index]
+        app.window.main_box.remove(circuit)
+        del building.circuit_dict[index]
+        print_detector_state()
+
+def create_detector(circuit_number, detector_number=None, alarm_status=False):
+    """Creates a new Detector instance with automatic numbering"""
+    if detector_number is None:
+        detector_number = len(building.circuit_dict[circuit_number].detector_dict) + 1
+
+    # Create new detector and add it to the detector_dict of the circuit that it belongs to
+    detector = Detector(detector_number)
+    building.circuit_dict[circuit_number].detector_dict[detector_number] = detector
+
+    # Set the detector switch according to the alarm_status and connect it to its callback function
+    detector.alarm_status = alarm_status
+    detector.detector_switch.set_active(alarm_status)
+    detector.detector_switch.connect('state-set', on_detector_toggled, circuit_number, detector_number)
+
+    # Add the detector to its circuit
+    circuit = building.circuit_dict[circuit_number]
+    circuit.append(detector)
+    return detector
+
+def delete_detector(circuit_number):
+    """Remove the last detector (needs consecutive numbering for now"""
+    # Get the detector object that needs to be removed and the circuit object from which it is removed
+    index = len(building.circuit_dict[circuit_number].detector_dict)
+    circuit = building.circuit_dict[circuit_number]
+    detector = building.circuit_dict[circuit_number].detector_dict[index]
+
+    del building.circuit_dict[circuit_number].detector_dict[index]
+    circuit.remove(detector)
+    print_detector_state()
+
+
+def on_detector_toggled(detector_switch, state, circuit_number, detector_number):
+    building.circuit_dict[circuit_number].detector_dict[detector_number].alarm_status = state
+    print(f"Melder {detector_number} in Melderlinie {circuit_number} {'aktiviert' if state else 'deaktiviert'}")
+    print_detector_state()
+
+def print_detector_state():
+    print(f"Aktive Melder: ")
+    for circuit_number in building.circuit_dict.keys():
+        for detector_number in building.circuit_dict[circuit_number].detector_dict.keys():
+            if building.circuit_dict[circuit_number].detector_dict[detector_number].alarm_status:
+                print(f"Melder {detector_number} in Melderlinie {circuit_number}")
 
 
 class MyApp(Gtk.Application):
@@ -145,9 +164,11 @@ class MyApp(Gtk.Application):
         self.connect('activate', self.on_activate)
 
     def on_activate(self, app):
-        self.win = MainWindow(application=app)
-        self.win.present()
+        self.window = MainWindow(application=app)
+        self.window.present()
 
+
+building = Building()
 
 app = MyApp(application_id="com.BMA.EXAMPLE")
 app.run(sys.argv)
