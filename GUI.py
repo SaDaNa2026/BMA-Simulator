@@ -4,7 +4,7 @@ import sys
 import gi
 
 gi.require_version('Gtk', '4.0')
-from gi.repository import Gtk
+from gi.repository import Gtk, Gio, GLib
 
 
 class MainWindow(Gtk.ApplicationWindow):
@@ -26,11 +26,11 @@ class MainWindow(Gtk.ApplicationWindow):
 
         # Buttons to save and load configurations
         self.save_button = Gtk.Button(label="Speichern")
-        self.save_button.connect("clicked", lambda button, *args: save_configuration())
+        self.save_button.connect("clicked", self.on_save_clicked)
         self.header.pack_end(self.save_button)
 
         self.load_button = Gtk.Button(label="Öffnen")
-        self.load_button.connect("clicked", lambda button, *args: load_configuration())
+        self.load_button.connect("clicked", self.on_load_clicked)
         self.header.pack_end(self.load_button)
 
         # Buttons to add or delete a circuit
@@ -41,6 +41,24 @@ class MainWindow(Gtk.ApplicationWindow):
         self.delete_circuit_button = Gtk.Button(label="Melderlinie löschen")
         self.delete_circuit_button.connect("clicked", lambda button, *args: delete_circuit())
         self.header.pack_start(self.delete_circuit_button)
+
+    def on_save_clicked(self, button):
+        save_dict = {"circuit_dict" : {}, "building_description" : building.description}
+        for circuit_number in building.circuit_dict:
+            save_dict["circuit_dict"][circuit_number] = [detector_number for detector_number in
+                                              building.circuit_dict[circuit_number].detector_dict]
+        save_dialog = FileSaveDialog(button, save_dict)
+        save_dialog.open_save_dialog()
+
+    def on_load_clicked(self, button):
+        """Loads a building configuration from a json file. Does not set the alarm_status of detectors"""
+        # Delete all current circuits and their detectors
+        delete_list = [num for num in building.circuit_dict]
+        for circuit_number in delete_list:
+            delete_circuit(circuit_number)
+
+        load_dialog = FileLoadDialog(button)
+        load_dialog.open_load_dialog()
 
 
 
@@ -87,33 +105,97 @@ class Circuit(Gtk.Box):
 class Building:
     def __init__(self):
         self.circuit_dict = {}
+        self.description = "Hier Gebäudebeschreibung einfügen"
+
+class FileSaveDialog:
+    """Class to save the current building configuration to a json file"""
+    def __init__(self, button, save_dict):
+        # Pass information about the button that triggered the save dialog and the dictionary that should be saved
+        self.button = button
+        self.save_dict = save_dict
+
+        # Present a file save dialog
+        current_dir = Gio.File.new_for_path(".")
+        self.save_dialog = Gtk.FileDialog(title="Konfiguration speichern",
+                                     accept_label="Speichern",
+                                     initial_folder=current_dir,
+                                     initial_name="Gebäudekonfiguration.json",
+                                     modal=True)
+
+        # Add JSON file filter
+        json_filter = Gtk.FileFilter()
+        json_filter.set_name("JSON Files")
+        json_filter.add_pattern("*.json")
+        self.save_dialog.set_default_filter(json_filter)
+
+    def open_save_dialog(self):
+        """Show the dialog asynchronously"""
+        self.save_dialog.save(self.button.get_root(), None, self.on_file_save_response)
+
+    def on_file_save_response(self, dialog, result):
+        try:
+            file = dialog.save_finish(result)
+            if file is not None:
+                path = file.get_path()
+                print(f"Saving to: {path}")
+
+                # Example of writing content to the chosen file
+                with open(path, "w", encoding="utf-8") as config_dict:
+                    json.dump(self.save_dict, config_dict, sort_keys=True, indent=4)
+
+                print("File saved successfully.")
+        except GLib.Error as e:
+            print(f"Save canceled or failed: {e.message}")
 
 
-def save_configuration(save_path="Objektkonfiguration.json"):
-    """Saves the current building configuration to a json file"""
-    # Create a json compatible dictionary containing all information about the current configuration
-    save_dict = {}
-    for circuit_number in building.circuit_dict:
-        save_dict[circuit_number] = [detector_number for detector_number in building.circuit_dict[circuit_number].detector_dict]
+class FileLoadDialog:
+    """Class to load a building from a json file"""
+    def __init__(self, button):
+        # Pass information about the button that triggered the load dialog
+        self.button = button
+        # Create a dictionary to save the data loaded from the json file
+        self.load_dict = {}
 
-    with open(save_path, "w")  as config_dict:
-        json.dump(save_dict, config_dict, sort_keys=True, indent=4)
+        # Present a file load dialog
+        current_dir = Gio.File.new_for_path(".")
+        self.load_dialog = Gtk.FileDialog(title="Konfiguration laden",
+                                     accept_label="Öffnen",
+                                     initial_folder=current_dir,
+                                     modal=True)
 
-def load_configuration(open_path="Objektkonfiguration.json"):
-    """Loads a building configuration from a json file. Does not set the alarm_status of detectors"""
-    # Delete all current circuits and their detectors
-    delete_list = [num for num in building.circuit_dict]
-    for circuit_number in delete_list:
-        delete_circuit(circuit_number)
+        # Add JSON file filter
+        json_filter = Gtk.FileFilter()
+        json_filter.set_name("JSON Files")
+        json_filter.add_pattern("*.json")
+        self.load_dialog.set_default_filter(json_filter)
 
-    # Load json file and create the corresponding circuits and detectors
-    with open(open_path, "r") as config_dict:
-        open_dict = json.load(config_dict)
+    def open_load_dialog(self):
+        """"Show the dialog asynchronously"""
+        self.load_dialog.open(self.button.get_root(), None, self.on_file_open_response)
 
-    for circuit_number in open_dict:
-        create_circuit(circuit_number)
-        for detector_number in open_dict[circuit_number]:
-            create_detector(circuit_number, detector_number)
+    def on_file_open_response(self, dialog, result):
+        """Callback for the file dialog. Loads the json file from the selected path if it exists and adds the circuits and detectors saved in the file."""
+        try:
+            file = dialog.open_finish(result)
+            if file is not None:
+                path = file.get_path()
+                print(f"Opening: {path}")
+
+                with open(path, "r") as config_dict:
+                    self.load_dict = json.load(config_dict)
+
+                    # Load building information
+                    building.description = self.load_dict["building_description"]
+
+                    # Create circuits and detectors according to the json file
+                    for circuit_number in self.load_dict["circuit_dict"]:
+                        create_circuit(circuit_number)
+                        for detector_number in self.load_dict["circuit_dict"][circuit_number]:
+                            create_detector(circuit_number, detector_number)
+
+        except GLib.Error as e:
+            print(f"Open canceled or failed: {e.message}")
+
 
 def create_circuit(circuit_number=None):
     """Creates a new Circuit instance with automatic numbering"""
