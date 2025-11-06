@@ -1,5 +1,6 @@
 import json
 import sys
+from syslog import openlog
 
 import gi
 
@@ -29,17 +30,17 @@ class MainWindow(Gtk.ApplicationWindow):
         self.save_button.connect("clicked", self.on_save_clicked)
         self.header.pack_end(self.save_button)
 
-        self.load_button = Gtk.Button(label="Öffnen")
-        self.load_button.connect("clicked", self.on_load_clicked)
-        self.header.pack_end(self.load_button)
+        self.open_button = Gtk.Button(label="Öffnen")
+        self.open_button.connect("clicked", self.on_open_clicked)
+        self.header.pack_end(self.open_button)
 
         # Buttons to add or delete a circuit
         self.create_circuit_button = Gtk.Button(label="Melderlinie hinzufügen")
-        self.create_circuit_button.connect("clicked", lambda button, *args: create_circuit())
+        self.create_circuit_button.connect("clicked", lambda button, *args: self.create_circuit())
         self.header.pack_start(self.create_circuit_button)
 
         self.delete_circuit_button = Gtk.Button(label="Melderlinie löschen")
-        self.delete_circuit_button.connect("clicked", lambda button, *args: delete_circuit())
+        self.delete_circuit_button.connect("clicked", lambda button, *args: self.delete_circuit())
         self.header.pack_start(self.delete_circuit_button)
 
     def on_save_clicked(self, button):
@@ -50,17 +51,87 @@ class MainWindow(Gtk.ApplicationWindow):
         save_dialog = FileSaveDialog(button, save_dict)
         save_dialog.open_save_dialog()
 
-    def on_load_clicked(self, button):
+    def on_open_clicked(self, button):
         """Loads a building configuration from a json file. Does not set the alarm_status of detectors"""
         # Delete all current circuits and their detectors
         delete_list = [num for num in building.circuit_dict]
         for circuit_number in delete_list:
-            delete_circuit(circuit_number)
+            self.delete_circuit(circuit_number)
 
-        load_dialog = FileLoadDialog(button)
-        load_dialog.open_load_dialog()
+        open_dialog = FileOpenDialog(button)
+        open_dialog.show_open_dialog()
 
+    def create_circuit(self, circuit_number=None):
+        """Creates a new Circuit instance with automatic numbering"""
+        if circuit_number is None:
+            circuit_number = len(building.circuit_dict) + 1
 
+        circuit = Circuit(circuit_number)
+        circuit.add_detector_button.connect("clicked", lambda button, *args: self.create_detector(circuit_number=circuit_number))
+        circuit.delete_detector_button.connect("clicked", lambda button, *args: self.delete_detector(circuit_number))
+        self.main_box.append(circuit)
+        building.circuit_dict[circuit_number] = circuit
+        return circuit
+
+    def delete_circuit(self, circuit_number=None):
+        """Remove the last circuit and print new detector state"""
+        if circuit_number is None:
+            if len(building.circuit_dict) > 0:
+                index = len(building.circuit_dict)
+                circuit = building.circuit_dict[index]
+            else:
+                return
+        else:
+            index = circuit_number
+            circuit = building.circuit_dict[circuit_number]
+
+        self.main_box.remove(circuit)
+        del building.circuit_dict[index]
+        self.print_detector_state()
+
+    def create_detector(self, circuit_number, detector_number=None, alarm_status=False):
+        """Creates a new Detector instance with automatic numbering"""
+        if detector_number is None:
+            detector_number = len(building.circuit_dict[circuit_number].detector_dict) + 1
+
+        # Create new detector and add it to the detector_dict of the circuit that it belongs to
+        detector = Detector(detector_number)
+        building.circuit_dict[circuit_number].detector_dict[detector_number] = detector
+
+        # Set the detector switch according to the alarm_status and connect it to its callback function
+        detector.alarm_status = alarm_status
+        detector.detector_switch.set_active(alarm_status)
+        detector.detector_switch.connect('state-set', self.on_detector_toggled, circuit_number, detector_number)
+
+        # Add the detector to its circuit
+        circuit = building.circuit_dict[circuit_number]
+        circuit.append(detector)
+        return detector
+
+    def delete_detector(self, circuit_number):
+        """Remove the last detector (needs consecutive numbering for now"""
+        # Get the detector object that needs to be removed and the circuit object from which it is removed
+        index = len(building.circuit_dict[circuit_number].detector_dict)
+        circuit = building.circuit_dict[circuit_number]
+        detector = building.circuit_dict[circuit_number].detector_dict[index]
+
+        del building.circuit_dict[circuit_number].detector_dict[index]
+        circuit.remove(detector)
+        self.print_detector_state()
+
+    def on_detector_toggled(self, detector_switch, state, circuit_number, detector_number):
+        """Callback function for detector_switch. Sets the alarm_status of the detector according to the postion of the switch and prints debugging info"""
+        building.circuit_dict[circuit_number].detector_dict[detector_number].alarm_status = state
+        print(f"Melder {detector_number} in Melderlinie {circuit_number} {'aktiviert' if state else 'deaktiviert'}")
+        self.print_detector_state()
+
+    def print_detector_state(self):
+        """Prints the active detectors to the console"""
+        print(f"Aktive Melder: ")
+        for circuit_number in building.circuit_dict.keys():
+            for detector_number in building.circuit_dict[circuit_number].detector_dict.keys():
+                if building.circuit_dict[circuit_number].detector_dict[detector_number].alarm_status:
+                    print(f"Melder {detector_number} in Melderlinie {circuit_number}")
 
 class Detector(Gtk.Box):
     """Contains a switch and a label with the number of the detector"""
@@ -89,13 +160,8 @@ class Circuit(Gtk.Box):
         self.button_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         self.append(self.button_box)
         self.add_detector_button = Gtk.Button(label="Melder hinzufügen")
-        self.add_detector_button.connect("clicked",
-                                         lambda button, *args: create_detector(circuit_number=circuit_number),
-                                         )
         self.button_box.append(self.add_detector_button)
         self.delete_detector_button = Gtk.Button(label="Melder löschen")
-        self.delete_detector_button.connect("clicked",
-                                            lambda button, *args: delete_detector(circuit_number))
         self.button_box.append(self.delete_detector_button)
 
         # A dictionary to manage detectors within this circuit
@@ -148,7 +214,7 @@ class FileSaveDialog:
             print(f"Save canceled or failed: {e.message}")
 
 
-class FileLoadDialog:
+class FileOpenDialog:
     """Class to load a building from a json file"""
     def __init__(self, button):
         # Pass information about the button that triggered the load dialog
@@ -169,8 +235,8 @@ class FileLoadDialog:
         json_filter.add_pattern("*.json")
         self.load_dialog.set_default_filter(json_filter)
 
-    def open_load_dialog(self):
-        """"Show the dialog asynchronously"""
+    def show_open_dialog(self):
+        """Show the dialog asynchronously"""
         self.load_dialog.open(self.button.get_root(), None, self.on_file_open_response)
 
     def on_file_open_response(self, dialog, result):
@@ -189,86 +255,15 @@ class FileLoadDialog:
 
                     # Create circuits and detectors according to the json file
                     for circuit_number in self.load_dict["circuit_dict"]:
-                        create_circuit(circuit_number)
+                        app.window.create_circuit(int(circuit_number))
                         for detector_number in self.load_dict["circuit_dict"][circuit_number]:
-                            create_detector(circuit_number, detector_number)
+                            app.window.create_detector(int(circuit_number), int(detector_number))
+
+                    print("File loaded successfully")
 
         except GLib.Error as e:
             print(f"Open canceled or failed: {e.message}")
 
-
-def create_circuit(circuit_number=None):
-    """Creates a new Circuit instance with automatic numbering"""
-    if circuit_number is None:
-        circuit_number = len(building.circuit_dict) + 1
-
-    circuit = Circuit(circuit_number)
-    app.window.main_box.append(circuit)
-    building.circuit_dict[circuit_number] = circuit
-    return circuit
-
-def delete_circuit(circuit_number=None):
-    """Remove the last circuit and print new detector state"""
-    if circuit_number is None:
-        if len(building.circuit_dict) > 0:
-            index = len(building.circuit_dict)
-            circuit = building.circuit_dict[index]
-        else:
-            return
-    else:
-        index = circuit_number
-        circuit = building.circuit_dict[circuit_number]
-
-    app.window.main_box.remove(circuit)
-    del building.circuit_dict[index]
-    print_detector_state()
-
-
-
-def create_detector(circuit_number, detector_number=None, alarm_status=False):
-    """Creates a new Detector instance with automatic numbering"""
-    if detector_number is None:
-        detector_number = len(building.circuit_dict[circuit_number].detector_dict) + 1
-
-    # Create new detector and add it to the detector_dict of the circuit that it belongs to
-    detector = Detector(detector_number)
-    building.circuit_dict[circuit_number].detector_dict[detector_number] = detector
-
-    # Set the detector switch according to the alarm_status and connect it to its callback function
-    detector.alarm_status = alarm_status
-    detector.detector_switch.set_active(alarm_status)
-    detector.detector_switch.connect('state-set', on_detector_toggled, circuit_number, detector_number)
-
-    # Add the detector to its circuit
-    circuit = building.circuit_dict[circuit_number]
-    circuit.append(detector)
-    return detector
-
-def delete_detector(circuit_number):
-    """Remove the last detector (needs consecutive numbering for now"""
-    # Get the detector object that needs to be removed and the circuit object from which it is removed
-    index = len(building.circuit_dict[circuit_number].detector_dict)
-    circuit = building.circuit_dict[circuit_number]
-    detector = building.circuit_dict[circuit_number].detector_dict[index]
-
-    del building.circuit_dict[circuit_number].detector_dict[index]
-    circuit.remove(detector)
-    print_detector_state()
-
-
-def on_detector_toggled(detector_switch, state, circuit_number, detector_number):
-    """Callback function for detector_switch. Sets the alarm_status of the detector according to the postion of the switch and prints debugging info"""
-    building.circuit_dict[circuit_number].detector_dict[detector_number].alarm_status = state
-    print(f"Melder {detector_number} in Melderlinie {circuit_number} {'aktiviert' if state else 'deaktiviert'}")
-    print_detector_state()
-
-def print_detector_state():
-    """Prints the active detectors to the console"""
-    print(f"Aktive Melder: ")
-    for circuit_number in building.circuit_dict.keys():
-        for detector_number in building.circuit_dict[circuit_number].detector_dict.keys():
-            if building.circuit_dict[circuit_number].detector_dict[detector_number].alarm_status:
-                print(f"Melder {detector_number} in Melderlinie {circuit_number}")
 
 
 class MyApp(Gtk.Application):
