@@ -45,21 +45,21 @@ class MainWindow(Gtk.ApplicationWindow):
 
 
 class Detector(Gtk.Box):
-    alarm_status: bool = False
+    """Contains a switch and a label with the number of the detector"""
     def __init__(self, detector_number, *args, **kwargs):
         super().__init__(*args, orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
 
         self.detector_switch = Gtk.Switch()
-        self.detector_switch.set_active(False)
-
         self.detector_label = Gtk.Label(label=f"Melder {detector_number}")
 
         self.append(self.detector_switch)
         self.append(self.detector_label)
 
+        self.alarm_status: bool
+
 
 class Circuit(Gtk.Box):
-    """A container for managing multiple Melder instances"""
+    """A container for managing multiple Detector instances"""
     def __init__(self, circuit_number, *args, **kwargs):
         super().__init__(*args, orientation=Gtk.Orientation.VERTICAL, spacing=5)
 
@@ -89,11 +89,31 @@ class Building:
         self.circuit_dict = {}
 
 
-def save_configuration():
-    pass
+def save_configuration(save_path="Objektkonfiguration.json"):
+    """Saves the current building configuration to a json file"""
+    # Create a json compatible dictionary containing all information about the current configuration
+    save_dict = {}
+    for circuit_number in building.circuit_dict:
+        save_dict[circuit_number] = [detector_number for detector_number in building.circuit_dict[circuit_number].detector_dict]
 
-def load_configuration():
-    pass
+    with open(save_path, "w")  as config_dict:
+        json.dump(save_dict, config_dict, sort_keys=True, indent=4)
+
+def load_configuration(open_path="Objektkonfiguration.json"):
+    """Loads a building configuration from a json file. Does not set the alarm_status of detectors"""
+    # Delete all current circuits and their detectors
+    delete_list = [num for num in building.circuit_dict]
+    for circuit_number in delete_list:
+        delete_circuit(circuit_number)
+
+    # Load json file and create the corresponding circuits and detectors
+    with open(open_path, "r") as config_dict:
+        open_dict = json.load(config_dict)
+
+    for circuit_number in open_dict:
+        create_circuit(circuit_number)
+        for detector_number in open_dict[circuit_number]:
+            create_detector(circuit_number, detector_number)
 
 def create_circuit(circuit_number=None):
     """Creates a new Circuit instance with automatic numbering"""
@@ -105,14 +125,23 @@ def create_circuit(circuit_number=None):
     building.circuit_dict[circuit_number] = circuit
     return circuit
 
-def delete_circuit():
-    """Remove a circuit"""
-    if len(building.circuit_dict) > 0:
-        index = len(building.circuit_dict)
-        circuit = building.circuit_dict[index]
-        app.window.main_box.remove(circuit)
-        del building.circuit_dict[index]
-        print_detector_state()
+def delete_circuit(circuit_number=None):
+    """Remove the last circuit and print new detector state"""
+    if circuit_number is None:
+        if len(building.circuit_dict) > 0:
+            index = len(building.circuit_dict)
+            circuit = building.circuit_dict[index]
+        else:
+            return
+    else:
+        index = circuit_number
+        circuit = building.circuit_dict[circuit_number]
+
+    app.window.main_box.remove(circuit)
+    del building.circuit_dict[index]
+    print_detector_state()
+
+
 
 def create_detector(circuit_number, detector_number=None, alarm_status=False):
     """Creates a new Detector instance with automatic numbering"""
@@ -146,11 +175,13 @@ def delete_detector(circuit_number):
 
 
 def on_detector_toggled(detector_switch, state, circuit_number, detector_number):
+    """Callback function for detector_switch. Sets the alarm_status of the detector according to the postion of the switch and prints debugging info"""
     building.circuit_dict[circuit_number].detector_dict[detector_number].alarm_status = state
     print(f"Melder {detector_number} in Melderlinie {circuit_number} {'aktiviert' if state else 'deaktiviert'}")
     print_detector_state()
 
 def print_detector_state():
+    """Prints the active detectors to the console"""
     print(f"Aktive Melder: ")
     for circuit_number in building.circuit_dict.keys():
         for detector_number in building.circuit_dict[circuit_number].detector_dict.keys():
