@@ -39,9 +39,7 @@ class MainWindow(Gtk.ApplicationWindow):
         self.create_circuit_button.connect("clicked", lambda button, *args: self.on_create_circuit_clicked())
         self.header.pack_start(self.create_circuit_button)
 
-        self.delete_circuit_button = Gtk.Button(label="Melderlinie löschen")
-        self.delete_circuit_button.connect("clicked", lambda button, *args: self.delete_circuit())
-        self.header.pack_start(self.delete_circuit_button)
+
 
     def on_save_clicked(self, button):
         save_dict = {"circuit_dict" : {}, "building_description" : building.description}
@@ -79,9 +77,6 @@ class MainWindow(Gtk.ApplicationWindow):
         # Get the circuit that was clicked
         circuit = building.circuit_dict[circuit_number]
 
-        # Connect the buttons of the context menu
-        circuit.context_menu.delete_circuit_button.connect("clicked", lambda button, *args: self.delete_circuit(circuit_number))
-
         # Create an invisible rectangle at the position of the click that the context menu points to
         rect = Gdk.Rectangle()
         rect.x = int(x)
@@ -102,10 +97,19 @@ class MainWindow(Gtk.ApplicationWindow):
         if circuit_number in building.circuit_dict:
             raise AttributeError
 
-        # Set up the circuit and connect all buttons to their callback functions
         circuit = Circuit(circuit_number)
-        circuit.add_detector_button.connect("clicked", lambda button, *args: self.create_detector(circuit_number=circuit_number))
-        circuit.delete_detector_button.connect("clicked", lambda button, *args: self.delete_detector(circuit_number))
+
+        # Connect the buttons of the context menu
+        circuit.context_menu.delete_circuit_button.connect("clicked",
+                                                           lambda button, *args: self.delete_circuit(circuit_number))
+        circuit.context_menu.add_detector_button.connect("clicked",
+                                                         lambda button, *args: self.create_detector(
+                                                             circuit_number=circuit_number))
+        circuit.context_menu.delete_detector_button.connect("clicked",
+                                                            lambda button, *args: self.delete_detector(
+                                                                circuit_number=circuit_number))
+
+        # Connect the event handler that detects if the circuit is right-clicked
         circuit.click_controller.connect("pressed", partial(self.on_circuit_pressed, circuit_number=circuit_number))
 
         # Add the circuit to the main window and the circuit dict
@@ -167,6 +171,7 @@ class MainWindow(Gtk.ApplicationWindow):
         circuit.remove(detector)
         self.print_detector_state()
 
+
     def on_detector_toggled(self, detector_switch, state, circuit_number, detector_number):
         """Callback function for detector_switch. Sets the alarm_status of the detector according to the position of the switch and prints debugging info"""
         building.circuit_dict[circuit_number].detector_dict[detector_number].alarm_status = state
@@ -180,6 +185,7 @@ class MainWindow(Gtk.ApplicationWindow):
             for detector_number in building.circuit_dict[circuit_number].detector_dict.keys():
                 if building.circuit_dict[circuit_number].detector_dict[detector_number].alarm_status:
                     print(f"Melder {detector_number} in Melderlinie {circuit_number}")
+
 
 class Detector(Gtk.Box):
     """Contains a switch and a label with the number of the detector"""
@@ -212,10 +218,7 @@ class Circuit(Gtk.Box):
         # Buttons to add or delete detectors
         self.button_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
         self.append(self.button_box)
-        self.add_detector_button = Gtk.Button(label="Melder hinzufügen")
-        self.button_box.append(self.add_detector_button)
-        self.delete_detector_button = Gtk.Button(label="Melder löschen")
-        self.button_box.append(self.delete_detector_button)
+
 
         # Context menu
         self.context_menu = CircuitContextMenu()
@@ -245,6 +248,10 @@ class CircuitContextMenu(Gtk.Popover):
 
         self.delete_circuit_button = Gtk.Button(label="Melderlinie löschen")
         self.vbox.append(self.delete_circuit_button)
+        self.add_detector_button = Gtk.Button(label="Melder hinzufügen")
+        self.vbox.append(self.add_detector_button)
+        self.delete_detector_button = Gtk.Button(label="Melder löschen")
+        self.vbox.append(self.delete_detector_button)
 
 
 
