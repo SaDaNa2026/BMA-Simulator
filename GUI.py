@@ -98,6 +98,10 @@ class MainWindow(Gtk.ApplicationWindow):
         if circuit_number is None:
             circuit_number = len(building.circuit_dict) + 1
 
+        # Raise an exception if a circuit with this number already exists
+        if circuit_number in building.circuit_dict:
+            raise AttributeError
+
         # Set up the circuit and connect all buttons to their callback functions
         circuit = Circuit(circuit_number)
         circuit.add_detector_button.connect("clicked", lambda button, *args: self.create_detector(circuit_number=circuit_number))
@@ -336,6 +340,7 @@ class FileOpenDialog:
 
 
 class DefineCircuitWindow(Gtk.Window):
+    """A Window that lets the user create a circuit with a chosen number"""
     def __init__(self, create_circuit_callback, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -362,17 +367,65 @@ class DefineCircuitWindow(Gtk.Window):
         self.confirmation_box = Gtk.CenterBox()
         self.main_box.append(self.confirmation_box)
 
-        self.cancel_button = Gtk.Button(label="Abbrechen")
+        self.cancel_button = Gtk.Button(label="Schließen")
         self.cancel_button.connect("clicked", lambda button, *args: self.destroy())
         self.confirmation_box.set_start_widget(self.cancel_button)
 
         self.confirm_button = Gtk.Button(label="Melderlinie hinzufügen")
-        self.confirm_button.connect("clicked",
-                                    lambda button, *args: create_circuit_callback(
-                                        int(self.choose_circuit_number_entry.get_text())))
+        self.confirm_button.connect("clicked", lambda button, *args: self.create_circuit_by_entry(create_circuit_callback))
         self.confirmation_box.set_end_widget(self.confirm_button)
 
+        # Prepare labels if the ínput is incorrect
+        self.same_number_warning_label = Gtk.Label()
+        self.same_number_warning_label.set_markup(
+            f"<span foreground='red'>Wählen Sie eine Nummer, die nicht bereits existiert.</span>")
 
+        self.wrong_type_warning_label = Gtk.Label()
+        self.wrong_type_warning_label.set_markup(f"<span foreground='red'>Geben Sie eine natürliche Zahl ein.</span>")
+
+        self.small_number_warning_label = Gtk.Label()
+        self.small_number_warning_label.set_markup(f"<span foreground='red'>Die Zahl muss größer als 0 sein.</span>")
+
+        self.large_number_warning_label = Gtk.Label()
+        self.large_number_warning_label.set_markup(f"<span foreground='red'>Sie können nicht ernsthaft einen solch großen Wert\nfür die Meldernummer benötigen.</span>")
+
+    def create_circuit_by_entry(self, create_circuit_callback):
+        """Retrieve the entry and check it for correct syntax, then call create_circuit"""
+        entry = self.choose_circuit_number_entry.get_text()
+
+        # Remove old warnings
+        if self.wrong_type_warning_label.get_parent():
+            self.main_box.remove(self.wrong_type_warning_label)
+        if self.same_number_warning_label.get_parent():
+            self.main_box.remove(self.same_number_warning_label)
+        if self.small_number_warning_label.get_parent():
+            self.main_box.remove(self.small_number_warning_label)
+        if self.large_number_warning_label.get_parent():
+            self.main_box.remove(self.large_number_warning_label)
+
+        # Check for correct type
+        try:
+            circuit_number = int(entry)
+            if circuit_number <= 0:
+                raise ValueError("small")
+            if circuit_number > 999999999:
+                raise ValueError("large")
+        except ValueError as e:
+            print("Input a positive integer smaller than 1000000000")
+            if str(e) == "small":
+                self.main_box.insert_child_after(self.small_number_warning_label, self.choose_circuit_number_box)
+            if str(e) == "large":
+                self.main_box.insert_child_after(self.large_number_warning_label, self.choose_circuit_number_box)
+            else:
+                self.main_box.insert_child_after(self.wrong_type_warning_label, self.choose_circuit_number_box)
+            return
+
+        # Create the circuit
+        try:
+            create_circuit_callback(circuit_number)
+        except AttributeError:
+            print("AttributeError")
+            self.main_box.insert_child_after(self.same_number_warning_label, self.choose_circuit_number_box)
 
 
 class App(Gtk.Application):
