@@ -67,7 +67,7 @@ class MainWindow(Gtk.ApplicationWindow):
             self.create_circuit(int(circuit_number))
             for detector_number in load_dict["circuit_dict"][circuit_number]:
                 detector_info = load_dict["circuit_dict"][circuit_number][detector_number]
-                self.create_detector(int(circuit_number), int(detector_number), detector_info=detector_info)
+                self.create_detector(int(circuit_number), int(detector_number), detector_description=detector_info)
 
 
     def on_circuit_pressed(self, gesture, n_press, x, y, circuit_number):
@@ -90,13 +90,13 @@ class MainWindow(Gtk.ApplicationWindow):
         self.define_circuit = DefineCircuitWindow(self.create_circuit)
         self.define_circuit.present()
 
-    # def on_create_detector_clicked(self):
-        
+    def on_create_detector_clicked(self, circuit_number):
+        """Creates a DefineDetectorWindow. Callback function for the create_detector_button."""
+        self.define_detector = DefineDetectorWindow(self.create_detector, circuit_number)
+        self.define_detector.present()
 
     def create_circuit(self, circuit_number):
         """Creates a new Circuit instance with automatic numbering"""
-        if circuit_number is None:
-            circuit_number = len(building.circuit_dict) + 1
 
         # Raise an exception if a circuit with this number already exists
         if circuit_number in building.circuit_dict:
@@ -106,8 +106,7 @@ class MainWindow(Gtk.ApplicationWindow):
 
         # Connect the buttons of the context menu
         circuit.context_menu.add_detector_button.connect("clicked",
-                                                         lambda button, *args: self.create_detector(
-                                                             circuit_number=circuit_number))
+                                                         lambda button, *args: self.on_create_detector_clicked(circuit_number))
         circuit.context_menu.delete_detector_button.connect("clicked",
                                                             lambda button, *args: self.delete_detector(
                                                                 circuit_number=circuit_number))
@@ -138,16 +137,17 @@ class MainWindow(Gtk.ApplicationWindow):
         del building.circuit_dict[index]
         self.print_detector_state()
 
-    def create_detector(self, circuit_number, detector_number=None, alarm_status=False, detector_info="Beschreibung"):
-        """Creates a new Detector instance with automatic numbering"""
-        if detector_number is None:
-            detector_number = len(building.circuit_dict[circuit_number].detector_dict) + 1
+    def create_detector(self, circuit_number, detector_number, alarm_status=False, detector_description="Beschreibung"):
+        """Creates a new Detector instance"""
+        # Raise an exception if a detector with this number already exists
+        if detector_number in building.circuit_dict[circuit_number].detector_dict:
+            raise AttributeError
 
         # Create new detector and add it to the detector_dict of the circuit that it belongs to
         detector = Detector(detector_number)
         building.circuit_dict[circuit_number].detector_dict[detector_number] = detector
 
-        detector.detector_info = detector_info
+        detector.detector_info = detector_description
 
         # Set the detector switch according to the alarm_status and connect it to its callback function
         detector.alarm_status = alarm_status
@@ -408,7 +408,7 @@ class DefineObjectWindow(Gtk.Window):
                                                    f"großen Wert benötigen.\nGeben Sie einen Werten kleiner "
                                                    f"1.000.000.000 ein.</span>")
 
-    def get_entry(self):
+    def get_number_entry(self):
         """Retrieve the entry and check it for correct syntax"""
         entry = self.choose_number_entry.get_text()
 
@@ -445,16 +445,47 @@ class DefineCircuitWindow(DefineObjectWindow):
         super().__init__(handle_create_method=lambda button: self.handle_create_circuit(create_circuit_callback), entry_label="Nummer der Melderlinie:")
 
     def handle_create_circuit(self, create_circuit_callback):
-        object_number = self.get_entry()
+        circuit_number = self.get_number_entry()
 
         # Check if the entry could be retrieved and create the circuit
-        if object_number is not None:
+        if circuit_number is not None:
             try:
-                create_circuit_callback(object_number)
+                create_circuit_callback(circuit_number)
             except AttributeError:
                 print("AttributeError")
                 self.main_box.insert_child_after(self.same_number_warning_label, self.choose_number_box)
 
+class DefineDetectorWindow(DefineObjectWindow):
+    """A Window that lets the user create a detector with a chosen number and description"""
+    def __init__(self, create_detector_callback, circuit_number):
+        super().__init__(handle_create_method=lambda button: self.handle_create_detector(create_detector_callback), entry_label="Nummer des Melders:")
+
+        self.circuit_number = circuit_number
+
+        self.description_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
+        self.main_box.insert_child_after(self.description_box, self.choose_number_box)
+
+        self.description_label = Gtk.Label(label="Beschreibung")
+        self.description_box.append(self.description_label)
+
+        self.description_textview = Gtk.TextView()
+        self.description_box.append(self.description_textview)
+        self.textbuffer = self.description_textview.get_buffer()
+
+    def handle_create_detector(self, create_detector_callback):
+        detector_number = self.get_number_entry()
+
+        # Get contents of the TextView
+        start = self.textbuffer.get_start_iter()
+        end = self.textbuffer.get_end_iter()
+        detector_description = self.textbuffer.get_text(start, end, True)
+
+        if detector_number is not None:
+            try:
+                create_detector_callback(circuit_number=self.circuit_number, detector_number=detector_number, detector_description=detector_description)
+            except AttributeError:
+                print("AttributeError")
+                self.main_box.insert_child_after(self.same_number_warning_label, self.choose_number_box)
 
 
 
