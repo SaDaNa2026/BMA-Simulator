@@ -11,8 +11,10 @@ from functools import partial
 class MainWindow(Gtk.ApplicationWindow):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
         self.set_default_size(500, 500)
 
+        # Create a box that contains all other widgets in this window
         self.main_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
         self.main_box.set_margin_top(5)
         self.main_box.set_margin_bottom(5)
@@ -27,11 +29,11 @@ class MainWindow(Gtk.ApplicationWindow):
 
         # Buttons to save and load configurations
         self.save_button = Gtk.Button(label="Speichern")
-        self.save_button.connect("clicked", self.on_save_clicked)
+        self.save_button.connect("clicked", lambda button, *args: self.on_save_clicked())
         self.header.pack_end(self.save_button)
 
         self.open_button = Gtk.Button(label="Öffnen")
-        self.open_button.connect("clicked", self.on_open_clicked)
+        self.open_button.connect("clicked", lambda button, *args: self.on_open_clicked())
         self.header.pack_end(self.open_button)
 
         # Buttons to add or delete a circuit
@@ -40,29 +42,28 @@ class MainWindow(Gtk.ApplicationWindow):
         self.header.pack_start(self.create_circuit_button)
 
 
-
-    def on_save_clicked(self, button):
+    def on_save_clicked(self):
         """Save the building structure to a json file"""
         save_dict = {"circuit_dict" : {}, "building_description" : building.description}
         for circuit_number in building.circuit_dict:
             save_dict["circuit_dict"][circuit_number] = {}
             for detector_number in building.circuit_dict[circuit_number].detector_dict:
                 save_dict["circuit_dict"][circuit_number][detector_number] = building.circuit_dict[circuit_number].detector_dict[detector_number].detector_info
-        save_dialog = FileSaveDialog(button, save_dict)
+        save_dialog = FileSaveDialog(save_dict)
         save_dialog.open_save_dialog()
 
-    def on_open_clicked(self, button):
+    def on_open_clicked(self):
         """Loads a building configuration from a json file. Does not set the alarm_status of detectors"""
         # Delete all current circuits and their detectors
         delete_list = [num for num in building.circuit_dict]
         for circuit_number in delete_list:
             self.delete_circuit(circuit_number)
 
-        open_dialog = FileOpenDialog(button)
+        open_dialog = FileOpenDialog()
         open_dialog.show_open_dialog(load_data_callback=self.load_data)
 
     def load_data(self, load_dict):
-        # Callback to create circuits and detectors according to the json file
+        """Create circuits and detectors according to the json file"""
         for circuit_number in load_dict["circuit_dict"]:
             self.create_circuit(int(circuit_number))
             for detector_number in load_dict["circuit_dict"][circuit_number]:
@@ -107,9 +108,6 @@ class MainWindow(Gtk.ApplicationWindow):
         # Connect the buttons of the context menu
         circuit.context_menu.add_detector_button.connect("clicked",
                                                          lambda button, *args: self.on_create_detector_clicked(circuit_number))
-        circuit.context_menu.delete_detector_button.connect("clicked",
-                                                            lambda button, *args: self.delete_detector(
-                                                                circuit_number=circuit_number))
         circuit.context_menu.delete_circuit_button.connect("clicked",
                                                            lambda button, *args: self.delete_circuit(circuit_number))
 
@@ -244,6 +242,8 @@ class Building:
 
 
 
+
+
 class CircuitContextMenu(Gtk.Popover):
     def __init__(self):
         super().__init__()
@@ -252,13 +252,11 @@ class CircuitContextMenu(Gtk.Popover):
         self.set_autohide(True)
         self.set_offset(100, 0)
 
-        self.vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
+        self.vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         self.set_child(self.vbox)
 
         self.add_detector_button = Gtk.Button(label="Melder hinzufügen")
         self.vbox.append(self.add_detector_button)
-        self.delete_detector_button = Gtk.Button(label="Melder löschen")
-        self.vbox.append(self.delete_detector_button)
         self.delete_circuit_button = Gtk.Button(label="Melderlinie löschen")
         self.vbox.append(self.delete_circuit_button)
 
@@ -266,9 +264,7 @@ class CircuitContextMenu(Gtk.Popover):
 
 class FileSaveDialog:
     """Class to save the current building configuration to a json file"""
-    def __init__(self, button, save_dict):
-        # Pass information about the button that triggered the save dialog and the dictionary that should be saved
-        self.button = button
+    def __init__(self, save_dict):
         self.save_dict = save_dict
 
         # Present a file save dialog
@@ -287,7 +283,7 @@ class FileSaveDialog:
 
     def open_save_dialog(self):
         """Show the dialog asynchronously"""
-        self.save_dialog.save(self.button.get_root(), None, self.on_file_save_response)
+        self.save_dialog.save(bma_control.window, None, self.on_file_save_response)
 
     def on_file_save_response(self, dialog, result):
         try:
@@ -307,9 +303,7 @@ class FileSaveDialog:
 
 class FileOpenDialog:
     """Class to load a building from a json file"""
-    def __init__(self, button):
-        # Pass information about the button that triggered the load dialog
-        self.button = button
+    def __init__(self):
         # Create a dictionary to save the data loaded from the json file
         self.load_dict = {}
 
@@ -328,7 +322,7 @@ class FileOpenDialog:
 
     def show_open_dialog(self, load_data_callback):
         """Show the dialog asynchronously"""
-        self.load_dialog.open(self.button.get_root(),
+        self.load_dialog.open(bma_control.window,
                               None,
                               partial(self.on_file_open_response, load_data_callback=load_data_callback))
 
