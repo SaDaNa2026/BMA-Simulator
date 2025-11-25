@@ -42,10 +42,12 @@ class MainWindow(Gtk.ApplicationWindow):
 
 
     def on_save_clicked(self, button):
+        """Save the building structure to a json file"""
         save_dict = {"circuit_dict" : {}, "building_description" : building.description}
         for circuit_number in building.circuit_dict:
-            save_dict["circuit_dict"][circuit_number] = [detector_number for detector_number in
-                                              building.circuit_dict[circuit_number].detector_dict]
+            save_dict["circuit_dict"][circuit_number] = {}
+            for detector_number in building.circuit_dict[circuit_number].detector_dict:
+                save_dict["circuit_dict"][circuit_number][detector_number] = building.circuit_dict[circuit_number].detector_dict[detector_number].detector_info
         save_dialog = FileSaveDialog(button, save_dict)
         save_dialog.open_save_dialog()
 
@@ -64,13 +66,9 @@ class MainWindow(Gtk.ApplicationWindow):
         for circuit_number in load_dict["circuit_dict"]:
             self.create_circuit(int(circuit_number))
             for detector_number in load_dict["circuit_dict"][circuit_number]:
-                self.create_detector(int(circuit_number), int(detector_number))
+                detector_info = load_dict["circuit_dict"][circuit_number][detector_number]
+                self.create_detector(int(circuit_number), int(detector_number), detector_info=detector_info)
 
-
-    def on_create_circuit_clicked(self):
-        """Creates a DefineCircuitWindow. Callback function for the create_circuit_button."""
-        self.define_circuit = DefineCircuitWindow(self.create_circuit)
-        self.define_circuit.present()
 
     def on_circuit_pressed(self, gesture, n_press, x, y, circuit_number):
         """Presents a context menu on a circuit_box"""
@@ -87,8 +85,15 @@ class MainWindow(Gtk.ApplicationWindow):
         circuit.context_menu.set_pointing_to(rect)
         circuit.context_menu.popup()
 
+    def on_create_circuit_clicked(self):
+        """Creates a DefineCircuitWindow. Callback function for the create_circuit_button."""
+        self.define_circuit = DefineCircuitWindow(self.create_circuit)
+        self.define_circuit.present()
 
-    def create_circuit(self, circuit_number=None):
+    # def on_create_detector_clicked(self):
+        
+
+    def create_circuit(self, circuit_number):
         """Creates a new Circuit instance with automatic numbering"""
         if circuit_number is None:
             circuit_number = len(building.circuit_dict) + 1
@@ -100,14 +105,14 @@ class MainWindow(Gtk.ApplicationWindow):
         circuit = Circuit(circuit_number)
 
         # Connect the buttons of the context menu
-        circuit.context_menu.delete_circuit_button.connect("clicked",
-                                                           lambda button, *args: self.delete_circuit(circuit_number))
         circuit.context_menu.add_detector_button.connect("clicked",
                                                          lambda button, *args: self.create_detector(
                                                              circuit_number=circuit_number))
         circuit.context_menu.delete_detector_button.connect("clicked",
                                                             lambda button, *args: self.delete_detector(
                                                                 circuit_number=circuit_number))
+        circuit.context_menu.delete_circuit_button.connect("clicked",
+                                                           lambda button, *args: self.delete_circuit(circuit_number))
 
         # Connect the event handler that detects if the circuit is right-clicked
         circuit.click_controller.connect("pressed", partial(self.on_circuit_pressed, circuit_number=circuit_number))
@@ -117,7 +122,7 @@ class MainWindow(Gtk.ApplicationWindow):
         building.circuit_dict[circuit_number] = circuit
         return circuit
 
-    def delete_circuit(self, circuit_number=None):
+    def delete_circuit(self, circuit_number):
         """Delete the last circuit and print new detector state"""
         if circuit_number is None:
             if len(building.circuit_dict) > 0:
@@ -133,7 +138,7 @@ class MainWindow(Gtk.ApplicationWindow):
         del building.circuit_dict[index]
         self.print_detector_state()
 
-    def create_detector(self, circuit_number, detector_number=None, alarm_status=False):
+    def create_detector(self, circuit_number, detector_number=None, alarm_status=False, detector_info="Beschreibung"):
         """Creates a new Detector instance with automatic numbering"""
         if detector_number is None:
             detector_number = len(building.circuit_dict[circuit_number].detector_dict) + 1
@@ -141,6 +146,8 @@ class MainWindow(Gtk.ApplicationWindow):
         # Create new detector and add it to the detector_dict of the circuit that it belongs to
         detector = Detector(detector_number)
         building.circuit_dict[circuit_number].detector_dict[detector_number] = detector
+
+        detector.detector_info = detector_info
 
         # Set the detector switch according to the alarm_status and connect it to its callback function
         detector.alarm_status = alarm_status
@@ -200,6 +207,8 @@ class Detector(Gtk.Box):
 
         self.alarm_status: bool
 
+        self.detector_info: str
+
 
 class Circuit(Gtk.Box):
     """A container for managing multiple Detector instances"""
@@ -246,12 +255,12 @@ class CircuitContextMenu(Gtk.Popover):
         self.vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
         self.set_child(self.vbox)
 
-        self.delete_circuit_button = Gtk.Button(label="Melderlinie löschen")
-        self.vbox.append(self.delete_circuit_button)
         self.add_detector_button = Gtk.Button(label="Melder hinzufügen")
         self.vbox.append(self.add_detector_button)
         self.delete_detector_button = Gtk.Button(label="Melder löschen")
         self.vbox.append(self.delete_detector_button)
+        self.delete_circuit_button = Gtk.Button(label="Melderlinie löschen")
+        self.vbox.append(self.delete_circuit_button)
 
 
 
@@ -346,29 +355,30 @@ class FileOpenDialog:
             print(f"Open canceled or failed: {e.message}")
 
 
-class DefineCircuitWindow(Gtk.Window):
-    """A Window that lets the user create a circuit with a chosen number"""
-    def __init__(self, create_circuit_callback, *args, **kwargs):
+class DefineObjectWindow(Gtk.Window):
+    """A base class for Windows that let the use create objects with a chosen number"""
+    def __init__(self, handle_create_method, entry_label, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.set_default_size(300, 300)
+        self.set_default_size(350, 100)
 
         self.main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,
                                 margin_top=5,
                                 margin_bottom=5,
                                 margin_start=5,
-                                margin_end=5)
+                                margin_end=5,
+                                spacing=10)
         self.set_child(self.main_box)
 
         # Labeled Entry field for the user to put in the number of the circuit to be created
-        self.choose_circuit_number_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
-        self.main_box.append(self.choose_circuit_number_box)
+        self.choose_number_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
+        self.main_box.append(self.choose_number_box)
 
-        self.choose_circuit_number_label = Gtk.Label(label="Nummer der Melderlinie")
-        self.choose_circuit_number_box.append(self.choose_circuit_number_label)
+        self.choose_number_label = Gtk.Label(label=entry_label)
+        self.choose_number_box.append(self.choose_number_label)
 
-        self.choose_circuit_number_entry = Gtk.Entry(has_frame=True)
-        self.choose_circuit_number_box.append(self.choose_circuit_number_entry)
+        self.choose_number_entry = Gtk.Entry(has_frame=True)
+        self.choose_number_box.append(self.choose_number_entry)
 
         # Buttons to cancel or add the circuit
         self.confirmation_box = Gtk.CenterBox()
@@ -378,8 +388,8 @@ class DefineCircuitWindow(Gtk.Window):
         self.cancel_button.connect("clicked", lambda button, *args: self.destroy())
         self.confirmation_box.set_start_widget(self.cancel_button)
 
-        self.confirm_button = Gtk.Button(label="Melderlinie hinzufügen")
-        self.confirm_button.connect("clicked", lambda button, *args: self.create_circuit_by_entry(create_circuit_callback))
+        self.confirm_button = Gtk.Button(label="Hinzufügen")
+        self.confirm_button.connect("clicked", handle_create_method)
         self.confirmation_box.set_end_widget(self.confirm_button)
 
         # Prepare labels if the ínput is incorrect
@@ -391,14 +401,16 @@ class DefineCircuitWindow(Gtk.Window):
         self.wrong_type_warning_label.set_markup(f"<span foreground='red'>Geben Sie eine natürliche Zahl ein.</span>")
 
         self.small_number_warning_label = Gtk.Label()
-        self.small_number_warning_label.set_markup(f"<span foreground='red'>Die Zahl muss größer als 0 sein.</span>")
+        self.small_number_warning_label.set_markup(f"<span foreground='red'>Die Zahl muss größer 0 sein.</span>")
 
         self.large_number_warning_label = Gtk.Label()
-        self.large_number_warning_label.set_markup(f"<span foreground='red'>Sie können nicht ernsthaft einen solch großen Wert\nfür die Meldernummer benötigen.</span>")
+        self.large_number_warning_label.set_markup(f"<span foreground='red'>Sie können nicht ernsthaft einen solch "
+                                                   f"großen Wert benötigen.\nGeben Sie einen Werten kleiner "
+                                                   f"1.000.000.000 ein.</span>")
 
-    def create_circuit_by_entry(self, create_circuit_callback):
-        """Retrieve the entry and check it for correct syntax, then call create_circuit"""
-        entry = self.choose_circuit_number_entry.get_text()
+    def get_entry(self):
+        """Retrieve the entry and check it for correct syntax"""
+        entry = self.choose_number_entry.get_text()
 
         # Remove old warnings
         if self.wrong_type_warning_label.get_parent():
@@ -412,27 +424,38 @@ class DefineCircuitWindow(Gtk.Window):
 
         # Check for correct type
         try:
-            circuit_number = int(entry)
-            if circuit_number <= 0:
+            object_number = int(entry)
+            if object_number <= 0:
                 raise ValueError("small")
-            if circuit_number > 999999999:
+            if object_number > 999999999:
                 raise ValueError("large")
+            return object_number
         except ValueError as e:
             print("Input a positive integer smaller than 1000000000")
             if str(e) == "small":
-                self.main_box.insert_child_after(self.small_number_warning_label, self.choose_circuit_number_box)
+                self.main_box.insert_child_after(self.small_number_warning_label, self.choose_number_box)
             if str(e) == "large":
-                self.main_box.insert_child_after(self.large_number_warning_label, self.choose_circuit_number_box)
+                self.main_box.insert_child_after(self.large_number_warning_label, self.choose_number_box)
             else:
-                self.main_box.insert_child_after(self.wrong_type_warning_label, self.choose_circuit_number_box)
-            return
+                self.main_box.insert_child_after(self.wrong_type_warning_label, self.choose_number_box)
 
-        # Create the circuit
-        try:
-            create_circuit_callback(circuit_number)
-        except AttributeError:
-            print("AttributeError")
-            self.main_box.insert_child_after(self.same_number_warning_label, self.choose_circuit_number_box)
+class DefineCircuitWindow(DefineObjectWindow):
+    """A Window that lets the user create a circuit with a chosen number"""
+    def __init__(self, create_circuit_callback):
+        super().__init__(handle_create_method=lambda button: self.handle_create_circuit(create_circuit_callback), entry_label="Nummer der Melderlinie:")
+
+    def handle_create_circuit(self, create_circuit_callback):
+        object_number = self.get_entry()
+
+        # Check if the entry could be retrieved and create the circuit
+        if object_number is not None:
+            try:
+                create_circuit_callback(object_number)
+            except AttributeError:
+                print("AttributeError")
+                self.main_box.insert_child_after(self.same_number_warning_label, self.choose_number_box)
+
+
 
 
 class App(Gtk.Application):
