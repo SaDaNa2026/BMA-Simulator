@@ -1,6 +1,5 @@
 import json
 import sys
-from multiprocessing.process import parent_process
 
 import gi
 gi.require_version('Gtk', '4.0')
@@ -67,6 +66,10 @@ class MainWindow(Gtk.ApplicationWindow):
         self.delete_detector_action = Gio.SimpleAction(name="delete_detector", parameter_type=GLib.VariantType("s"))
         self.delete_detector_action.connect("activate", self.delete_detector)
         self.add_action(self.delete_detector_action)
+
+        self.edit_detector_action = Gio.SimpleAction(name="edit_detector", parameter_type=GLib.VariantType("s"))
+        self.edit_detector_action.connect("activate", self.on_edit_detector_clicked)
+        self.add_action(self.edit_detector_action)
 
 
     def on_save_clicked(self, action, parameter):
@@ -138,8 +141,20 @@ class MainWindow(Gtk.ApplicationWindow):
         # Convert the action parameter to int
         circuit_number = parameter.get_int32()
 
-        self.define_detector = DefineDetectorWindow(self.create_detector, circuit_number, self)
+        self.define_detector = DefineDetectorWindow(circuit_number, self.create_detector, self)
         self.define_detector.present()
+
+    def on_edit_detector_clicked(self, action, parameter):
+        """Creates an EditDetectorWindow"""
+        # Convert parameters to int
+        parameter_string = parameter.get_string()
+        parameter_list = parameter_string.split(", ")
+        circuit_number = int(parameter_list[0])
+        detector_number = int(parameter_list[1])
+
+        self.edit_detector = EditDetectorWindow(circuit_number, detector_number, self.edit_detector, self)
+        self.edit_detector.present()
+
 
     def create_circuit(self, circuit_number):
         """Creates a new Circuit instance with automatic numbering"""
@@ -212,6 +227,10 @@ class MainWindow(Gtk.ApplicationWindow):
         del building.circuit_dict[circuit_number].detector_dict[detector_number]
         circuit.remove(detector)
         self.print_detector_state()
+
+    def edit_detector(self, circuit_number, detector_number, description):
+        detector = building.circuit_dict[circuit_number].detector_dict[detector_number]
+        detector.detector_info = description
 
 
     def on_detector_toggled(self, detector_switch, state, circuit_number, detector_number):
@@ -407,7 +426,7 @@ class DefineObjectWindow(Gtk.Window):
 
         self.set_default_size(350, 100)
 
-        # Make it modal and transient for the parent
+        # Make the window modal and transient for the parent (parent window won't take focus until this window is closed)
         self.set_modal(True)
         self.set_transient_for(parent)
 
@@ -419,7 +438,7 @@ class DefineObjectWindow(Gtk.Window):
                                 spacing=10)
         self.set_child(self.main_box)
 
-        # Labeled Entry field for the user to put in the number of the circuit to be created
+        # Labeled Entry field for the user to put in the number of the object to be created
         self.choose_number_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
         self.main_box.append(self.choose_number_box)
 
@@ -429,7 +448,7 @@ class DefineObjectWindow(Gtk.Window):
         self.choose_number_entry = Gtk.Entry(has_frame=True)
         self.choose_number_box.append(self.choose_number_entry)
 
-        # Buttons to cancel or add the circuit
+        # Buttons to cancel or add the object
         self.confirmation_box = Gtk.CenterBox()
         self.main_box.append(self.confirmation_box)
 
@@ -506,28 +525,18 @@ class DefineCircuitWindow(DefineObjectWindow):
 
 class DefineDetectorWindow(DefineObjectWindow):
     """A Window that lets the user create a detector with a chosen number and description"""
-    def __init__(self, create_detector_callback, circuit_number, parent):
+    def __init__(self, circuit_number, create_detector_callback, parent):
         super().__init__(handle_create_method=lambda button: self.handle_create_detector(create_detector_callback), entry_label="Nummer des Melders:", parent=parent)
 
         self.circuit_number = circuit_number
 
-        self.description_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
+        self.description_box = DescriptionBox()
         self.main_box.insert_child_after(self.description_box, self.choose_number_box)
 
-        self.description_label = Gtk.Label(label="Beschreibung")
-        self.description_box.append(self.description_label)
-
-        self.description_textview = Gtk.TextView()
-        self.description_box.append(self.description_textview)
-        self.textbuffer = self.description_textview.get_buffer()
-
     def handle_create_detector(self, create_detector_callback):
+        """Retrieve the user entry and create the according detector"""
         detector_number = self.get_number_entry()
-
-        # Get contents of the TextView
-        start = self.textbuffer.get_start_iter()
-        end = self.textbuffer.get_end_iter()
-        detector_description = self.textbuffer.get_text(start, end, True)
+        detector_description = self.description_box.get_description()
 
         if detector_number is not None:
             try:
@@ -535,6 +544,69 @@ class DefineDetectorWindow(DefineObjectWindow):
             except AttributeError:
                 print("AttributeError")
                 self.main_box.insert_child_after(self.same_number_warning_label, self.choose_number_box)
+
+
+class EditDetectorWindow(Gtk.Window):
+    """A window that lets the user edit the description of a detector"""
+    def __init__(self, circuit_number, detector_number, edit_detector_callback, parent, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.circuit_number = circuit_number
+        self.detector_number = detector_number
+        detector = building.circuit_dict[circuit_number].detector_dict[detector_number]
+
+        self.set_default_size(350, 100)
+
+        # Make the window modal and transient for the parent
+        self.set_modal(True)
+        self.set_transient_for(parent)
+
+        self.main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,
+                                margin_top=5,
+                                margin_bottom=5,
+                                margin_start=5,
+                                margin_end=5,
+                                spacing=10)
+        self.set_child(self.main_box)
+
+        self.description_box = DescriptionBox(default_text=detector.detector_info)
+        self.main_box.append(self.description_box)
+
+        # Buttons to cancel or confirm
+        self.confirmation_box = Gtk.CenterBox()
+        self.main_box.append(self.confirmation_box)
+
+        self.cancel_button = Gtk.Button(label="Schließen")
+        self.cancel_button.connect("clicked", lambda button, *args: self.destroy())
+        self.confirmation_box.set_start_widget(self.cancel_button)
+
+        self.confirm_button = Gtk.Button(label="Bestätigen")
+        self.confirm_button.connect("clicked", lambda button, *args: self.handle_edit_detector(edit_detector_callback))
+        self.confirmation_box.set_end_widget(self.confirm_button)
+
+    def handle_edit_detector(self, edit_detector_callback):
+        description = self.description_box.get_description()
+        edit_detector_callback(self.circuit_number, self.detector_number, description)
+        self.destroy()
+
+
+
+class DescriptionBox(Gtk.Box):
+    def __init__(self, default_text=""):
+        super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=5)
+        self.description_label = Gtk.Label(label="Beschreibung:")
+        self.append(self.description_label)
+
+        self.description_textview = Gtk.TextView()
+        self.append(self.description_textview)
+        self.textbuffer = self.description_textview.get_buffer()
+        self.textbuffer.set_text(default_text)
+
+    def get_description(self):
+        # Get contents of the TextView
+        start = self.textbuffer.get_start_iter()
+        end = self.textbuffer.get_end_iter()
+        description = self.textbuffer.get_text(start, end, True)
+        return description
 
 
 
