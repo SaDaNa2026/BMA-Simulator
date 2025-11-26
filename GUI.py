@@ -1,5 +1,6 @@
 import json
 import sys
+from multiprocessing.process import parent_process
 
 import gi
 gi.require_version('Gtk', '4.0')
@@ -80,7 +81,7 @@ class MainWindow(Gtk.ApplicationWindow):
 
     def on_open_clicked(self, action, parameter):
         """Loads a building configuration from a json file. Does not set the alarm_status of detectors"""
-        # Delete all current circuits and their detectors
+        # Delete all current circuits
         delete_list = [num for num in building.circuit_dict]
         for circuit_number in delete_list:
             self.delete_circuit_action.activate(GLib.Variant("i", circuit_number))
@@ -129,7 +130,7 @@ class MainWindow(Gtk.ApplicationWindow):
 
     def on_create_circuit_clicked(self, action, parameter):
         """Creates a DefineCircuitWindow. Callback function for the create_circuit_button."""
-        self.define_circuit = DefineCircuitWindow(self.create_circuit)
+        self.define_circuit = DefineCircuitWindow(self.create_circuit, self)
         self.define_circuit.present()
 
     def on_create_detector_clicked(self, action, parameter):
@@ -137,7 +138,7 @@ class MainWindow(Gtk.ApplicationWindow):
         # Convert the action parameter to int
         circuit_number = parameter.get_int32()
 
-        self.define_detector = DefineDetectorWindow(self.create_detector, circuit_number)
+        self.define_detector = DefineDetectorWindow(self.create_detector, circuit_number, self)
         self.define_detector.present()
 
     def create_circuit(self, circuit_number):
@@ -246,7 +247,7 @@ class Detector(Gtk.Box):
         # A tool to register the detector_label being right-clicked
         self.click_controller = Gtk.GestureClick()
         self.click_controller.set_button(Gdk.BUTTON_SECONDARY)
-        self.detector_label.add_controller(self.click_controller)
+        self.add_controller(self.click_controller)
 
         # Context menu
         self.menu_model = DetectorContextMenu(circuit_number, detector_number)
@@ -288,8 +289,6 @@ class Building:
     def __init__(self):
         self.circuit_dict = {}
         self.description = "Hier Gebäudebeschreibung einfügen"
-
-
 
 
 
@@ -403,10 +402,14 @@ class FileOpenDialog:
 
 class DefineObjectWindow(Gtk.Window):
     """A base class for Windows that let the use create objects with a chosen number"""
-    def __init__(self, handle_create_method, entry_label, *args, **kwargs):
+    def __init__(self, handle_create_method, entry_label, parent, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         self.set_default_size(350, 100)
+
+        # Make it modal and transient for the parent
+        self.set_modal(True)
+        self.set_transient_for(parent)
 
         self.main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,
                                 margin_top=5,
@@ -487,8 +490,8 @@ class DefineObjectWindow(Gtk.Window):
 
 class DefineCircuitWindow(DefineObjectWindow):
     """A Window that lets the user create a circuit with a chosen number"""
-    def __init__(self, create_circuit_callback):
-        super().__init__(handle_create_method=lambda button: self.handle_create_circuit(create_circuit_callback), entry_label="Nummer der Melderlinie:")
+    def __init__(self, create_circuit_callback, parent):
+        super().__init__(handle_create_method=lambda button: self.handle_create_circuit(create_circuit_callback), entry_label="Nummer der Melderlinie:", parent=parent)
 
     def handle_create_circuit(self, create_circuit_callback):
         circuit_number = self.get_number_entry()
@@ -503,8 +506,8 @@ class DefineCircuitWindow(DefineObjectWindow):
 
 class DefineDetectorWindow(DefineObjectWindow):
     """A Window that lets the user create a detector with a chosen number and description"""
-    def __init__(self, create_detector_callback, circuit_number):
-        super().__init__(handle_create_method=lambda button: self.handle_create_detector(create_detector_callback), entry_label="Nummer des Melders:")
+    def __init__(self, create_detector_callback, circuit_number, parent):
+        super().__init__(handle_create_method=lambda button: self.handle_create_detector(create_detector_callback), entry_label="Nummer des Melders:", parent=parent)
 
         self.circuit_number = circuit_number
 
