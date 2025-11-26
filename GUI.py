@@ -63,7 +63,7 @@ class MainWindow(Gtk.ApplicationWindow):
         self.create_detector_action.connect("activate", self.on_create_detector_clicked)
         self.add_action(self.create_detector_action)
 
-        self.delete_detector_action = Gio.SimpleAction(name="delete_detector", parameter_type=GLib.VariantType("i"))
+        self.delete_detector_action = Gio.SimpleAction(name="delete_detector", parameter_type=GLib.VariantType("s"))
         self.delete_detector_action.connect("activate", self.delete_detector)
         self.add_action(self.delete_detector_action)
 
@@ -112,6 +112,21 @@ class MainWindow(Gtk.ApplicationWindow):
         circuit.context_menu_popover.set_pointing_to(rect)
         circuit.context_menu_popover.popup()
 
+    def on_detector_pressed(self, gesture, n_press, x, y, circuit_number, detector_number):
+        """Presents a context menu on a circuit_box"""
+        # Get the circuit that was clicked
+        detector = building.circuit_dict[circuit_number].detector_dict[detector_number]
+
+        # Create an invisible rectangle at the position of the click that the context menu points to
+        rect = Gdk.Rectangle()
+        rect.x = int(x)
+        rect.y = int(y)
+        rect.width = 1
+        rect.height = 1
+
+        detector.context_menu_popover.set_pointing_to(rect)
+        detector.context_menu_popover.popup()
+
     def on_create_circuit_clicked(self, action, parameter):
         """Creates a DefineCircuitWindow. Callback function for the create_circuit_button."""
         self.define_circuit = DefineCircuitWindow(self.create_circuit)
@@ -159,7 +174,7 @@ class MainWindow(Gtk.ApplicationWindow):
             raise AttributeError
 
         # Create new detector and add it to the detector_dict of the circuit that it belongs to
-        detector = Detector(detector_number)
+        detector = Detector(circuit_number, detector_number)
         building.circuit_dict[circuit_number].detector_dict[detector_number] = detector
 
         detector.detector_info = detector_description
@@ -172,24 +187,28 @@ class MainWindow(Gtk.ApplicationWindow):
                                          circuit_number,
                                          detector_number)
 
+        # Connect the event handler that detects if the circuit is right-clicked
+        detector.click_controller.connect("pressed", partial(self.on_detector_pressed, circuit_number=circuit_number, detector_number=detector_number))
+
         # Add the detector to its circuit
         circuit = building.circuit_dict[circuit_number]
         circuit.append(detector)
         return detector
 
-    def delete_detector(self, circuit_number, detector_number=None):
-        """Delete a detector"""
-        # Get the detector object that needs to be removed and the circuit object from which it is removed
-        if detector_number is None:
-            index = len(building.circuit_dict[circuit_number].detector_dict)
-        else:
-            index = detector_number
+    def delete_detector(self, action, parameter):
+        """Delete a specified detector"""
+        # Convert parameters to int
+        parameter_string = parameter.get_string()
+        parameter_list = parameter_string.split(", ")
+        circuit_number = int(parameter_list[0])
+        detector_number = int(parameter_list[1])
 
+        # Get the corresponding objects
         circuit = building.circuit_dict[circuit_number]
-        detector = building.circuit_dict[circuit_number].detector_dict[index]
+        detector = building.circuit_dict[circuit_number].detector_dict[detector_number]
 
         # Delete the detector from the dictionary and remove it from its circuit
-        del building.circuit_dict[circuit_number].detector_dict[index]
+        del building.circuit_dict[circuit_number].detector_dict[detector_number]
         circuit.remove(detector)
         self.print_detector_state()
 
@@ -211,7 +230,7 @@ class MainWindow(Gtk.ApplicationWindow):
 
 class Detector(Gtk.Box):
     """Contains a switch and a label with the number of the detector"""
-    def __init__(self, detector_number, *args, **kwargs):
+    def __init__(self, circuit_number, detector_number, *args, **kwargs):
         super().__init__(*args, orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
 
         self.detector_switch = Gtk.Switch()
@@ -223,6 +242,17 @@ class Detector(Gtk.Box):
         self.alarm_status: bool
 
         self.detector_info: str
+
+        # A tool to register the detector_label being right-clicked
+        self.click_controller = Gtk.GestureClick()
+        self.click_controller.set_button(Gdk.BUTTON_SECONDARY)
+        self.detector_label.add_controller(self.click_controller)
+
+        # Context menu
+        self.menu_model = DetectorContextMenu(circuit_number, detector_number)
+        self.context_menu_popover = Gtk.PopoverMenu.new_from_model(self.menu_model)
+        self.context_menu_popover.set_parent(self)
+        self.context_menu_popover.set_has_arrow(False)
 
 
 class Circuit(Gtk.Box):
@@ -273,6 +303,15 @@ class CircuitContextMenu(Gio.Menu):
         delete_circuit_item.set_attribute_value("target", GLib.Variant("i", circuit_number))
         self.append_item(delete_circuit_item)
 
+class DetectorContextMenu(Gio.Menu):
+    def __init__(self, circuit_number, detector_number):
+        super().__init__()
+        edit_detector_item = Gio.MenuItem.new("Melder bearbeiten", "win.edit_detector")
+        edit_detector_item.set_attribute_value("target", GLib.Variant("s", f"{circuit_number}, {detector_number}"))
+        self.append_item(edit_detector_item)
+        delete_detector_item = Gio.MenuItem.new("Melder löschen", "win.delete_detector")
+        delete_detector_item.set_attribute_value("target", GLib.Variant("s", f"{circuit_number}, {detector_number}"))
+        self.append_item(delete_detector_item)
 
 
 class FileSaveDialog:
