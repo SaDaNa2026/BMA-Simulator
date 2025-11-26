@@ -20,7 +20,7 @@ class MainWindow(Gtk.ApplicationWindow):
         self.main_box.set_margin_bottom(5)
         self.main_box.set_margin_start(5)
         self.main_box.set_margin_end(5)
-        self.main_box.set_spacing(5)
+        self.main_box.set_spacing(10)
         self.set_child(self.main_box)
 
 
@@ -29,20 +29,46 @@ class MainWindow(Gtk.ApplicationWindow):
 
         # Buttons to save and load configurations
         self.save_button = Gtk.Button(label="Speichern")
-        self.save_button.connect("clicked", lambda button, *args: self.on_save_clicked())
+        self.save_button.set_action_name("win.save")
         self.header.pack_end(self.save_button)
 
         self.open_button = Gtk.Button(label="Öffnen")
-        self.open_button.connect("clicked", lambda button, *args: self.on_open_clicked())
+        self.open_button.set_action_name("win.open")
         self.header.pack_end(self.open_button)
 
         # Buttons to add or delete a circuit
         self.create_circuit_button = Gtk.Button(label="Melderlinie hinzufügen")
-        self.create_circuit_button.connect("clicked", lambda button, *args: self.on_create_circuit_clicked())
+        self.create_circuit_button.set_action_name("win.create_circuit")
         self.header.pack_start(self.create_circuit_button)
 
 
-    def on_save_clicked(self):
+        # Actions for all buttons to connect to
+        self.save_action = Gio.SimpleAction(name="save")
+        self.save_action.connect("activate", self.on_save_clicked)
+        self.add_action(self.save_action)
+
+        self.open_action = Gio.SimpleAction(name="open")
+        self.open_action.connect("activate", self.on_open_clicked)
+        self.add_action(self.open_action)
+
+        self.create_circuit_action = Gio.SimpleAction(name="create_circuit")
+        self.create_circuit_action.connect("activate", self.on_create_circuit_clicked)
+        self.add_action(self.create_circuit_action)
+
+        self.delete_circuit_action = Gio.SimpleAction(name="delete_circuit", parameter_type=GLib.VariantType("i"))
+        self.delete_circuit_action.connect("activate", self.delete_circuit)
+        self.add_action(self.delete_circuit_action)
+
+        self.create_detector_action = Gio.SimpleAction(name="create_detector", parameter_type=GLib.VariantType("i"))
+        self.create_detector_action.connect("activate", self.on_create_detector_clicked)
+        self.add_action(self.create_detector_action)
+
+        self.delete_detector_action = Gio.SimpleAction(name="delete_detector", parameter_type=GLib.VariantType("i"))
+        self.delete_detector_action.connect("activate", self.delete_detector)
+        self.add_action(self.delete_detector_action)
+
+
+    def on_save_clicked(self, action, parameter):
         """Save the building structure to a json file"""
         save_dict = {"circuit_dict" : {}, "building_description" : building.description}
         for circuit_number in building.circuit_dict:
@@ -52,12 +78,12 @@ class MainWindow(Gtk.ApplicationWindow):
         save_dialog = FileSaveDialog(save_dict)
         save_dialog.open_save_dialog()
 
-    def on_open_clicked(self):
+    def on_open_clicked(self, action, parameter):
         """Loads a building configuration from a json file. Does not set the alarm_status of detectors"""
         # Delete all current circuits and their detectors
         delete_list = [num for num in building.circuit_dict]
         for circuit_number in delete_list:
-            self.delete_circuit(circuit_number)
+            self.delete_circuit_action.activate(GLib.Variant("i", circuit_number))
 
         open_dialog = FileOpenDialog()
         open_dialog.show_open_dialog(load_data_callback=self.load_data)
@@ -83,16 +109,19 @@ class MainWindow(Gtk.ApplicationWindow):
         rect.width = 1
         rect.height = 1
 
-        circuit.context_menu.set_pointing_to(rect)
-        circuit.context_menu.popup()
+        circuit.context_menu_popover.set_pointing_to(rect)
+        circuit.context_menu_popover.popup()
 
-    def on_create_circuit_clicked(self):
+    def on_create_circuit_clicked(self, action, parameter):
         """Creates a DefineCircuitWindow. Callback function for the create_circuit_button."""
         self.define_circuit = DefineCircuitWindow(self.create_circuit)
         self.define_circuit.present()
 
-    def on_create_detector_clicked(self, circuit_number):
+    def on_create_detector_clicked(self, action, parameter):
         """Creates a DefineDetectorWindow. Callback function for the create_detector_button."""
+        # Convert the action parameter to int
+        circuit_number = parameter.get_int32()
+
         self.define_detector = DefineDetectorWindow(self.create_detector, circuit_number)
         self.define_detector.present()
 
@@ -105,12 +134,6 @@ class MainWindow(Gtk.ApplicationWindow):
 
         circuit = Circuit(circuit_number)
 
-        # Connect the buttons of the context menu
-        circuit.context_menu.add_detector_button.connect("clicked",
-                                                         lambda button, *args: self.on_create_detector_clicked(circuit_number))
-        circuit.context_menu.delete_circuit_button.connect("clicked",
-                                                           lambda button, *args: self.delete_circuit(circuit_number))
-
         # Connect the event handler that detects if the circuit is right-clicked
         circuit.click_controller.connect("pressed", partial(self.on_circuit_pressed, circuit_number=circuit_number))
 
@@ -119,20 +142,14 @@ class MainWindow(Gtk.ApplicationWindow):
         building.circuit_dict[circuit_number] = circuit
         return circuit
 
-    def delete_circuit(self, circuit_number):
+    def delete_circuit(self, action, parameter):
         """Delete the last circuit and print new detector state"""
-        if circuit_number is None:
-            if len(building.circuit_dict) > 0:
-                index = len(building.circuit_dict)
-                circuit = building.circuit_dict[index]
-            else:
-                return
-        else:
-            index = circuit_number
-            circuit = building.circuit_dict[circuit_number]
+        # Convert parameter to int
+        circuit_number = parameter.get_int32()
+        circuit = building.circuit_dict[circuit_number]
 
         self.main_box.remove(circuit)
-        del building.circuit_dict[index]
+        del building.circuit_dict[circuit_number]
         self.print_detector_state()
 
     def create_detector(self, circuit_number, detector_number, alarm_status=False, detector_description="Beschreibung"):
@@ -228,8 +245,10 @@ class Circuit(Gtk.Box):
 
 
         # Context menu
-        self.context_menu = CircuitContextMenu()
-        self.context_menu.set_parent(self)
+        self.menu_model = CircuitContextMenu(circuit_number)
+        self.context_menu_popover = Gtk.PopoverMenu.new_from_model(self.menu_model)
+        self.context_menu_popover.set_parent(self)
+        self.context_menu_popover.set_has_arrow(False)
 
         # A dictionary to manage detectors within this circuit
         self.detector_dict = {}
@@ -244,21 +263,15 @@ class Building:
 
 
 
-class CircuitContextMenu(Gtk.Popover):
-    def __init__(self):
+class CircuitContextMenu(Gio.Menu):
+    def __init__(self, circuit_number):
         super().__init__()
-
-        self.set_has_arrow(False)
-        self.set_autohide(True)
-        self.set_offset(100, 0)
-
-        self.vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        self.set_child(self.vbox)
-
-        self.add_detector_button = Gtk.Button(label="Melder hinzufügen")
-        self.vbox.append(self.add_detector_button)
-        self.delete_circuit_button = Gtk.Button(label="Melderlinie löschen")
-        self.vbox.append(self.delete_circuit_button)
+        create_detector_item = Gio.MenuItem.new("Melder hinzufügen", "win.create_detector")
+        create_detector_item.set_attribute_value("target", GLib.Variant("i", circuit_number))
+        self.append_item(create_detector_item)
+        delete_circuit_item = Gio.MenuItem.new("Melderlinie löschen", "win.delete_circuit")
+        delete_circuit_item.set_attribute_value("target", GLib.Variant("i", circuit_number))
+        self.append_item(delete_circuit_item)
 
 
 
