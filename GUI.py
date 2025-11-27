@@ -20,7 +20,7 @@ class MainWindow(Gtk.ApplicationWindow):
         self.main_box.set_margin_bottom(5)
         self.main_box.set_margin_start(5)
         self.main_box.set_margin_end(5)
-        self.main_box.set_spacing(10)
+        self.main_box.set_spacing(20)
         self.set_child(self.main_box)
 
 
@@ -71,6 +71,10 @@ class MainWindow(Gtk.ApplicationWindow):
         self.edit_detector_action.connect("activate", self.on_edit_detector_clicked)
         self.add_action(self.edit_detector_action)
 
+        self.edit_building_action = Gio.SimpleAction(name="edit_building")
+        self.edit_building_action.connect("activate", self.on_edit_building_clicked)
+        self.add_action(self.edit_building_action)
+
 
     def on_save_clicked(self, action, parameter):
         """Save the building structure to a json file"""
@@ -78,7 +82,7 @@ class MainWindow(Gtk.ApplicationWindow):
         for circuit_number in building.circuit_dict:
             save_dict["circuit_dict"][circuit_number] = {}
             for detector_number in building.circuit_dict[circuit_number].detector_dict:
-                save_dict["circuit_dict"][circuit_number][detector_number] = building.circuit_dict[circuit_number].detector_dict[detector_number].detector_info
+                save_dict["circuit_dict"][circuit_number][detector_number] = building.circuit_dict[circuit_number].detector_dict[detector_number].description
         save_dialog = FileSaveDialog(save_dict)
         save_dialog.open_save_dialog()
 
@@ -97,8 +101,8 @@ class MainWindow(Gtk.ApplicationWindow):
         for circuit_number in load_dict["circuit_dict"]:
             self.create_circuit(int(circuit_number))
             for detector_number in load_dict["circuit_dict"][circuit_number]:
-                detector_info = load_dict["circuit_dict"][circuit_number][detector_number]
-                self.create_detector(int(circuit_number), int(detector_number), detector_description=detector_info)
+                detector_description = load_dict["circuit_dict"][circuit_number][detector_number]
+                self.create_detector(int(circuit_number), int(detector_number), detector_description=detector_description)
 
 
     def on_circuit_pressed(self, gesture, n_press, x, y, circuit_number):
@@ -155,6 +159,11 @@ class MainWindow(Gtk.ApplicationWindow):
         self.edit_detector = EditDetectorWindow(circuit_number, detector_number, self.edit_detector, self)
         self.edit_detector.present()
 
+    def on_edit_building_clicked(self, action, parameter):
+        self.edit_building = EditBuildingWindow(self)
+        self.edit_building.present()
+
+
 
     def create_circuit(self, circuit_number):
         """Creates a new Circuit instance with automatic numbering"""
@@ -193,7 +202,7 @@ class MainWindow(Gtk.ApplicationWindow):
         detector = Detector(circuit_number, detector_number)
         building.circuit_dict[circuit_number].detector_dict[detector_number] = detector
 
-        detector.detector_info = detector_description
+        detector.description = detector_description
 
         # Set the detector switch according to the alarm_status and connect it to its callback function
         detector.alarm_status = alarm_status
@@ -230,7 +239,7 @@ class MainWindow(Gtk.ApplicationWindow):
 
     def edit_detector(self, circuit_number, detector_number, description):
         detector = building.circuit_dict[circuit_number].detector_dict[detector_number]
-        detector.detector_info = description
+        detector.description = description
 
 
     def on_detector_toggled(self, detector_switch, state, circuit_number, detector_number):
@@ -261,7 +270,7 @@ class Detector(Gtk.Box):
 
         self.alarm_status: bool
 
-        self.detector_info: str
+        self.description: str
 
         # A tool to register the detector_label being right-clicked
         self.click_controller = Gtk.GestureClick()
@@ -546,15 +555,14 @@ class DefineDetectorWindow(DefineObjectWindow):
                 self.main_box.insert_child_after(self.same_number_warning_label, self.choose_number_box)
 
 
-class EditDetectorWindow(Gtk.Window):
-    """A window that lets the user edit the description of a detector"""
-    def __init__(self, circuit_number, detector_number, edit_detector_callback, parent, *args, **kwargs):
+
+class EditWindow(Gtk.Window):
+    """Base class for a window that lets the user edit a description"""
+    def __init__(self, handle_edit, parent, title, default_text, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.circuit_number = circuit_number
-        self.detector_number = detector_number
-        detector = building.circuit_dict[circuit_number].detector_dict[detector_number]
 
         self.set_default_size(350, 100)
+        self.set_title(title)
 
         # Make the window modal and transient for the parent
         self.set_modal(True)
@@ -568,7 +576,7 @@ class EditDetectorWindow(Gtk.Window):
                                 spacing=10)
         self.set_child(self.main_box)
 
-        self.description_box = DescriptionBox(default_text=detector.detector_info)
+        self.description_box = DescriptionBox(default_text)
         self.main_box.append(self.description_box)
 
         # Buttons to cancel or confirm
@@ -580,14 +588,33 @@ class EditDetectorWindow(Gtk.Window):
         self.confirmation_box.set_start_widget(self.cancel_button)
 
         self.confirm_button = Gtk.Button(label="Bestätigen")
-        self.confirm_button.connect("clicked", lambda button, *args: self.handle_edit_detector(edit_detector_callback))
+        self.confirm_button.connect("clicked", handle_edit)
         self.confirmation_box.set_end_widget(self.confirm_button)
+
+class EditDetectorWindow(EditWindow):
+    """A window for editing the description of a detector"""
+    def __init__(self, circuit_number, detector_number, edit_detector_callback, parent, *args, **kwargs):
+        self.circuit_number = circuit_number
+        self.detector_number = detector_number
+        detector = building.circuit_dict[circuit_number].detector_dict[detector_number]
+        title = f"Bearbeite Melder {detector_number} (Linie {circuit_number})"
+        super().__init__(lambda button: self.handle_edit_detector(edit_detector_callback), parent, title, detector.description, *args, **kwargs)
 
     def handle_edit_detector(self, edit_detector_callback):
         description = self.description_box.get_description()
         edit_detector_callback(self.circuit_number, self.detector_number, description)
         self.destroy()
 
+class EditBuildingWindow(EditWindow):
+    """A window for editing the building description"""
+    def __init__(self, parent, *args, **kwargs):
+        title = f"Gebäudebeschreibung bearbeiten"
+        super().__init__(lambda button: self.handle_edit_building, parent, title, building.description, *args, **kwargs)
+
+    def handle_edit_building(self):
+        description = self.description_box.get_description()
+        building.description = description
+        self.destroy()
 
 
 class DescriptionBox(Gtk.Box):
