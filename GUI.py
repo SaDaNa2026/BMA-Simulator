@@ -12,7 +12,8 @@ class MainWindow(Gtk.ApplicationWindow):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.set_default_size(500, 500)
+        self.set_default_size(700, 500)
+        self.set_title("Steuerung Übungs-BMA")
 
         # Create a box that contains all other widgets in this window
         self.main_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
@@ -24,17 +25,15 @@ class MainWindow(Gtk.ApplicationWindow):
         self.set_child(self.main_box)
 
 
+        # Definition of the window header
         self.header = Gtk.HeaderBar()
         self.set_titlebar(self.header)
 
-        # Buttons to save and load configurations
-        self.save_button = Gtk.Button(label="Speichern")
-        self.save_button.set_action_name("win.save")
-        self.header.pack_end(self.save_button)
-
-        self.open_button = Gtk.Button(label="Öffnen")
-        self.open_button.set_action_name("win.open")
-        self.header.pack_end(self.open_button)
+        # MenuButton to handle data operations
+        self.data_menu = DataMenu()
+        self.data_menubutton = Gtk.MenuButton(label="Datei", direction=Gtk.ArrowType.DOWN)
+        self.data_menubutton.set_menu_model(self.data_menu)
+        self.header.pack_start(self.data_menubutton)
 
         # Buttons to add or delete a circuit
         self.create_circuit_button = Gtk.Button(label="Melderlinie hinzufügen")
@@ -320,7 +319,18 @@ class Building:
 
 
 
+class DataMenu(Gio.Menu):
+    """Menu model for the "Data" MenuButton in the header bar"""
+    def __init__(self):
+        super().__init__()
+        save_item = Gio.MenuItem.new("Speichern unter", "win.save")
+        self.append_item(save_item)
+        open_item = Gio.MenuItem.new("Datei öffnen", "win.open")
+        self.append_item(open_item)
+
+
 class CircuitContextMenu(Gio.Menu):
+    """Menu model for the context menu that appears when right-clicking on a circuit"""
     def __init__(self, circuit_number):
         super().__init__()
         create_detector_item = Gio.MenuItem.new("Melder hinzufügen", "win.create_detector")
@@ -331,6 +341,7 @@ class CircuitContextMenu(Gio.Menu):
         self.append_item(delete_circuit_item)
 
 class DetectorContextMenu(Gio.Menu):
+    """Menu model for the context menu that appears when right-clicking on a detector"""
     def __init__(self, circuit_number, detector_number):
         super().__init__()
         edit_detector_item = Gio.MenuItem.new("Melder bearbeiten", "win.edit_detector")
