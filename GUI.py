@@ -97,7 +97,7 @@ class MainWindow(Gtk.ApplicationWindow):
         for circuit_number in delete_list:
             self.delete_circuit_action.activate(GLib.Variant("i", circuit_number))
 
-        open_dialog = FileOpenDialog()
+        open_dialog = FileOpenDialog(self)
         open_dialog.show_open_dialog(open_file_callback=self.open_file)
 
     def open_file(self, path):
@@ -108,11 +108,11 @@ class MainWindow(Gtk.ApplicationWindow):
 
             if load_dict["file_type"] == "building_config":
                 self.load_building_config(load_dict)
-            if load_dict["file_type"] == "scenario":
+            elif load_dict["file_type"] == "scenario":
                 # self.load_scenario(load_dict)
                 pass
             else:
-                raise ImportError
+                raise KeyError
 
 
     def load_building_config(self, load_dict):
@@ -124,6 +124,11 @@ class MainWindow(Gtk.ApplicationWindow):
             self.create_circuit(int(circuit_number))
             for detector_number in load_dict["circuit_dict"][circuit_number]:
                 detector_description = load_dict["circuit_dict"][circuit_number][detector_number]
+
+                # Check for correct description format
+                if type(detector_description) is not str:
+                    raise ValueError
+
                 self.create_detector(int(circuit_number), int(detector_number),
                                      detector_description=detector_description)
 
@@ -407,6 +412,7 @@ class DetectorContextMenu(Gio.Menu):
         self.append_item(delete_detector_item)
 
 
+
 class FileSaveDialog:
     """Class to save the current building configuration to a json file"""
     def __init__(self, save_dict):
@@ -451,10 +457,11 @@ class FileSaveDialog:
         except GLib.Error as e:
             print(f"Save canceled or failed: {e.message}")
 
-
 class FileOpenDialog:
     """Class to load a building from a json file"""
-    def __init__(self):
+    def __init__(self, parent):
+        self.parent = parent
+
         # Create a dictionary to save the data loaded from the json file
         self.load_dict = {}
 
@@ -473,7 +480,7 @@ class FileOpenDialog:
 
     def show_open_dialog(self, open_file_callback):
         """Show the dialog asynchronously"""
-        self.load_dialog.open(bma_control.window,
+        self.load_dialog.open(self.parent,
                               None,
                               partial(self.on_file_open_response, open_file_callback=open_file_callback))
 
@@ -491,12 +498,35 @@ class FileOpenDialog:
                     open_file_callback(file_path)
                     print("File loaded successfully")
 
-                except ImportError:
-                    # Add connection to Error display here
-                    pass
+                except (KeyError, ValueError):
+                    error_window = ErrorWindow(self.parent, "Datei invalide")
+                    error_window.present()
+
 
         except GLib.Error as e:
             print(f"Open canceled or failed: {e.message}")
+
+
+
+class ErrorWindow(Gtk.Window):
+    def __init__(self, parent, error_message, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.set_title("Fehler")
+        self.set_modal(True)
+        self.set_default_size(300, 60)
+        self.set_transient_for(parent)
+
+        self.main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+        self.set_child(self.main_box)
+
+        self.error_label = Gtk.Label()
+        self.error_label.set_markup(f"<span foreground='red' size='large'>{error_message}</span>")
+        self.main_box.append(self.error_label)
+
+        self.confirm_button = Gtk.Button(label="OK")
+        self.confirm_button.connect("clicked", lambda button, *args: self.destroy())
+        self.main_box.append(self.confirm_button)
 
 
 class DefineObjectWindow(Gtk.Window):
@@ -626,7 +656,6 @@ class DefineDetectorWindow(DefineObjectWindow):
             except AttributeError:
                 print("AttributeError")
                 self.main_box.insert_child_after(self.same_number_warning_label, self.choose_number_box)
-
 
 
 class EditWindow(Gtk.Window):
