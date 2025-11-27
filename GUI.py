@@ -179,7 +179,6 @@ class MainWindow(Gtk.ApplicationWindow):
     def on_edit_mode_clicked(self, action, parameter):
         """Function to switch between normal mode and edit mode"""
         # Update the action’s stored state
-        print(action)
         current_state = action.get_state().get_boolean()
         new_state =  not current_state
         action.set_state(GLib.Variant.new_boolean(new_state))
@@ -191,9 +190,10 @@ class MainWindow(Gtk.ApplicationWindow):
         self.delete_detector_action.set_enabled(new_state)
         self.edit_building_action.set_enabled(new_state)
         self.edit_detector_action.set_enabled(new_state)
+
         self.create_circuit_button.set_visible(new_state)
 
-        if new_state == True:
+        if new_state:
             print("Edit mode active")
 
         else:
@@ -568,6 +568,7 @@ class DefineCircuitWindow(DefineObjectWindow):
     """A Window that lets the user create a circuit with a chosen number"""
     def __init__(self, create_circuit_callback, parent):
         super().__init__(handle_create_method=lambda button: self.handle_create_circuit(create_circuit_callback), entry_label="Nummer der Melderlinie:", parent=parent)
+        self.set_title("Melderlinie hinzufügen")
 
     def handle_create_circuit(self, create_circuit_callback):
         circuit_number = self.get_number_entry()
@@ -584,6 +585,7 @@ class DefineDetectorWindow(DefineObjectWindow):
     """A Window that lets the user create a detector with a chosen number and description"""
     def __init__(self, circuit_number, create_detector_callback, parent):
         super().__init__(handle_create_method=lambda button: self.handle_create_detector(create_detector_callback), entry_label="Nummer des Melders:", parent=parent)
+        self.set_title(f"Melder zu Melderlinie {circuit_number} hinzufügen")
 
         self.circuit_number = circuit_number
 
