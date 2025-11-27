@@ -42,9 +42,9 @@ class MainWindow(Gtk.ApplicationWindow):
 
 
         # Actions for all buttons to connect to
-        self.save_action = Gio.SimpleAction(name="save")
-        self.save_action.connect("activate", self.on_save_clicked)
-        self.add_action(self.save_action)
+        self.save_as_action = Gio.SimpleAction(name="save_as")
+        self.save_as_action.connect("activate", self.on_save_clicked)
+        self.add_action(self.save_as_action)
 
         self.open_action = Gio.SimpleAction(name="open")
         self.open_action.connect("activate", self.on_open_clicked)
@@ -82,7 +82,7 @@ class MainWindow(Gtk.ApplicationWindow):
 
     def on_save_clicked(self, action, parameter):
         """Save the building structure to a json file"""
-        save_dict = {"circuit_dict" : {}, "building_description" : building.description}
+        save_dict = {"file_type" : "building_config", "circuit_dict" : {}, "building_description" : building.description}
         for circuit_number in building.circuit_dict:
             save_dict["circuit_dict"][circuit_number] = {}
             for detector_number in building.circuit_dict[circuit_number].detector_dict:
@@ -98,16 +98,34 @@ class MainWindow(Gtk.ApplicationWindow):
             self.delete_circuit_action.activate(GLib.Variant("i", circuit_number))
 
         open_dialog = FileOpenDialog()
-        open_dialog.show_open_dialog(load_data_callback=self.load_data)
+        open_dialog.show_open_dialog(open_file_callback=self.open_file)
 
-    def load_data(self, load_dict):
+    def open_file(self, path):
+        """Load the data from the provided file and decide how to load it"""
+        with open(path, "r") as config_dict:
+            # Load building information
+            load_dict = json.load(config_dict)
+
+            if load_dict["file_type"] == "building_config":
+                self.load_building_config(load_dict)
+            if load_dict["file_type"] == "scenario":
+                # self.load_scenario(load_dict)
+                pass
+            else:
+                raise ImportError
+
+
+    def load_building_config(self, load_dict):
         """Create circuits and detectors according to the json file"""
+
+        building.description = load_dict["building_description"]
+
         for circuit_number in load_dict["circuit_dict"]:
             self.create_circuit(int(circuit_number))
             for detector_number in load_dict["circuit_dict"][circuit_number]:
                 detector_description = load_dict["circuit_dict"][circuit_number][detector_number]
-                self.create_detector(int(circuit_number), int(detector_number), detector_description=detector_description)
-
+                self.create_detector(int(circuit_number), int(detector_number),
+                                     detector_description=detector_description)
 
     def on_circuit_pressed(self, gesture, n_press, x, y, circuit_number):
         """Presents a context menu on a circuit_box"""
@@ -359,7 +377,7 @@ class DataMenu(Gio.Menu):
     """Menu model for the "Data" MenuButton in the header bar"""
     def __init__(self):
         super().__init__()
-        save_item = Gio.MenuItem.new("Speichern unter", "win.save")
+        save_item = Gio.MenuItem.new("Speichern unter", "win.save_as")
         self.append_item(save_item)
         open_item = Gio.MenuItem.new("Datei öffnen", "win.open")
         self.append_item(open_item)
@@ -396,11 +414,17 @@ class FileSaveDialog:
 
         # Present a file save dialog
         current_dir = Gio.File.new_for_path(".")
-        self.save_dialog = Gtk.FileDialog(title="Konfiguration speichern",
-                                     accept_label="Speichern",
+        self.save_dialog = Gtk.FileDialog(accept_label="Speichern",
                                      initial_folder=current_dir,
-                                     initial_name="Gebäudekonfiguration.json",
                                      modal=True)
+
+        # Set title and initial file name according to the file type to be saved
+        if save_dict["file_type"] == "building_config":
+            self.save_dialog.set_title("Gebäudekonfiguration speichern")
+            self.save_dialog.set_initial_name("Gebäudekonfiguration.json")
+        else:
+            self.save_dialog.set_title("Szenario speichern")
+            self.save_dialog.set_initial_name("Szenario.json")
 
         # Add JSON file filter
         json_filter = Gtk.FileFilter()
@@ -419,7 +443,7 @@ class FileSaveDialog:
                 path = file.get_path()
                 print(f"Saving to: {path}")
 
-                # Example of writing content to the chosen file
+                # Write save_dict to the file in json format
                 with open(path, "w", encoding="utf-8") as config_dict:
                     json.dump(self.save_dict, config_dict, sort_keys=True, indent=4)
 
@@ -447,30 +471,29 @@ class FileOpenDialog:
         json_filter.add_pattern("*.json")
         self.load_dialog.set_default_filter(json_filter)
 
-    def show_open_dialog(self, load_data_callback):
+    def show_open_dialog(self, open_file_callback):
         """Show the dialog asynchronously"""
         self.load_dialog.open(bma_control.window,
                               None,
-                              partial(self.on_file_open_response, load_data_callback=load_data_callback))
+                              partial(self.on_file_open_response, open_file_callback=open_file_callback))
 
-    def on_file_open_response(self, dialog, result, load_data_callback):
+    def on_file_open_response(self, dialog, result, open_file_callback):
         """Callback for the file dialog. Loads the json file from the selected path if it exists and passes the data
         to a callback function."""
         try:
             file = dialog.open_finish(result)
             if file is not None:
-                path = file.get_path()
-                print(f"Opening: {path}")
+                # Get the file path and pass it to the load function
+                file_path = file.get_path()
+                print(f"Opening: {file_path}")
 
-                with open(path, "r") as config_dict:
-                    # Load building information
-                    self.load_dict = json.load(config_dict)
-                    building.description = self.load_dict["building_description"]
-
-                    # Send data to the function that adds circuits and detectors
-                    GLib.idle_add(load_data_callback, self.load_dict)
-
+                try:
+                    open_file_callback(file_path)
                     print("File loaded successfully")
+
+                except ImportError:
+                    # Add connection to Error display here
+                    pass
 
         except GLib.Error as e:
             print(f"Open canceled or failed: {e.message}")
@@ -696,7 +719,8 @@ class App(Gtk.Application):
         self.window = MainWindow(application=app)
         self.window.present()
 
-        self.set_accels_for_action("win.save", ["<Ctrl><Shift>S"])
+        # Add shortcuts to the actions
+        self.set_accels_for_action("win.save_as", ["<Ctrl><Shift>S"])
         self.set_accels_for_action("win.open", ["<Ctrl>O"])
         self.set_accels_for_action("win.edit_mode", ["<Ctrl>E"])
 
