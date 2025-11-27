@@ -35,8 +35,8 @@ class MainWindow(Gtk.ApplicationWindow):
         self.data_menubutton.set_menu_model(self.data_menu)
         self.header.pack_start(self.data_menubutton)
 
-        # Buttons to add or delete a circuit
-        self.create_circuit_button = Gtk.Button(label="Melderlinie hinzufügen")
+        # Button to add a circuit
+        self.create_circuit_button = Gtk.Button(label="Melderlinie hinzufügen", visible=False)
         self.create_circuit_button.set_action_name("win.create_circuit")
         self.header.pack_start(self.create_circuit_button)
 
@@ -50,29 +50,34 @@ class MainWindow(Gtk.ApplicationWindow):
         self.open_action.connect("activate", self.on_open_clicked)
         self.add_action(self.open_action)
 
-        self.create_circuit_action = Gio.SimpleAction(name="create_circuit")
+        self.create_circuit_action = Gio.SimpleAction(name="create_circuit", enabled=False)
         self.create_circuit_action.connect("activate", self.on_create_circuit_clicked)
         self.add_action(self.create_circuit_action)
 
-        self.delete_circuit_action = Gio.SimpleAction(name="delete_circuit", parameter_type=GLib.VariantType("i"))
+        self.delete_circuit_action = Gio.SimpleAction(name="delete_circuit", parameter_type=GLib.VariantType("i"), enabled=False)
         self.delete_circuit_action.connect("activate", self.delete_circuit)
         self.add_action(self.delete_circuit_action)
 
-        self.create_detector_action = Gio.SimpleAction(name="create_detector", parameter_type=GLib.VariantType("i"))
+        self.create_detector_action = Gio.SimpleAction(name="create_detector", parameter_type=GLib.VariantType("i"), enabled=False)
         self.create_detector_action.connect("activate", self.on_create_detector_clicked)
         self.add_action(self.create_detector_action)
 
-        self.delete_detector_action = Gio.SimpleAction(name="delete_detector", parameter_type=GLib.VariantType("s"))
+        self.delete_detector_action = Gio.SimpleAction(name="delete_detector", parameter_type=GLib.VariantType("s"), enabled=False)
         self.delete_detector_action.connect("activate", self.delete_detector)
         self.add_action(self.delete_detector_action)
 
-        self.edit_detector_action = Gio.SimpleAction(name="edit_detector", parameter_type=GLib.VariantType("s"))
+        self.edit_detector_action = Gio.SimpleAction(name="edit_detector", parameter_type=GLib.VariantType("s"), enabled=False)
         self.edit_detector_action.connect("activate", self.on_edit_detector_clicked)
         self.add_action(self.edit_detector_action)
 
-        self.edit_building_action = Gio.SimpleAction(name="edit_building")
+        self.edit_building_action = Gio.SimpleAction(name="edit_building", enabled=False)
         self.edit_building_action.connect("activate", self.on_edit_building_clicked)
         self.add_action(self.edit_building_action)
+
+        self.edit_mode_action = Gio.SimpleAction.new_stateful(name="edit_mode", parameter_type=None,
+                                                              state=GLib.Variant.new_boolean(False))
+        self.edit_mode_action.connect("activate", self.on_edit_mode_clicked)
+        self.add_action(self.edit_mode_action)
 
 
     def on_save_clicked(self, action, parameter):
@@ -106,6 +111,10 @@ class MainWindow(Gtk.ApplicationWindow):
 
     def on_circuit_pressed(self, gesture, n_press, x, y, circuit_number):
         """Presents a context menu on a circuit_box"""
+        # Don't respond if edit mode is disabled
+        if not self.edit_mode_action.get_state().get_boolean():
+            return
+
         # Get the circuit that was clicked
         circuit = building.circuit_dict[circuit_number]
 
@@ -121,6 +130,10 @@ class MainWindow(Gtk.ApplicationWindow):
 
     def on_detector_pressed(self, gesture, n_press, x, y, circuit_number, detector_number):
         """Presents a context menu on a circuit_box"""
+        # Don't respond if edit mode is disabled
+        if not self.edit_mode_action.get_state().get_boolean():
+            return
+
         # Get the circuit that was clicked
         detector = building.circuit_dict[circuit_number].detector_dict[detector_number]
 
@@ -159,9 +172,32 @@ class MainWindow(Gtk.ApplicationWindow):
         self.edit_detector.present()
 
     def on_edit_building_clicked(self, action, parameter):
+        """Creates an EditBuildingWindow"""
         self.edit_building = EditBuildingWindow(self)
         self.edit_building.present()
 
+    def on_edit_mode_clicked(self, action, parameter):
+        """Function to switch between normal mode and edit mode"""
+        # Update the action’s stored state
+        print(action)
+        current_state = action.get_state().get_boolean()
+        new_state =  not current_state
+        action.set_state(GLib.Variant.new_boolean(new_state))
+
+        # Update UI
+        self.create_circuit_action.set_enabled(new_state)
+        self.create_detector_action.set_enabled(new_state)
+        self.delete_circuit_action.set_enabled(new_state)
+        self.delete_detector_action.set_enabled(new_state)
+        self.edit_building_action.set_enabled(new_state)
+        self.edit_detector_action.set_enabled(new_state)
+        self.create_circuit_button.set_visible(new_state)
+
+        if new_state == True:
+            print("Edit mode active")
+
+        else:
+            print("Edit mode inactive")
 
 
     def create_circuit(self, circuit_number):
@@ -327,7 +363,8 @@ class DataMenu(Gio.Menu):
         self.append_item(save_item)
         open_item = Gio.MenuItem.new("Datei öffnen", "win.open")
         self.append_item(open_item)
-
+        edit_mode_item = Gio.MenuItem.new("Bearbeitungsmodus", "win.edit_mode")
+        self.append_item(edit_mode_item)
 
 class CircuitContextMenu(Gio.Menu):
     """Menu model for the context menu that appears when right-clicking on a circuit"""
@@ -656,6 +693,12 @@ class App(Gtk.Application):
     def on_activate(self, app):
         self.window = MainWindow(application=app)
         self.window.present()
+
+        self.set_accels_for_action("win.save", ["<Ctrl><Shift>S"])
+        self.set_accels_for_action("win.open", ["<Ctrl>O"])
+        self.set_accels_for_action("win.edit_mode", ["<Ctrl>E"])
+
+
 
 
 building = Building()
