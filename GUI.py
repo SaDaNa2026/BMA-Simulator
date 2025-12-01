@@ -1,5 +1,6 @@
 import json
 import sys
+from json import JSONDecodeError
 
 import gi
 gi.require_version('Gtk', '4.0')
@@ -59,7 +60,7 @@ class MainWindow(Gtk.ApplicationWindow):
         self.add_action(self.create_circuit_action)
 
         self.delete_circuit_action = Gio.SimpleAction(name="delete_circuit", parameter_type=GLib.VariantType("i"), enabled=False)
-        self.delete_circuit_action.connect("activate", self.delete_circuit)
+        self.delete_circuit_action.connect("activate", self.on_delete_circuit_clicked)
         self.add_action(self.delete_circuit_action)
 
         self.create_detector_action = Gio.SimpleAction(name="create_detector", parameter_type=GLib.VariantType("i"), enabled=False)
@@ -67,7 +68,7 @@ class MainWindow(Gtk.ApplicationWindow):
         self.add_action(self.create_detector_action)
 
         self.delete_detector_action = Gio.SimpleAction(name="delete_detector", parameter_type=GLib.VariantType("s"), enabled=False)
-        self.delete_detector_action.connect("activate", self.delete_detector)
+        self.delete_detector_action.connect("activate", self.on_delete_detector_clicked)
         self.add_action(self.delete_detector_action)
 
         self.edit_detector_action = Gio.SimpleAction(name="edit_detector", parameter_type=GLib.VariantType("s"), enabled=False)
@@ -109,11 +110,6 @@ class MainWindow(Gtk.ApplicationWindow):
 
     def on_open_clicked(self, action, parameter):
         """Loads a building configuration from a json file. Does not set the alarm_status of detectors"""
-        # Delete all current circuits
-        delete_list = [num for num in building.circuit_dict]
-        for circuit_number in delete_list:
-            self.delete_circuit_action.activate(GLib.Variant("i", circuit_number))
-
         open_dialog = FileOpenDialog(self)
         open_dialog.show_open_dialog(open_file_callback=self.open_file)
 
@@ -207,47 +203,90 @@ class MainWindow(Gtk.ApplicationWindow):
         else:
             print("Edit mode inactive")
 
+    def on_delete_circuit_clicked(self, action, parameter):
+        """Convert parameter to int and call the delete_circuit method"""
+        circuit_number = parameter.get_int32()
+        self.delete_circuit(circuit_number)
+
+    def on_delete_detector_clicked(self, action, parameter):
+        """Convert parameters to int and call the delete_detector method"""
+        parameter_string = parameter.get_string()
+        parameter_list = parameter_string.split(", ")
+        circuit_number = int(parameter_list[0])
+        detector_number = int(parameter_list[1])
+
+        self.delete_detector(circuit_number, detector_number)
+
 
     def open_file(self, file):
-        """Load the data from the provided file and decide how to load it"""
-        with open(file, "r") as file_dict:
-            # Load building information
-            load_dict = json.load(file_dict)
+        """Parse the data from the provided file and decide how to load it."""
+        print(f"Opening: {file.get_path()}")
+        try:
+            with open(file, "r") as file_dict:
+                # Load building information
+                load_dict = json.load(file_dict)
 
-            filename = file.get_path()
-            # Find the last dot in the filename
-            dot_pos = filename.rfind('.')
-            # The extension is everything after the last dot
-            file_extension = filename[dot_pos + 1:]
-            print(file_extension)
+                filename = file.get_path()
+                # Find the last dot in the filename
+                dot_pos = filename.rfind('.')
+                # The extension is everything after the last dot
+                file_extension = filename[dot_pos + 1:]
 
-            if file_extension == "building":
-                self.load_building_config(load_dict)
+                if file_extension == "building":
+                    self.load_building_config(load_dict)
 
-            elif file_extension == "scenario":
-                self.load_scenario(load_dict, file)
+                elif file_extension == "scenario":
+                    self.get_scenario_directory(load_dict, file)
 
-            else:
-                raise KeyError
+                else:
+                    error_window = ErrorWindow(self, "Invalide Dateiendung")
+                    error_window.present()
+
+        except JSONDecodeError:
+            error_window = ErrorWindow(self, f"Invalides Dateiformat. Stellen Sie sicher,\ndass die Datei dem "
+                                             f"JSON-Standard entspricht.")
+            error_window.present()
 
     def load_building_config(self, load_dict):
-        """Create circuits and detectors according to the json file"""
+        """Delete all current circuits, then create circuits and detectors according to the json file."""
+        delete_list = [num for num in building.circuit_dict]
+        for circuit_number in delete_list:
+            self.delete_circuit(circuit_number)
 
-        building.description = load_dict["building_description"]
+        print(building.circuit_dict)
 
-        for circuit_number in load_dict["circuit_dict"]:
-            self.create_circuit(int(circuit_number))
-            for detector_number in load_dict["circuit_dict"][circuit_number]:
-                detector_description = load_dict["circuit_dict"][circuit_number][detector_number]
+        try:
+            building.description = load_dict["building_description"]
 
-                # Check for correct description format
-                if type(detector_description) is not str:
-                    raise ValueError
+            for circuit_number in load_dict["circuit_dict"]:
+                if int(circuit_number) < 1:
+                    raise ValueError (f".building-Datei invalide (Melderlinien-Nummer {circuit_number} ist kleiner als 1)")
 
-                self.create_detector(int(circuit_number), int(detector_number),
-                                     detector_description=detector_description)
+                self.create_circuit(int(circuit_number))
+                for detector_number in load_dict["circuit_dict"][circuit_number]:
+                    if int(detector_number) < 1:
+                        raise ValueError (f".building-Datei invalide (Meldernummer {detector_number} ist kleiner als 1)")
 
-    def load_scenario(self, load_dict, scenario_file):
+                    detector_description = load_dict["circuit_dict"][circuit_number][detector_number]
+
+                    # Check for correct description format
+                    if type(detector_description) is not str:
+                        raise TypeError (f".building-Datei invalide (Melderbeschreibung von Melder {detector_number} hat falsches Format)")
+
+                    self.create_detector(int(circuit_number), int(detector_number),
+                                         detector_description=detector_description)
+
+            print("File loaded successfully")
+
+        except KeyError as e:
+            error_window = ErrorWindow(self, f".building-Datei invalide ({e} fehlt oder ist falsch geschrieben)")
+            error_window.present()
+
+        except (ValueError, TypeError) as e:
+            error_window = ErrorWindow(self, e)
+            error_window.present()
+
+    def get_scenario_directory(self, load_dict, scenario_file):
         """Load the corresponding building_config and activate the detectors specified in the scenario file."""
         directory = Gio.file_new_for_path(scenario_file.get_parent().get_path())
 
@@ -323,7 +362,7 @@ class MainWindow(Gtk.ApplicationWindow):
         except KeyError:
             error_window = ErrorWindow(self, f"Szenario invalide: Stellen Sie sicher, dass alle im "
                                          f"Szenario\naktiven Melder in der Gebäudekonfiguration enthalten sind\nund "
-                                            f"die Datei den Formatvorgaben entspricht")
+                                            f"die Datei den Formatvorgaben entspricht.")
             error_window.present()
 
         except SyntaxError as e:
@@ -348,11 +387,11 @@ class MainWindow(Gtk.ApplicationWindow):
         building.circuit_dict[circuit_number] = circuit
         return circuit
 
-    def delete_circuit(self, action, parameter):
+    def delete_circuit(self, circuit_number):
         """Delete the last circuit and print new detector state"""
-        # Convert parameter to int
-        circuit_number = parameter.get_int32()
+
         circuit = building.circuit_dict[circuit_number]
+        print(f"delete circuit {circuit_number}")
 
         self.main_box.remove(circuit)
         del building.circuit_dict[circuit_number]
@@ -388,14 +427,8 @@ class MainWindow(Gtk.ApplicationWindow):
         circuit.append(detector)
         return detector
 
-    def delete_detector(self, action, parameter):
+    def delete_detector(self, circuit_number, detector_number):
         """Delete a specified detector"""
-        # Convert parameters to int
-        parameter_string = parameter.get_string()
-        parameter_list = parameter_string.split(", ")
-        circuit_number = int(parameter_list[0])
-        detector_number = int(parameter_list[1])
-
         # Get the corresponding objects
         circuit = building.circuit_dict[circuit_number]
         detector = building.circuit_dict[circuit_number].detector_dict[detector_number]
@@ -606,16 +639,7 @@ class FileOpenDialog:
         try:
             file = dialog.open_finish(result)
             if file is not None:
-                print(f"Opening: {file.get_path()}")
-
-                try:
-                    open_file_callback(file)
-                    print("File loaded successfully")
-
-                except (KeyError, ValueError):
-                    error_window = ErrorWindow(self.parent, "Datei invalide")
-                    error_window.present()
-
+                open_file_callback(file)
 
         except GLib.Error as e:
             print(f"Open canceled or failed: {e.message}")
