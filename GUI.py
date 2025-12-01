@@ -233,7 +233,8 @@ class MainWindow(Gtk.ApplicationWindow):
                 file_extension = filename[dot_pos + 1:]
 
                 if file_extension == "building":
-                    self.load_building_config(load_dict)
+                    error_status = self.load_building_config(load_dict)
+                    return error_status
 
                 elif file_extension == "scenario":
                     self.get_scenario_directory(load_dict, file)
@@ -243,9 +244,11 @@ class MainWindow(Gtk.ApplicationWindow):
                     error_window.present()
 
         except JSONDecodeError:
-            error_window = ErrorWindow(self, f"Invalides Dateiformat. Stellen Sie sicher,\ndass die Datei dem "
+            error_window = ErrorWindow(self, f"Invalides Dateiformat von {file.get_path()}\nStellen Sie sicher, dass die Datei dem "
                                              f"JSON-Standard entspricht.")
             error_window.present()
+            # Return error status
+            return True
 
     def load_building_config(self, load_dict):
         """Delete all current circuits, then create circuits and detectors according to the json file."""
@@ -281,10 +284,14 @@ class MainWindow(Gtk.ApplicationWindow):
         except KeyError as e:
             error_window = ErrorWindow(self, f".building-Datei invalide ({e} fehlt oder ist falsch geschrieben)")
             error_window.present()
+            # Return error_status
+            return True
 
         except (ValueError, TypeError) as e:
             error_window = ErrorWindow(self, e)
             error_window.present()
+            # Return error_status
+            return True
 
     def get_scenario_directory(self, load_dict, scenario_file):
         """Load the corresponding building_config and activate the detectors specified in the scenario file."""
@@ -330,7 +337,10 @@ class MainWindow(Gtk.ApplicationWindow):
 
             # Load the building_config file that has been found
             building_file = Gio.file_new_for_path(building_file_list[0])
-            self.open_file(building_file)
+            error_status = self.open_file(building_file)
+
+            if error_status:
+                return
 
             self.apply_scenario(load_dict)
 
@@ -362,7 +372,7 @@ class MainWindow(Gtk.ApplicationWindow):
         except KeyError:
             error_window = ErrorWindow(self, f"Szenario invalide: Stellen Sie sicher, dass alle im "
                                          f"Szenario\naktiven Melder in der Gebäudekonfiguration enthalten sind\nund "
-                                            f"die Datei den Formatvorgaben entspricht.")
+                                         f"die Datei den Formatvorgaben entspricht.")
             error_window.present()
 
         except SyntaxError as e:
