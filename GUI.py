@@ -42,9 +42,13 @@ class MainWindow(Gtk.ApplicationWindow):
 
 
         # Actions for all buttons to connect to
-        self.save_as_action = Gio.SimpleAction(name="save_as")
-        self.save_as_action.connect("activate", self.on_save_building_clicked)
-        self.add_action(self.save_as_action)
+        self.save_building_action = Gio.SimpleAction(name="save_building")
+        self.save_building_action.connect("activate", self.on_save_building_clicked)
+        self.add_action(self.save_building_action)
+
+        self.save_scenario_action = Gio.SimpleAction(name="save_scenario")
+        self.save_scenario_action.connect("activate", self.on_save_scenario_clicked)
+        self.add_action(self.save_scenario_action)
 
         self.open_action = Gio.SimpleAction(name="open")
         self.open_action.connect("activate", self.on_open_clicked)
@@ -87,7 +91,20 @@ class MainWindow(Gtk.ApplicationWindow):
             save_dict["circuit_dict"][circuit_number] = {}
             for detector_number in building.circuit_dict[circuit_number].detector_dict:
                 save_dict["circuit_dict"][circuit_number][detector_number] = building.circuit_dict[circuit_number].detector_dict[detector_number].description
+
         save_dialog = FileSaveDialog(save_dict, self, "building")
+        save_dialog.open_save_dialog()
+
+    def on_save_scenario_clicked(self, action, parameter):
+        """Save which detectors are currently active"""
+        save_dict = {"active_detector_list" : [], "scenario_description" : "Beschreibung"}
+        for circuit_number in building.circuit_dict:
+            for detector_number in building.circuit_dict[circuit_number].detector_dict:
+                detector = building.circuit_dict[circuit_number].detector_dict[detector_number]
+                if detector.alarm_status:
+                    save_dict["active_detector_list"].append(f"{circuit_number}_{detector_number}")
+
+        save_dialog = FileSaveDialog(save_dict, self, "scenario")
         save_dialog.open_save_dialog()
 
     def on_open_clicked(self, action, parameter):
@@ -231,9 +248,8 @@ class MainWindow(Gtk.ApplicationWindow):
                                      detector_description=detector_description)
 
     def load_scenario(self, load_dict, scenario_file):
-        """Load the corresponding building_config and activate the detectors specified in the scenario file"""
-        return
-        directory = Gio.file_new_for_path(scenario_file.get_parent())
+        """Load the corresponding building_config and activate the detectors specified in the scenario file."""
+        directory = Gio.file_new_for_path(scenario_file.get_parent().get_path())
 
         # Get the directory contents asynchronously
         directory.enumerate_children_async(
@@ -241,8 +257,79 @@ class MainWindow(Gtk.ApplicationWindow):
             Gio.FileQueryInfoFlags.NONE,
             GLib.PRIORITY_DEFAULT,
             None,
-            callback=_enumerate_callback
+            callback=partial(self.get_building_config_for_scenario, load_dict=load_dict)
         )
+
+    def get_building_config_for_scenario(self, source_object, result, load_dict):
+        """Finds the .building files in the directory and returns the file path. Throws an error if there is not exactly one .building file."""
+        try:
+            children = source_object.enumerate_children_finish(result)
+
+            # A list to store the paths to the ".building" files in the directory
+            building_file_list = []
+
+            for child_info in children:
+                # Get the filename
+                child_name = child_info.get_name()
+                # Find the last dot in the filename
+                dot_pos = child_name.rfind('.')
+                # The extension is everything after the last dot. Return empty string if there is no dot
+                child_extension = child_name[dot_pos + 1:] if dot_pos != -1 else ""
+
+                if child_extension == "building":
+                    # Get the filepath of the child and add it to building_file_list
+                    file_path = source_object.get_path() + "/" + child_name
+                    building_file_list.append(file_path)
+
+            # Check if exactly one .building file was found
+            if len(building_file_list) == 0:
+                raise GLib.Error ("Keine .building-Datei in diesem Verzeichnis gefunden")
+
+            if len(building_file_list) > 1:
+                raise GLib.Error (f"Es wurden {len(building_file_list)} .building-Dateien gefunden.\nStellen Sie "
+                                  f"sicher, dass pro Ordner nur eine .building-Datei existiert.")
+
+            # Load the building_config file that has been found
+            building_file = Gio.file_new_for_path(building_file_list[0])
+            self.open_file(building_file)
+
+            self.apply_scenario(load_dict)
+
+        except GLib.Error as error:
+            print(f"Error listing directory: {error}")
+            error_window = ErrorWindow(self, f"Öffnen fehlgeschlagen: {error}")
+            error_window.present()
+
+    def apply_scenario(self, load_dict):
+        """Set all detectors listed in load_dict to active"""
+
+        try:
+            for name in load_dict["active_detector_list"]:
+                # Get the detector object
+                number_list = name.split("_")
+
+                # Check for correct Syntax
+                if len(number_list) != 2:
+                    raise SyntaxError (".scenario-Datei invalide: Inkorrektes Format der Meldernummer")
+
+                circuit_number = int(number_list[0])
+                detector_number = int(number_list[1])
+                detector = building.circuit_dict[circuit_number].detector_dict[detector_number]
+
+                # Set the detector switch active
+                detector.alarm_status = True
+                detector.detector_switch.set_active(True)
+
+        except KeyError:
+            error_window = ErrorWindow(self, f"Szenario invalide: Stellen Sie sicher, dass alle im "
+                                         f"Szenario\naktiven Melder in der Gebäudekonfiguration enthalten sind\nund "
+                                            f"die Datei den Formatvorgaben entspricht")
+            error_window.present()
+
+        except SyntaxError as e:
+            error_window = ErrorWindow(self, e)
+            error_window.present()
+
 
     def create_circuit(self, circuit_number):
         """Creates a new Circuit instance with automatic numbering"""
@@ -292,7 +379,9 @@ class MainWindow(Gtk.ApplicationWindow):
                                          detector_number)
 
         # Connect the event handler that detects if the circuit is right-clicked
-        detector.click_controller.connect("pressed", partial(self.on_detector_pressed, circuit_number=circuit_number, detector_number=detector_number))
+        detector.click_controller.connect("pressed", partial(self.on_detector_pressed,
+                                                             circuit_number=circuit_number,
+                                                             detector_number=detector_number))
 
         # Add the detector to its circuit
         circuit = building.circuit_dict[circuit_number]
@@ -403,8 +492,10 @@ class DataMenu(Gio.Menu):
     """Menu model for the "Data" MenuButton in the header bar"""
     def __init__(self):
         super().__init__()
-        save_item = Gio.MenuItem.new("Speichern unter", "win.save_as")
-        self.append_item(save_item)
+        save_building_item = Gio.MenuItem.new("Gebäudekonfiguration speichern", "win.save_building")
+        self.append_item(save_building_item)
+        save_scenario_item = Gio.MenuItem.new("Szenario speichern", "win.save_scenario")
+        self.append_item(save_scenario_item)
         open_item = Gio.MenuItem.new("Datei öffnen", "win.open")
         self.append_item(open_item)
         edit_mode_item = Gio.MenuItem.new("Bearbeitungsmodus", "win.edit_mode")
@@ -544,7 +635,12 @@ class ErrorWindow(Gtk.Window):
         self.set_default_size(300, 60)
         self.set_transient_for(parent)
 
-        self.main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+        self.main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,
+                                spacing=10,
+                                margin_start=5,
+                                margin_end=5,
+                                margin_top=5,
+                                margin_bottom=5)
         self.set_child(self.main_box)
 
         self.error_label = Gtk.Label()
@@ -776,7 +872,7 @@ class App(Gtk.Application):
         self.window.present()
 
         # Add shortcuts to the actions
-        self.set_accels_for_action("win.save_as", ["<Ctrl><Shift>S"])
+        self.set_accels_for_action("win.save_building", ["<Ctrl><Shift>S"])
         self.set_accels_for_action("win.open", ["<Ctrl>O"])
         self.set_accels_for_action("win.edit_mode", ["<Ctrl>E"])
 
