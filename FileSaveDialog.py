@@ -5,13 +5,14 @@ gi.require_version('Gtk', '4.0')
 from gi.repository import Gio, Gtk, GLib
 
 from ErrorWindow import ErrorWindow
-
+from FileOperations import FileOperations
 
 class FileSaveDialog:
-    """Class to save the current building configuration to a json file"""
-    def __init__(self, save_dict, parent, file_type):
-        self.save_dict = save_dict
+    """When initiated, present a FileDialog to choose a location to save to. On confirmation of the selection,
+    call the method to write data."""
+    def __init__(self, parent, file_type):
         self.parent = parent
+        self.file_type = file_type
 
         # Present a file save dialog
         current_dir = Gio.File.new_for_path(".")
@@ -40,14 +41,8 @@ class FileSaveDialog:
         try:
             file = dialog.save_finish(result)
             if file is not None:
-                path = file.get_path()
-                print(f"Saving to: {path}")
+                FileOperations.save_to_file(file, self.file_type)
 
-                # Write save_dict to the file in json format
-                with open(path, "w", encoding="utf-8") as config_dict:
-                    json.dump(self.save_dict, config_dict, sort_keys=True, indent=4)
-
-                print("File saved successfully.")
         except GLib.Error as e:
             print(f"Save canceled or failed: {e.message}")
 

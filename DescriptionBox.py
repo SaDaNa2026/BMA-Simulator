@@ -4,6 +4,7 @@ from gi.repository import Gtk
 
 
 class DescriptionBox(Gtk.Box):
+    """Contains a label and a textview. Can be used where the user can edit a description."""
     def __init__(self, default_text=""):
         super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=5)
         self.description_label = Gtk.Label(label="Beschreibung:")
@@ -15,7 +16,7 @@ class DescriptionBox(Gtk.Box):
         self.textbuffer.set_text(default_text)
 
     def get_description(self):
-        # Get contents of the TextView
+        """Get the content of the TextView."""
         start = self.textbuffer.get_start_iter()
         end = self.textbuffer.get_end_iter()
         description = self.textbuffer.get_text(start, end, True)

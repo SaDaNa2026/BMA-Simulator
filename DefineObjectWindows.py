@@ -6,7 +6,7 @@ from DescriptionBox import DescriptionBox
 
 
 class DefineObjectWindow(Gtk.Window):
-    """A base class for Windows that let the use create objects with a chosen number"""
+    """Base class for a Window that lets the use create an object with a chosen number."""
     def __init__(self, handle_create_method, entry_label, parent, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -63,7 +63,7 @@ class DefineObjectWindow(Gtk.Window):
                                                    f"1.000.000.000 ein.</span>")
 
     def get_number_entry(self):
-        """Retrieve the entry and check it for correct syntax"""
+        """Retrieve the entry and check it for correct syntax."""
         entry = self.choose_number_entry.get_text()
 
         # Remove old warnings
@@ -95,7 +95,7 @@ class DefineObjectWindow(Gtk.Window):
 
 
 class DefineCircuitWindow(DefineObjectWindow):
-    """A Window that lets the user create a circuit with a chosen number"""
+    """Window that lets the user create a circuit with a chosen number."""
     def __init__(self, create_circuit_callback, parent):
         super().__init__(handle_create_method=lambda button: self.handle_create_circuit(create_circuit_callback), entry_label="Nummer der Melderlinie:", parent=parent)
         self.set_title("Melderlinie hinzufügen")
@@ -113,7 +113,7 @@ class DefineCircuitWindow(DefineObjectWindow):
 
 
 class DefineDetectorWindow(DefineObjectWindow):
-    """A Window that lets the user create a detector with a chosen number and description"""
+    """Window that lets the user create a detector with a chosen number and description."""
     def __init__(self, circuit_number, create_detector_callback, parent):
         super().__init__(handle_create_method=lambda button: self.handle_create_detector(create_detector_callback), entry_label="Nummer des Melders:", parent=parent)
         self.set_title(f"Melder zu Melderlinie {circuit_number} hinzufügen")

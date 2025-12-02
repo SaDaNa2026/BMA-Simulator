@@ -1,14 +1,14 @@
-from functools import partial
-
 import gi
 gi.require_version('Gtk', '4.0')
 from gi.repository import Gio, Gtk, GLib
 
 from ErrorWindow import ErrorWindow
+from FileOperations import FileOperations
 
 
 class FileOpenDialog:
-    """Class to load a building from a json file"""
+    """When initiated, present a FileDialog to choose a file to be opened. On confirmation, call the method to open
+    the file."""
     def __init__(self, parent):
         self.parent = parent
 
@@ -28,19 +28,17 @@ class FileOpenDialog:
         extension_filter.add_pattern("*.scenario")
         self.load_dialog.set_default_filter(extension_filter)
 
-    def show_open_dialog(self, open_file_callback):
+    def show_open_dialog(self):
         """Show the dialog asynchronously"""
-        self.load_dialog.open(self.parent,
-                              None,
-                              partial(self.on_file_open_response, open_file_callback=open_file_callback))
+        self.load_dialog.open(self.parent, None, self.on_file_open_response)
 
-    def on_file_open_response(self, dialog, result, open_file_callback):
+    def on_file_open_response(self, dialog, result):
         """Callback for the file dialog. Loads the json file from the selected path if it exists and passes the data
         to a callback function."""
         try:
             file = dialog.open_finish(result)
             if file is not None:
-                open_file_callback(file)
+                FileOperations.open_file(self.parent, file)
 
         except GLib.Error as e:
             print(f"Open canceled or failed: {e.message}")

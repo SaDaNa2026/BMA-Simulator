@@ -6,7 +6,7 @@ from Menus import CircuitContextMenu
 
 
 class Circuit(Gtk.Box):
-    """A container for managing multiple Detector instances"""
+    """A container for managing multiple Detector instances."""
     def __init__(self, circuit_number, *args, **kwargs):
         super().__init__(*args, orientation=Gtk.Orientation.VERTICAL, spacing=10)
 

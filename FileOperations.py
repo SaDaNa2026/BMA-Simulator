@@ -1,0 +1,229 @@
+import json
+from functools import partial
+from json import JSONDecodeError
+
+import gi
+gi.require_version('Gtk', '4.0')
+from gi.repository import Gio, GLib
+
+from Building import Building
+from ErrorWindow import ErrorWindow
+
+class FileOperations:
+    @staticmethod
+    def open_file(parent, file):
+        """Parse the data from the provided file and decide how to load it."""
+        print(f"Opening: {file.get_path()}")
+        try:
+            with open(file, "r") as file_dict:
+                # Load building information
+                load_dict = json.load(file_dict)
+
+                filename = file.get_path()
+                # Find the last dot in the filename
+                dot_pos = filename.rfind('.')
+                # The extension is everything after the last dot
+                file_extension = filename[dot_pos + 1:]
+
+                if file_extension == "building":
+                    error_status = FileOperations.load_building_config(parent, load_dict)
+                    return error_status
+
+                elif file_extension == "scenario":
+                    FileOperations.get_scenario_directory(parent, load_dict, file)
+
+                else:
+                    error_window = ErrorWindow(parent, "Invalide Dateiendung")
+                    error_window.present()
+
+        except JSONDecodeError:
+            error_window = ErrorWindow(parent,
+                                       f"Invalides Dateiformat von {file.get_path()}\nStellen Sie sicher, dass die Datei dem "
+                                       f"JSON-Standard entspricht.")
+            error_window.present()
+            # Return error status
+            return True
+
+    @staticmethod
+    def get_scenario_directory(parent, load_dict, scenario_file):
+        """Get the directory the scenario file is saved in and enumerate its children."""
+        directory = Gio.file_new_for_path(scenario_file.get_parent().get_path())
+
+        # Get the directory contents asynchronously
+        directory.enumerate_children_async(
+            'standard::name',
+            Gio.FileQueryInfoFlags.NONE,
+            GLib.PRIORITY_DEFAULT,
+            None,
+            callback=partial(FileOperations.get_building_config_for_scenario, parent=parent, load_dict=load_dict)
+        )
+
+    @staticmethod
+    def get_building_config_for_scenario(source_object, result, parent, load_dict):
+        """Callback for get_scenario_directory. Finds the .building files in the directory and returns the file path.
+        Throws an error if there is not exactly one .building file."""
+        try:
+            children = source_object.enumerate_children_finish(result)
+
+            # A list to store the paths to the ".building" files in the directory
+            building_file_list = []
+
+            for child_info in children:
+                # Get the filename
+                child_name = child_info.get_name()
+                # Find the last dot in the filename
+                dot_pos = child_name.rfind('.')
+                # The extension is everything after the last dot. Return empty string if there is no dot
+                child_extension = child_name[dot_pos + 1:] if dot_pos != -1 else ""
+
+                if child_extension == "building":
+                    # Get the filepath of the child and add it to building_file_list
+                    file_path = source_object.get_path() + "/" + child_name
+                    building_file_list.append(file_path)
+
+            # Check if exactly one .building file was found
+            if len(building_file_list) == 0:
+                raise GLib.Error("Keine .building-Datei in diesem Verzeichnis gefunden")
+
+            if len(building_file_list) > 1:
+                raise GLib.Error(f"Es wurden {len(building_file_list)} .building-Dateien gefunden.\nStellen Sie "
+                                 f"sicher, dass pro Ordner nur eine .building-Datei existiert.")
+
+            # Load the building_config file that has been found
+            building_file = Gio.file_new_for_path(building_file_list[0])
+            error_status = FileOperations.open_file(parent, building_file)
+
+            if error_status:
+                return
+
+            FileOperations.apply_scenario(parent, load_dict)
+
+        except GLib.Error as error:
+            print(f"Error listing directory: {error}")
+            error_window = ErrorWindow(parent, f"Öffnen fehlgeschlagen: {error}")
+            error_window.present()
+
+
+    @staticmethod
+    def load_building_config(parent, load_dict):
+        """Delete all current circuits, then create circuits and detectors according to the load_dict."""
+        delete_list = [num for num in Building.circuit_dict]
+        for circuit_number in delete_list:
+            parent.delete_circuit(circuit_number)
+
+        try:
+            Building.description = load_dict["building_description"]
+
+            for circuit_number in load_dict["circuit_dict"]:
+                if int(circuit_number) < 1:
+                    raise ValueError(f".building-Datei invalide (Melderlinien-Nummer {circuit_number} ist kleiner als 1)")
+
+                parent.create_circuit(int(circuit_number))
+
+                for detector_number in load_dict["circuit_dict"][circuit_number]:
+                    if int(detector_number) < 1:
+                        raise ValueError(f".building-Datei invalide (Meldernummer {detector_number} ist kleiner als 1)")
+
+                    detector_description = load_dict["circuit_dict"][circuit_number][detector_number]
+
+                    # Check for correct description format
+                    if type(detector_description) is not str:
+                        raise TypeError(
+                            f".building-Datei invalide (Melderbeschreibung von Melder {detector_number} hat falsches Format)")
+
+                    parent.create_detector(int(circuit_number), int(detector_number),
+                                         detector_description=detector_description)
+
+            print("File loaded successfully")
+
+        except KeyError as e:
+            error_window = ErrorWindow(parent, f".building-Datei invalide ({e} fehlt oder ist falsch geschrieben)")
+            error_window.present()
+            # Return error_status
+            return True
+
+        except (ValueError, TypeError) as e:
+            error_window = ErrorWindow(parent, e)
+            error_window.present()
+            # Return error_status
+            return True
+
+    @staticmethod
+    def apply_scenario(parent, load_dict):
+        """Set all detectors listed in load_dict to active"""
+        try:
+            for name in load_dict["active_detector_list"]:
+                # Get the detector object
+                number_list = name.split("_")
+
+                # Check for correct Syntax
+                if len(number_list) != 2:
+                    raise SyntaxError(".scenario-Datei invalide: Inkorrektes Format der Meldernummer")
+
+                circuit_number = int(number_list[0])
+                detector_number = int(number_list[1])
+                detector = Building.circuit_dict[circuit_number].detector_dict[detector_number]
+
+                # Set the detector switch active
+                detector.alarm_status = True
+                detector.detector_switch.set_active(True)
+
+        except KeyError:
+            error_window = ErrorWindow(parent, f"Szenario invalide: Stellen Sie sicher, dass alle im "
+                                             f"Szenario\naktiven Melder in der Gebäudekonfiguration enthalten sind\nund "
+                                             f"die Datei den Formatvorgaben entspricht.")
+            error_window.present()
+
+        except SyntaxError as e:
+            error_window = ErrorWindow(parent, e)
+            error_window.present()
+
+
+    @staticmethod
+    def save_to_file(file, file_type):
+        """Call the correct method to create save_dict depending on file_type, then save it as json to the specified
+        filepath."""
+        path = file.get_path()
+        print(f"Saving to: {path}")
+
+        if file_type == "building":
+            save_dict = FileOperations.create_building_save_dict()
+
+        else:
+            save_dict = FileOperations.create_scenario_save_dict()
+
+        # Write save_dict to the file in json format
+        with open(path, "w", encoding="utf-8") as config_dict:
+            json.dump(save_dict, config_dict, sort_keys=True, indent=4)
+
+        print("File saved successfully.")
+
+
+    @staticmethod
+    def create_building_save_dict():
+        """Create a dictionary that contains all information about the current building configuration."""
+        save_dict = {"circuit_dict": {}, "building_description": Building.description}
+
+        for circuit_number in Building.circuit_dict:
+            save_dict["circuit_dict"][circuit_number] = {}
+
+            for detector_number in Building.circuit_dict[circuit_number].detector_dict:
+                save_dict["circuit_dict"][circuit_number][detector_number] = \
+                Building.circuit_dict[circuit_number].detector_dict[detector_number].description
+
+        return save_dict
+
+    @staticmethod
+    def create_scenario_save_dict():
+        """Create a dictionary that contains a list of active detectors and a description."""
+        save_dict = {"active_detector_list": [], "scenario_description": "Beschreibung"}
+
+        for circuit_number in Building.circuit_dict:
+
+            for detector_number in Building.circuit_dict[circuit_number].detector_dict:
+                detector = Building.circuit_dict[circuit_number].detector_dict[detector_number]
+
+                if detector.alarm_status:
+                    save_dict["active_detector_list"].append(f"{circuit_number}_{detector_number}")
+
+        return save_dict

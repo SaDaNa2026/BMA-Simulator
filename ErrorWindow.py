@@ -4,6 +4,7 @@ from gi.repository import Gtk
 
 
 class ErrorWindow(Gtk.Window):
+    """Window to display error messages."""
     def __init__(self, parent, error_message, *args, **kwargs):
         super().__init__(*args, **kwargs)
 

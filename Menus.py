@@ -2,7 +2,7 @@ from gi.repository import Gio, GLib
 
 
 class DataMenu(Gio.Menu):
-    """Menu model for the "Data" MenuButton in the header bar"""
+    """Menu model for the "Data" MenuButton in the header bar."""
     def __init__(self):
         super().__init__()
         save_building_item = Gio.MenuItem.new("Gebäudekonfiguration speichern", "win.save_building")
@@ -16,7 +16,7 @@ class DataMenu(Gio.Menu):
 
 
 class CircuitContextMenu(Gio.Menu):
-    """Menu model for the context menu that appears when right-clicking on a circuit"""
+    """Menu model for the context menu that appears when right-clicking on a circuit."""
     def __init__(self, circuit_number):
         super().__init__()
         create_detector_item = Gio.MenuItem.new("Melder hinzufügen", "win.create_detector")
@@ -28,7 +28,7 @@ class CircuitContextMenu(Gio.Menu):
 
 
 class DetectorContextMenu(Gio.Menu):
-    """Menu model for the context menu that appears when right-clicking on a detector"""
+    """Menu model for the context menu that appears when right-clicking on a detector."""
     def __init__(self, circuit_number, detector_number):
         super().__init__()
         edit_detector_item = Gio.MenuItem.new("Melder bearbeiten", "win.edit_detector")
