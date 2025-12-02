@@ -1,0 +1,472 @@
+import json
+from functools import partial
+from json import JSONDecodeError
+
+from gi.repository import Gtk, Gio, GLib, Gdk
+
+from Building import Building
+from Circuit import Circuit
+from DefineObjectWindows import DefineCircuitWindow, DefineDetectorWindow
+from Detector import Detector
+from EditWindows import EditDetectorWindow, EditBuildingWindow
+from ErrorWindow import ErrorWindow
+from FileOpenDialog import FileOpenDialog
+from FileSaveDialog import FileSaveDialog
+from Menus import DataMenu
+
+
+class MainWindow(Gtk.ApplicationWindow):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.set_default_size(700, 500)
+        self.set_title("Steuerung Übungs-BMA")
+
+        # Create a box that contains all other widgets in this window
+        self.main_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+        self.main_box.set_margin_top(5)
+        self.main_box.set_margin_bottom(5)
+        self.main_box.set_margin_start(5)
+        self.main_box.set_margin_end(5)
+        self.main_box.set_spacing(20)
+        self.set_child(self.main_box)
+
+
+        # Definition of the window header
+        self.header = Gtk.HeaderBar()
+        self.set_titlebar(self.header)
+
+        # MenuButton to handle data operations
+        self.data_menu = DataMenu()
+        self.data_menubutton = Gtk.MenuButton(label="Datei", direction=Gtk.ArrowType.DOWN)
+        self.data_menubutton.set_menu_model(self.data_menu)
+        self.header.pack_start(self.data_menubutton)
+
+        # Button to add a circuit
+        self.create_circuit_button = Gtk.Button(label="Melderlinie hinzufügen", visible=False)
+        self.create_circuit_button.set_action_name("win.create_circuit")
+        self.header.pack_start(self.create_circuit_button)
+
+
+        # Actions for all buttons to connect to
+        self.save_building_action = Gio.SimpleAction(name="save_building")
+        self.save_building_action.connect("activate", self.on_save_building_clicked)
+        self.add_action(self.save_building_action)
+
+        self.save_scenario_action = Gio.SimpleAction(name="save_scenario")
+        self.save_scenario_action.connect("activate", self.on_save_scenario_clicked)
+        self.add_action(self.save_scenario_action)
+
+        self.open_action = Gio.SimpleAction(name="open")
+        self.open_action.connect("activate", self.on_open_clicked)
+        self.add_action(self.open_action)
+
+        self.create_circuit_action = Gio.SimpleAction(name="create_circuit", enabled=False)
+        self.create_circuit_action.connect("activate", self.on_create_circuit_clicked)
+        self.add_action(self.create_circuit_action)
+
+        self.delete_circuit_action = Gio.SimpleAction(name="delete_circuit", parameter_type=GLib.VariantType("i"), enabled=False)
+        self.delete_circuit_action.connect("activate", self.on_delete_circuit_clicked)
+        self.add_action(self.delete_circuit_action)
+
+        self.create_detector_action = Gio.SimpleAction(name="create_detector", parameter_type=GLib.VariantType("i"), enabled=False)
+        self.create_detector_action.connect("activate", self.on_create_detector_clicked)
+        self.add_action(self.create_detector_action)
+
+        self.delete_detector_action = Gio.SimpleAction(name="delete_detector", parameter_type=GLib.VariantType("s"), enabled=False)
+        self.delete_detector_action.connect("activate", self.on_delete_detector_clicked)
+        self.add_action(self.delete_detector_action)
+
+        self.edit_detector_action = Gio.SimpleAction(name="edit_detector", parameter_type=GLib.VariantType("s"), enabled=False)
+        self.edit_detector_action.connect("activate", self.on_edit_detector_clicked)
+        self.add_action(self.edit_detector_action)
+
+        self.edit_building_action = Gio.SimpleAction(name="edit_building", enabled=False)
+        self.edit_building_action.connect("activate", self.on_edit_building_clicked)
+        self.add_action(self.edit_building_action)
+
+        self.edit_mode_action = Gio.SimpleAction.new_stateful(name="edit_mode", parameter_type=None,
+                                                              state=GLib.Variant.new_boolean(False))
+        self.edit_mode_action.connect("activate", self.on_edit_mode_clicked)
+        self.add_action(self.edit_mode_action)
+
+
+    def on_save_building_clicked(self, action, parameter):
+        """Save the building structure to a json file"""
+        save_dict = {"circuit_dict" : {}, "building_description" : Building.description}
+        for circuit_number in Building.circuit_dict:
+            save_dict["circuit_dict"][circuit_number] = {}
+            for detector_number in Building.circuit_dict[circuit_number].detector_dict:
+                save_dict["circuit_dict"][circuit_number][detector_number] = Building.circuit_dict[circuit_number].detector_dict[detector_number].description
+
+        save_dialog = FileSaveDialog(save_dict, self, "building")
+        save_dialog.open_save_dialog()
+
+    def on_save_scenario_clicked(self, action, parameter):
+        """Save which detectors are currently active"""
+        save_dict = {"active_detector_list" : [], "scenario_description" : "Beschreibung"}
+        for circuit_number in Building.circuit_dict:
+            for detector_number in Building.circuit_dict[circuit_number].detector_dict:
+                detector = Building.circuit_dict[circuit_number].detector_dict[detector_number]
+                if detector.alarm_status:
+                    save_dict["active_detector_list"].append(f"{circuit_number}_{detector_number}")
+
+        save_dialog = FileSaveDialog(save_dict, self, "scenario")
+        save_dialog.open_save_dialog()
+
+    def on_open_clicked(self, action, parameter):
+        """Loads a building configuration from a json file. Does not set the alarm_status of detectors"""
+        open_dialog = FileOpenDialog(self)
+        open_dialog.show_open_dialog(open_file_callback=self.open_file)
+
+    def on_circuit_pressed(self, gesture, n_press, x, y, circuit_number):
+        """Presents a context menu on a circuit_box"""
+        # Don't respond if edit mode is disabled
+        if not self.edit_mode_action.get_state().get_boolean():
+            return
+
+        # Get the circuit that was clicked
+        circuit = Building.circuit_dict[circuit_number]
+
+        # Create an invisible rectangle at the position of the click that the context menu points to
+        rect = Gdk.Rectangle()
+        rect.x = int(x)
+        rect.y = int(y)
+        rect.width = 1
+        rect.height = 1
+
+        circuit.context_menu_popover.set_pointing_to(rect)
+        circuit.context_menu_popover.popup()
+
+    def on_detector_pressed(self, gesture, n_press, x, y, circuit_number, detector_number):
+        """Presents a context menu on a circuit_box"""
+        # Don't respond if edit mode is disabled
+        if not self.edit_mode_action.get_state().get_boolean():
+            return
+
+        # Get the circuit that was clicked
+        detector = Building.circuit_dict[circuit_number].detector_dict[detector_number]
+
+        # Create an invisible rectangle at the position of the click that the context menu points to
+        rect = Gdk.Rectangle()
+        rect.x = int(x)
+        rect.y = int(y)
+        rect.width = 1
+        rect.height = 1
+
+        detector.context_menu_popover.set_pointing_to(rect)
+        detector.context_menu_popover.popup()
+
+    def on_create_circuit_clicked(self, action, parameter):
+        """Creates a DefineCircuitWindow. Callback function for the create_circuit_button."""
+        self.define_circuit = DefineCircuitWindow(self.create_circuit, self)
+        self.define_circuit.present()
+
+    def on_create_detector_clicked(self, action, parameter):
+        """Creates a DefineDetectorWindow. Callback function for the create_detector_button."""
+        # Convert the action parameter to int
+        circuit_number = parameter.get_int32()
+
+        self.define_detector = DefineDetectorWindow(circuit_number, self.create_detector, self)
+        self.define_detector.present()
+
+    def on_edit_detector_clicked(self, action, parameter):
+        """Creates an EditDetectorWindow"""
+        # Convert parameters to int
+        parameter_string = parameter.get_string()
+        parameter_list = parameter_string.split(", ")
+        circuit_number = int(parameter_list[0])
+        detector_number = int(parameter_list[1])
+
+        self.edit_detector_window = EditDetectorWindow(circuit_number, detector_number, self.edit_detector, self)
+        self.edit_detector_window.present()
+
+    def on_edit_building_clicked(self, action, parameter):
+        """Creates an EditBuildingWindow"""
+        self.edit_building_window = EditBuildingWindow(self)
+        self.edit_building_window.present()
+
+    def on_edit_mode_clicked(self, action, parameter):
+        """Function to switch between normal mode and edit mode"""
+        # Update the action’s stored state
+        current_state = action.get_state().get_boolean()
+        new_state =  not current_state
+        action.set_state(GLib.Variant.new_boolean(new_state))
+
+        # Update UI
+        self.create_circuit_action.set_enabled(new_state)
+        self.create_detector_action.set_enabled(new_state)
+        self.delete_circuit_action.set_enabled(new_state)
+        self.delete_detector_action.set_enabled(new_state)
+        self.edit_building_action.set_enabled(new_state)
+        self.edit_detector_action.set_enabled(new_state)
+
+        self.create_circuit_button.set_visible(new_state)
+
+        if new_state:
+            print("Edit mode active")
+
+        else:
+            print("Edit mode inactive")
+
+    def on_delete_circuit_clicked(self, action, parameter):
+        """Convert parameter to int and call the delete_circuit method"""
+        circuit_number = parameter.get_int32()
+        self.delete_circuit(circuit_number)
+
+    def on_delete_detector_clicked(self, action, parameter):
+        """Convert parameters to int and call the delete_detector method"""
+        parameter_string = parameter.get_string()
+        parameter_list = parameter_string.split(", ")
+        circuit_number = int(parameter_list[0])
+        detector_number = int(parameter_list[1])
+
+        self.delete_detector(circuit_number, detector_number)
+
+
+    def open_file(self, file):
+        """Parse the data from the provided file and decide how to load it."""
+        print(f"Opening: {file.get_path()}")
+        try:
+            with open(file, "r") as file_dict:
+                # Load building information
+                load_dict = json.load(file_dict)
+
+                filename = file.get_path()
+                # Find the last dot in the filename
+                dot_pos = filename.rfind('.')
+                # The extension is everything after the last dot
+                file_extension = filename[dot_pos + 1:]
+
+                if file_extension == "building":
+                    error_status = self.load_building_config(load_dict)
+                    return error_status
+
+                elif file_extension == "scenario":
+                    self.get_scenario_directory(load_dict, file)
+
+                else:
+                    error_window = ErrorWindow(self, "Invalide Dateiendung")
+                    error_window.present()
+
+        except JSONDecodeError:
+            error_window = ErrorWindow(self, f"Invalides Dateiformat von {file.get_path()}\nStellen Sie sicher, dass die Datei dem "
+                                             f"JSON-Standard entspricht.")
+            error_window.present()
+            # Return error status
+            return True
+
+    def load_building_config(self, load_dict):
+        """Delete all current circuits, then create circuits and detectors according to the json file."""
+        delete_list = [num for num in Building.circuit_dict]
+        for circuit_number in delete_list:
+            self.delete_circuit(circuit_number)
+
+        try:
+            Building.description = load_dict["building_description"]
+
+            for circuit_number in load_dict["circuit_dict"]:
+                if int(circuit_number) < 1:
+                    raise ValueError (f".building-Datei invalide (Melderlinien-Nummer {circuit_number} ist kleiner als 1)")
+
+                self.create_circuit(int(circuit_number))
+                for detector_number in load_dict["circuit_dict"][circuit_number]:
+                    if int(detector_number) < 1:
+                        raise ValueError (f".building-Datei invalide (Meldernummer {detector_number} ist kleiner als 1)")
+
+                    detector_description = load_dict["circuit_dict"][circuit_number][detector_number]
+
+                    # Check for correct description format
+                    if type(detector_description) is not str:
+                        raise TypeError (f".building-Datei invalide (Melderbeschreibung von Melder {detector_number} hat falsches Format)")
+
+                    self.create_detector(int(circuit_number), int(detector_number),
+                                         detector_description=detector_description)
+
+            print("File loaded successfully")
+
+        except KeyError as e:
+            error_window = ErrorWindow(self, f".building-Datei invalide ({e} fehlt oder ist falsch geschrieben)")
+            error_window.present()
+            # Return error_status
+            return True
+
+        except (ValueError, TypeError) as e:
+            error_window = ErrorWindow(self, e)
+            error_window.present()
+            # Return error_status
+            return True
+
+    def get_scenario_directory(self, load_dict, scenario_file):
+        """Load the corresponding building_config and activate the detectors specified in the scenario file."""
+        directory = Gio.file_new_for_path(scenario_file.get_parent().get_path())
+
+        # Get the directory contents asynchronously
+        directory.enumerate_children_async(
+            'standard::name',
+            Gio.FileQueryInfoFlags.NONE,
+            GLib.PRIORITY_DEFAULT,
+            None,
+            callback=partial(self.get_building_config_for_scenario, load_dict=load_dict)
+        )
+
+    def get_building_config_for_scenario(self, source_object, result, load_dict):
+        """Finds the .building files in the directory and returns the file path. Throws an error if there is not exactly one .building file."""
+        try:
+            children = source_object.enumerate_children_finish(result)
+
+            # A list to store the paths to the ".building" files in the directory
+            building_file_list = []
+
+            for child_info in children:
+                # Get the filename
+                child_name = child_info.get_name()
+                # Find the last dot in the filename
+                dot_pos = child_name.rfind('.')
+                # The extension is everything after the last dot. Return empty string if there is no dot
+                child_extension = child_name[dot_pos + 1:] if dot_pos != -1 else ""
+
+                if child_extension == "building":
+                    # Get the filepath of the child and add it to building_file_list
+                    file_path = source_object.get_path() + "/" + child_name
+                    building_file_list.append(file_path)
+
+            # Check if exactly one .building file was found
+            if len(building_file_list) == 0:
+                raise GLib.Error ("Keine .building-Datei in diesem Verzeichnis gefunden")
+
+            if len(building_file_list) > 1:
+                raise GLib.Error (f"Es wurden {len(building_file_list)} .building-Dateien gefunden.\nStellen Sie "
+                                  f"sicher, dass pro Ordner nur eine .building-Datei existiert.")
+
+            # Load the building_config file that has been found
+            building_file = Gio.file_new_for_path(building_file_list[0])
+            error_status = self.open_file(building_file)
+
+            if error_status:
+                return
+
+            self.apply_scenario(load_dict)
+
+        except GLib.Error as error:
+            print(f"Error listing directory: {error}")
+            error_window = ErrorWindow(self, f"Öffnen fehlgeschlagen: {error}")
+            error_window.present()
+
+    def apply_scenario(self, load_dict):
+        """Set all detectors listed in load_dict to active"""
+
+        try:
+            for name in load_dict["active_detector_list"]:
+                # Get the detector object
+                number_list = name.split("_")
+
+                # Check for correct Syntax
+                if len(number_list) != 2:
+                    raise SyntaxError (".scenario-Datei invalide: Inkorrektes Format der Meldernummer")
+
+                circuit_number = int(number_list[0])
+                detector_number = int(number_list[1])
+                detector = Building.circuit_dict[circuit_number].detector_dict[detector_number]
+
+                # Set the detector switch active
+                detector.alarm_status = True
+                detector.detector_switch.set_active(True)
+
+        except KeyError:
+            error_window = ErrorWindow(self, f"Szenario invalide: Stellen Sie sicher, dass alle im "
+                                         f"Szenario\naktiven Melder in der Gebäudekonfiguration enthalten sind\nund "
+                                         f"die Datei den Formatvorgaben entspricht.")
+            error_window.present()
+
+        except SyntaxError as e:
+            error_window = ErrorWindow(self, e)
+            error_window.present()
+
+
+    def create_circuit(self, circuit_number):
+        """Creates a new Circuit instance with automatic numbering"""
+
+        # Raise an exception if a circuit with this number already exists
+        if circuit_number in Building.circuit_dict:
+            raise AttributeError
+
+        circuit = Circuit(circuit_number)
+
+        # Connect the event handler that detects if the circuit is right-clicked
+        circuit.click_controller.connect("pressed", partial(self.on_circuit_pressed, circuit_number=circuit_number))
+
+        # Add the circuit to the main window and the circuit dict
+        self.main_box.append(circuit)
+        Building.circuit_dict[circuit_number] = circuit
+        return circuit
+
+    def delete_circuit(self, circuit_number):
+        """Delete the last circuit and print new detector state"""
+
+        circuit = Building.circuit_dict[circuit_number]
+        print(f"delete circuit {circuit_number}")
+
+        self.main_box.remove(circuit)
+        del Building.circuit_dict[circuit_number]
+        self.print_detector_state()
+
+    def create_detector(self, circuit_number, detector_number, alarm_status=False, detector_description="Beschreibung"):
+        """Creates a new Detector instance"""
+        # Raise an exception if a detector with this number already exists
+        if detector_number in Building.circuit_dict[circuit_number].detector_dict:
+            raise AttributeError
+
+        # Create new detector and add it to the detector_dict of the circuit that it belongs to
+        detector = Detector(circuit_number, detector_number)
+        Building.circuit_dict[circuit_number].detector_dict[detector_number] = detector
+
+        detector.description = detector_description
+
+        # Set the detector switch according to the alarm_status and connect it to its callback function
+        detector.alarm_status = alarm_status
+        detector.detector_switch.set_active(alarm_status)
+        detector.detector_switch.connect('state-set',
+                                         self.on_detector_toggled,
+                                         circuit_number,
+                                         detector_number)
+
+        # Connect the event handler that detects if the circuit is right-clicked
+        detector.click_controller.connect("pressed", partial(self.on_detector_pressed,
+                                                             circuit_number=circuit_number,
+                                                             detector_number=detector_number))
+
+        # Add the detector to its circuit
+        circuit = Building.circuit_dict[circuit_number]
+        circuit.append(detector)
+        return detector
+
+    def delete_detector(self, circuit_number, detector_number):
+        """Delete a specified detector"""
+        # Get the corresponding objects
+        circuit = Building.circuit_dict[circuit_number]
+        detector = Building.circuit_dict[circuit_number].detector_dict[detector_number]
+
+        # Delete the detector from the dictionary and remove it from its circuit
+        del Building.circuit_dict[circuit_number].detector_dict[detector_number]
+        circuit.remove(detector)
+        self.print_detector_state()
+
+    def edit_detector(self, circuit_number, detector_number, description):
+        detector = Building.circuit_dict[circuit_number].detector_dict[detector_number]
+        detector.description = description
+
+
+    def on_detector_toggled(self, detector_switch, state, circuit_number, detector_number):
+        """Callback function for detector_switch. Sets the alarm_status of the detector according to the position of the switch and prints debugging info"""
+        Building.circuit_dict[circuit_number].detector_dict[detector_number].alarm_status = state
+        print(f"Melder {detector_number} in Melderlinie {circuit_number} {'aktiviert' if state else 'deaktiviert'}")
+        self.print_detector_state()
+
+    def print_detector_state(self):
+        """Prints the active detectors to the console"""
+        print(f"Aktive Melder: ")
+        for circuit_number in Building.circuit_dict.keys():
+            for detector_number in Building.circuit_dict[circuit_number].detector_dict.keys():
+                if Building.circuit_dict[circuit_number].detector_dict[detector_number].alarm_status:
+                    print(f"Melder {detector_number} in Melderlinie {circuit_number}")
