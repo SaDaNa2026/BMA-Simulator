@@ -9,8 +9,7 @@ from Circuit import Circuit
 from DefineObjectWindows import DefineCircuitWindow, DefineDetectorWindow
 from Detector import Detector
 from EditWindows import EditDetectorWindow, EditBuildingWindow
-from FileOpenDialog import FileOpenDialog
-from FileSaveDialog import FileSaveDialog
+from FileOperations import FileOperations
 from Menus import DataMenu
 
 
@@ -94,18 +93,15 @@ class MainWindow(Gtk.ApplicationWindow):
 
     def on_save_building_clicked(self, action, parameter):
         """Create a FileSaveDialog to save the building configuration."""
-        save_dialog = FileSaveDialog(self, "building")
-        save_dialog.open_save_dialog()
+        FileOperations.show_save_dialog(self, "building")
 
     def on_save_scenario_clicked(self, action, parameter):
         """Create a FileSaveDialog to save the scenario."""
-        save_dialog = FileSaveDialog(self, "scenario")
-        save_dialog.open_save_dialog()
+        FileOperations.show_save_dialog(self, "scenario")
 
     def on_open_clicked(self, action, parameter):
         """Creates a FileOpenDialog."""
-        open_dialog = FileOpenDialog(self)
-        open_dialog.show_open_dialog()
+        FileOperations.show_open_dialog(self)
 
     def on_circuit_pressed(self, gesture, n_press, x, y, circuit_number):
         """Present a context menu on a circuit_box if edit mode is enabled."""

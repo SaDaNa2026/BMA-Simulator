@@ -3,13 +3,39 @@ from functools import partial
 from json import JSONDecodeError
 
 import gi
+
 gi.require_version('Gtk', '4.0')
 from gi.repository import Gio, GLib
 
 from Building import Building
 from ErrorWindow import ErrorWindow
+from FileOpenDialog import FileOpenDialog
+from FileSaveDialog import FileSaveDialog
+
 
 class FileOperations:
+    @staticmethod
+    def show_open_dialog(parent):
+        """Show a FileOpenDialog."""
+        file_open_dialog = FileOpenDialog()
+        file_open_dialog.open(parent, None, partial(FileOperations.on_file_open_response, parent=parent))
+
+    @staticmethod
+    def on_file_open_response(dialog, result, parent):
+        """Callback for the open_file_dialog. If the file exists, pass it to the open_file method."""
+        try:
+            file = dialog.open_finish(result)
+            if file is not None:
+                FileOperations.open_file(parent, file)
+
+        except GLib.Error as e:
+            print(f"Open canceled or failed: {e.message}")
+
+            if not e.message == "Dismissed by user":
+                error_window = ErrorWindow(parent, f"Öffnen fehlgeschlagen: {e.message}")
+                error_window.present()
+
+
     @staticmethod
     def open_file(parent, file):
         """Parse the data from the provided file and decide how to load it."""
@@ -103,7 +129,6 @@ class FileOperations:
             error_window = ErrorWindow(parent, f"Öffnen fehlgeschlagen: {error}")
             error_window.present()
 
-
     @staticmethod
     def load_building_config(parent, load_dict):
         """Delete all current circuits, then create circuits and detectors according to the load_dict."""
@@ -116,7 +141,8 @@ class FileOperations:
 
             for circuit_number in load_dict["circuit_dict"]:
                 if int(circuit_number) < 1:
-                    raise ValueError(f".building-Datei invalide (Melderlinien-Nummer {circuit_number} ist kleiner als 1)")
+                    raise ValueError(
+                        f".building-Datei invalide (Melderlinien-Nummer {circuit_number} ist kleiner als 1)")
 
                 parent.create_circuit(int(circuit_number))
 
@@ -132,7 +158,7 @@ class FileOperations:
                             f".building-Datei invalide (Melderbeschreibung von Melder {detector_number} hat falsches Format)")
 
                     parent.create_detector(int(circuit_number), int(detector_number),
-                                         detector_description=detector_description)
+                                           detector_description=detector_description)
 
             print("File loaded successfully")
 
@@ -170,13 +196,36 @@ class FileOperations:
 
         except KeyError:
             error_window = ErrorWindow(parent, f"Szenario invalide: Stellen Sie sicher, dass alle im "
-                                             f"Szenario\naktiven Melder in der Gebäudekonfiguration enthalten sind\nund "
-                                             f"die Datei den Formatvorgaben entspricht.")
+                                               f"Szenario\naktiven Melder in der Gebäudekonfiguration enthalten sind\nund "
+                                               f"die Datei den Formatvorgaben entspricht.")
             error_window.present()
 
         except SyntaxError as e:
             error_window = ErrorWindow(parent, e)
             error_window.present()
+
+
+    @staticmethod
+    def show_save_dialog(parent, file_type):
+        """Show a FileSaveDialog."""
+        file_save_dialog = FileSaveDialog(file_type)
+        file_save_dialog.save(parent, None,
+                              partial(FileOperations.on_file_save_response, parent=parent, file_type=file_type))
+
+    @staticmethod
+    def on_file_save_response(dialog, result, parent, file_type):
+        """Callback for the save_file_dialog. Pass the destination to the save_to_file method."""
+        try:
+            file = dialog.save_finish(result)
+            if file is not None:
+                FileOperations.save_to_file(file, file_type)
+
+        except GLib.Error as e:
+            print(f"Save canceled or failed: {e.message}")
+
+            if not e.message == "Dismissed by user":
+                error_window = ErrorWindow(parent, f"Speichern fehlgeschlagen: {e.message}")
+                error_window.present()
 
 
     @staticmethod
@@ -198,7 +247,6 @@ class FileOperations:
 
         print("File saved successfully.")
 
-
     @staticmethod
     def create_building_save_dict():
         """Create a dictionary that contains all information about the current building configuration."""
@@ -209,7 +257,7 @@ class FileOperations:
 
             for detector_number in Building.circuit_dict[circuit_number].detector_dict:
                 save_dict["circuit_dict"][circuit_number][detector_number] = \
-                Building.circuit_dict[circuit_number].detector_dict[detector_number].description
+                    Building.circuit_dict[circuit_number].detector_dict[detector_number].description
 
         return save_dict
 
