@@ -10,7 +10,7 @@ from DefineObjectWindows import DefineCircuitWindow, DefineDetectorWindow
 from Detector import Detector
 from EditWindows import EditDetectorWindow, EditBuildingWindow
 from FileOperations import FileOperations
-from Menus import DataMenu
+from Menus import DataMenu, AddMenu
 
 
 class MainWindow(Gtk.ApplicationWindow):
@@ -42,10 +42,12 @@ class MainWindow(Gtk.ApplicationWindow):
         self.data_menubutton.set_menu_model(self.data_menu)
         self.header.pack_start(self.data_menubutton)
 
-        # Button to add a circuit
-        self.create_circuit_button = Gtk.Button(label="Melderlinie hinzufügen", visible=False)
-        self.create_circuit_button.set_action_name("edit.create_circuit")
-        self.header.pack_start(self.create_circuit_button)
+        # MenuButton to add a circuit or edit the building description
+        self.add_menu = AddMenu()
+        self.add_menubutton = Gtk.MenuButton(label="+", direction=Gtk.ArrowType.DOWN)
+        self.add_menubutton.set_menu_model(self.add_menu)
+        self.add_menubutton.set_visible(False)
+        self.header.pack_start(self.add_menubutton)
 
 
         # Actions for all buttons to connect to
@@ -69,6 +71,12 @@ class MainWindow(Gtk.ApplicationWindow):
         self.edit_action_group = Gio.SimpleActionGroup.new()
         self.edit_action_group.add_action_entries(edit_action_entries, None)
         self.insert_action_group("edit", self.edit_action_group)
+
+        # Set edit actions disabled
+        for name in self.edit_action_group.list_actions():
+            action = self.edit_action_group.lookup_action(name)
+            if isinstance(action, Gio.SimpleAction):
+                action.set_enabled(False)
 
 
     def on_save_building_clicked(self, *args):
@@ -177,7 +185,7 @@ class MainWindow(Gtk.ApplicationWindow):
             if isinstance(action, Gio.SimpleAction):
                 action.set_enabled(new_state)
 
-        self.create_circuit_button.set_visible(new_state)
+        self.add_menubutton.set_visible(new_state)
 
         # Print debug info
         if new_state:

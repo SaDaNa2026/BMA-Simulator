@@ -61,7 +61,7 @@ class EditBuildingWindow(EditWindow):
     """Window for editing the building description."""
     def __init__(self, parent, *args, **kwargs):
         title = f"Gebäudebeschreibung bearbeiten"
-        super().__init__(lambda button: self.handle_edit_building, parent, title, Building.description, *args, **kwargs)
+        super().__init__(lambda button: self.handle_edit_building(), parent, title, Building.description, *args, **kwargs)
 
     def handle_edit_building(self):
         description = self.description_box.get_description()

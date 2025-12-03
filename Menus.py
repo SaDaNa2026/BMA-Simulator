@@ -15,6 +15,16 @@ class DataMenu(Gio.Menu):
         self.append_item(edit_mode_item)
 
 
+class AddMenu(Gio.Menu):
+    """Menu model for the "+" MenuButton in the header bar."""
+    def __init__(self):
+        super().__init__()
+        create_circuit_item = Gio.MenuItem.new("Melderlinie hinzufügen", "edit.create_circuit")
+        self.append_item(create_circuit_item)
+        edit_building_item = Gio.MenuItem.new("Gebäudebeschreibung bearbeiten", "edit.edit_building")
+        self.append_item(edit_building_item)
+
+
 class CircuitContextMenu(Gio.Menu):
     """Menu model for the context menu that appears when right-clicking on a circuit."""
     def __init__(self, circuit_number):
