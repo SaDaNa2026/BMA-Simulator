@@ -8,7 +8,7 @@ gi.require_version('Gtk', '4.0')
 from gi.repository import Gio, GLib
 
 from Building import Building
-from ErrorWindow import ErrorWindow
+from ErrorAlert import ErrorAlert
 from FileOpenDialog import FileOpenDialog
 from FileSaveDialog import FileSaveDialog
 
@@ -32,9 +32,7 @@ class FileOperations:
             print(f"Open canceled or failed: {e.message}")
 
             if not e.message == "Dismissed by user":
-                error_window = ErrorWindow(parent, f"Öffnen fehlgeschlagen: {e.message}")
-                error_window.present()
-
+                ErrorAlert.show(parent, "Öffnen fehlgeschlagen", e.message)
 
     @staticmethod
     def open_file(parent, file):
@@ -59,14 +57,14 @@ class FileOperations:
                     FileOperations.get_scenario_directory(parent, load_dict, file)
 
                 else:
-                    error_window = ErrorWindow(parent, "Invalide Dateiendung")
-                    error_window.present()
+                    ErrorAlert.show(parent,
+                                    "Invalide Dateiendung",
+                                    "Es können nur Dateien geladen werden, die auf .building oder .scenario enden")
 
         except JSONDecodeError:
-            error_window = ErrorWindow(parent,
-                                       f"Invalides Dateiformat von {file.get_path()}\nStellen Sie sicher, dass die Datei dem "
-                                       f"JSON-Standard entspricht.")
-            error_window.present()
+            ErrorAlert.show(parent, "Fehler beim Laden der Datei",
+                            f"Invalides Dateiformat von {file.get_path()}\nStellen Sie sicher, "
+                            f"dass die Datei dem JSON-Standard entspricht.")
             # Return error status
             return True
 
@@ -126,8 +124,7 @@ class FileOperations:
 
         except GLib.Error as error:
             print(f"Error listing directory: {error}")
-            error_window = ErrorWindow(parent, f"Öffnen fehlgeschlagen: {error}")
-            error_window.present()
+            ErrorAlert.show(parent, f"Öffnen fehlgeschlagen", error)
 
     @staticmethod
     def load_building_config(parent, load_dict):
@@ -139,38 +136,54 @@ class FileOperations:
         try:
             Building.description = load_dict["building_description"]
 
-            for circuit_number in load_dict["circuit_dict"]:
-                if int(circuit_number) < 1:
-                    raise ValueError(
-                        f".building-Datei invalide (Melderlinien-Nummer {circuit_number} ist kleiner als 1)")
+            for circuit_string in load_dict["circuit_dict"]:
+                if not circuit_string.isdigit():
+                    raise ValueError("Mindestens eine Melderlinien-Nummer ist keine natürliche Zahl.")
 
-                parent.create_circuit(int(circuit_number))
+                circuit_number = int(circuit_string)
 
-                for detector_number in load_dict["circuit_dict"][circuit_number]:
-                    if int(detector_number) < 1:
-                        raise ValueError(f".building-Datei invalide (Meldernummer {detector_number} ist kleiner als 1)")
+                if circuit_number < 1:
+                    raise ValueError(f"Melderlinien-Nummer {circuit_number} ist kleiner als 1.")
 
-                    detector_description = load_dict["circuit_dict"][circuit_number][detector_number]
+                elif circuit_number >= 1000000000:
+                    raise ValueError("Datei enthält eine Melderlinien-Nummer größer 1.000.000.000.")
+
+                parent.create_circuit(circuit_number)
+
+                for detector_string in load_dict["circuit_dict"][circuit_string]:
+                    if not detector_string.isdigit():
+                        raise ValueError(
+                            f"Mindestens eine Meldernummer in Melderlinie {circuit_number} ist keine natürliche Zahl.")
+
+                    detector_number = int(detector_string)
+                    if detector_number < 1:
+                        raise ValueError(f"Meldernummer {detector_number} ist kleiner als 1.")
+
+                    elif detector_number >= 1000000000:
+                        raise ValueError(
+                            f"Datei enthält eine Melder-Nummer größer 1.000.000.000 in Melderlinie {circuit_number}.")
+
+                    detector_description = load_dict["circuit_dict"][circuit_string][detector_string]
 
                     # Check for correct description format
                     if type(detector_description) is not str:
                         raise TypeError(
-                            f".building-Datei invalide (Melderbeschreibung von Melder {detector_number} hat falsches Format)")
+                            f"Melderbeschreibung von Melder {detector_number} hat falsches Format")
 
-                    parent.create_detector(int(circuit_number), int(detector_number),
+                    parent.create_detector(circuit_number, detector_number,
                                            detector_description=detector_description)
 
             print("File loaded successfully")
 
         except KeyError as e:
-            error_window = ErrorWindow(parent, f".building-Datei invalide ({e} fehlt oder ist falsch geschrieben)")
-            error_window.present()
+            print(f"KeyError: {e}")
+            ErrorAlert.show(parent, ".building-Datei invalide", f"Key {e} fehlt oder ist falsch geschrieben.")
             # Return error_status
             return True
 
         except (ValueError, TypeError) as e:
-            error_window = ErrorWindow(parent, e)
-            error_window.present()
+            print(f"ValueError/TypeError: {e}")
+            ErrorAlert.show(parent, ".building-Datei invalide", e)
             # Return error_status
             return True
 
@@ -179,31 +192,61 @@ class FileOperations:
         """Set all detectors listed in load_dict to active"""
         try:
             for name in load_dict["active_detector_list"]:
-                # Get the detector object
+                # Split the list into circuit and detector numbers
                 number_list = name.split("_")
 
                 # Check for correct Syntax
                 if len(number_list) != 2:
-                    raise SyntaxError(".scenario-Datei invalide: Inkorrektes Format der Meldernummer")
+                    raise SyntaxError("Inkorrektes Format der Meldernummer")
 
+                if not number_list[0].isdigit():
+                    raise ValueError("Mindestens eine Melderlinien-Nummer ist keine natürliche Zahl.")
+
+                if not number_list[1].isdigit():
+                    raise ValueError("Mindestens eine Melder-Nummer ist keine natürliche Zahl.")
+
+                # Retrieve numbers from strings
                 circuit_number = int(number_list[0])
                 detector_number = int(number_list[1])
-                detector = Building.circuit_dict[circuit_number].detector_dict[detector_number]
 
-                # Set the detector switch active
-                detector.alarm_status = True
-                detector.detector_switch.set_active(True)
+                # Check if numbers are within valid range
+                if circuit_number < 1:
+                    raise ValueError("Datei enthält eine Melderlinien-Nummer kleiner 1.")
 
-        except KeyError:
-            error_window = ErrorWindow(parent, f"Szenario invalide: Stellen Sie sicher, dass alle im "
-                                               f"Szenario\naktiven Melder in der Gebäudekonfiguration enthalten sind\nund "
-                                               f"die Datei den Formatvorgaben entspricht.")
-            error_window.present()
+                elif circuit_number >= 1000000000:
+                    raise ValueError("Datei enthält eine Melderlinien-Nummer größer 1.000.000.000")
+
+                if detector_number < 1:
+                    raise ValueError(
+                        f"Melder-Nummer {detector_number} in Melderlinie {circuit_number} ist kleiner als 1.")
+
+                elif detector_number >= 1000000000:
+                    raise ValueError(
+                        f"Datei enthält eine Melder-Nummer größer 1.000.000.000 in Melderlinie {circuit_number}")
+
+                # Try to set the specified detector switch active
+                try:
+                    detector = Building.circuit_dict[circuit_number].detector_dict[detector_number]
+                    detector.alarm_status = True
+                    detector.detector_switch.set_active(True)
+
+                except KeyError:
+                    ErrorAlert.show(parent,
+                                    ".scenario-Datei invalide",
+                                    f"Melder {detector_number} in Melderlinie {circuit_number} ist im Szenario aktiv, "
+                                    f"aber nicht in der Gebäudekonfiguration enthalten, die im selben Verzeichnis "
+                                    f"liegt.")
+
+        except KeyError as e:
+            ErrorAlert.show(parent,
+                            ".scenario-Datei invalide",
+                            f"Key {e} fehlt oder ist falsch geschrieben.")
 
         except SyntaxError as e:
-            error_window = ErrorWindow(parent, e)
-            error_window.present()
+            ErrorAlert.show(parent, ".scenario-Datei invalide", e)
 
+        except ValueError as e:
+            ErrorAlert.show(parent, ".scenario-Datei invalide", e)
 
     @staticmethod
     def show_save_dialog(parent, file_type):
@@ -224,9 +267,7 @@ class FileOperations:
             print(f"Save canceled or failed: {e.message}")
 
             if not e.message == "Dismissed by user":
-                error_window = ErrorWindow(parent, f"Speichern fehlgeschlagen: {e.message}")
-                error_window.present()
-
+                ErrorAlert.show(parent, "Speichern fehlgeschlagen", e.message)
 
     @staticmethod
     def save_to_file(file, file_type):
