@@ -15,7 +15,7 @@ class App(Gtk.Application):
         self.window.present()
 
         # Add shortcuts to the actions
-        self.set_accels_for_action("win.save_building", ["<Ctrl><Shift>S"])
-        self.set_accels_for_action("win.save_scenario", ["<Ctrl>S"])
-        self.set_accels_for_action("win.open", ["<Ctrl>O"])
-        self.set_accels_for_action("win.edit_mode", ["<Ctrl>E"])
+        self.set_accels_for_action("data.save_building", ["<Ctrl><Shift>S"])
+        self.set_accels_for_action("data.save_scenario", ["<Ctrl>S"])
+        self.set_accels_for_action("data.open", ["<Ctrl>O"])
+        self.set_accels_for_action("data.edit_mode", ["<Ctrl>E"])

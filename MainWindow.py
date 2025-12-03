@@ -44,69 +44,49 @@ class MainWindow(Gtk.ApplicationWindow):
 
         # Button to add a circuit
         self.create_circuit_button = Gtk.Button(label="Melderlinie hinzufügen", visible=False)
-        self.create_circuit_button.set_action_name("win.create_circuit")
+        self.create_circuit_button.set_action_name("edit.create_circuit")
         self.header.pack_start(self.create_circuit_button)
 
 
         # Actions for all buttons to connect to
-        self.save_building_action = Gio.SimpleAction(name="save_building")
-        self.save_building_action.connect("activate", self.on_save_building_clicked)
-        self.add_action(self.save_building_action)
+        data_action_entries = [("save_building", self.on_save_building_clicked, None),
+                               ("save_scenario", self.on_save_scenario_clicked, None),
+                               ("open", self.on_open_clicked, None),
+                               ("edit_mode", None, None, "false", self.on_edit_mode_clicked)]
 
-        self.save_scenario_action = Gio.SimpleAction(name="save_scenario")
-        self.save_scenario_action.connect("activate", self.on_save_scenario_clicked)
-        self.add_action(self.save_scenario_action)
-
-        self.open_action = Gio.SimpleAction(name="open")
-        self.open_action.connect("activate", self.on_open_clicked)
-        self.add_action(self.open_action)
-
-        self.create_circuit_action = Gio.SimpleAction(name="create_circuit", enabled=False)
-        self.create_circuit_action.connect("activate", self.on_create_circuit_clicked)
-        self.add_action(self.create_circuit_action)
-
-        self.delete_circuit_action = Gio.SimpleAction(name="delete_circuit", parameter_type=GLib.VariantType("i"), enabled=False)
-        self.delete_circuit_action.connect("activate", self.on_delete_circuit_clicked)
-        self.add_action(self.delete_circuit_action)
-
-        self.create_detector_action = Gio.SimpleAction(name="create_detector", parameter_type=GLib.VariantType("i"), enabled=False)
-        self.create_detector_action.connect("activate", self.on_create_detector_clicked)
-        self.add_action(self.create_detector_action)
-
-        self.delete_detector_action = Gio.SimpleAction(name="delete_detector", parameter_type=GLib.VariantType("s"), enabled=False)
-        self.delete_detector_action.connect("activate", self.on_delete_detector_clicked)
-        self.add_action(self.delete_detector_action)
-
-        self.edit_detector_action = Gio.SimpleAction(name="edit_detector", parameter_type=GLib.VariantType("s"), enabled=False)
-        self.edit_detector_action.connect("activate", self.on_edit_detector_clicked)
-        self.add_action(self.edit_detector_action)
-
-        self.edit_building_action = Gio.SimpleAction(name="edit_building", enabled=False)
-        self.edit_building_action.connect("activate", self.on_edit_building_clicked)
-        self.add_action(self.edit_building_action)
-
-        self.edit_mode_action = Gio.SimpleAction.new_stateful(name="edit_mode", parameter_type=None,
-                                                              state=GLib.Variant.new_boolean(False))
-        self.edit_mode_action.connect("activate", self.on_edit_mode_clicked)
-        self.add_action(self.edit_mode_action)
+        edit_action_entries = [("create_circuit", self.on_create_circuit_clicked, None),
+                               ("delete_circuit", self.on_delete_circuit_clicked, "i"),
+                               ("create_detector", self.on_create_detector_clicked, "i"),
+                               ("delete_detector", self.on_delete_detector_clicked, "s"),
+                               ("edit_detector", self.on_edit_detector_clicked, "s"),
+                               ("edit_building", self.on_edit_building_clicked, None)]
 
 
-    def on_save_building_clicked(self, action, parameter):
+        self.data_action_group = Gio.SimpleActionGroup.new()
+        self.data_action_group.add_action_entries(data_action_entries, None)
+        self.insert_action_group("data", self.data_action_group)
+
+        self.edit_action_group = Gio.SimpleActionGroup.new()
+        self.edit_action_group.add_action_entries(edit_action_entries, None)
+        self.insert_action_group("edit", self.edit_action_group)
+
+
+    def on_save_building_clicked(self, *args):
         """Create a FileSaveDialog to save the building configuration."""
         FileOperations.show_save_dialog(self, "building")
 
-    def on_save_scenario_clicked(self, action, parameter):
+    def on_save_scenario_clicked(self, *args):
         """Create a FileSaveDialog to save the scenario."""
         FileOperations.show_save_dialog(self, "scenario")
 
-    def on_open_clicked(self, action, parameter):
+    def on_open_clicked(self, *args):
         """Creates a FileOpenDialog."""
         FileOperations.show_open_dialog(self)
 
     def on_circuit_pressed(self, gesture, n_press, x, y, circuit_number):
         """Present a context menu on a circuit_box if edit mode is enabled."""
         # Don't respond if edit mode is disabled
-        if not self.edit_mode_action.get_state().get_boolean():
+        if not self.data_action_group.lookup_action("edit_mode").get_state().get_boolean():
             return
 
         # Get the circuit that was clicked
@@ -125,7 +105,7 @@ class MainWindow(Gtk.ApplicationWindow):
     def on_detector_pressed(self, gesture, n_press, x, y, circuit_number, detector_number):
         """Present a context menu on a circuit_bo if edit mode is enabled."""
         # Don't respond if edit mode is disabled
-        if not self.edit_mode_action.get_state().get_boolean():
+        if not self.data_action_group.lookup_action("edit_mode").get_state().get_boolean():
             return
 
         # Get the circuit that was clicked
@@ -141,12 +121,12 @@ class MainWindow(Gtk.ApplicationWindow):
         detector.context_menu_popover.set_pointing_to(rect)
         detector.context_menu_popover.popup()
 
-    def on_create_circuit_clicked(self, action, parameter):
+    def on_create_circuit_clicked(self, *args):
         """Create a DefineCircuitWindow."""
         self.define_circuit = DefineCircuitWindow(self.create_circuit, self)
         self.define_circuit.present()
 
-    def on_create_detector_clicked(self, action, parameter):
+    def on_create_detector_clicked(self, action, parameter, *args):
         """Creates a DefineDetectorWindow."""
         # Convert the action parameter to int
         circuit_number = parameter.get_int32()
@@ -154,7 +134,7 @@ class MainWindow(Gtk.ApplicationWindow):
         self.define_detector = DefineDetectorWindow(circuit_number, self.create_detector, self)
         self.define_detector.present()
 
-    def on_edit_detector_clicked(self, action, parameter):
+    def on_edit_detector_clicked(self, action, parameter, *args):
         """Create an EditDetectorWindow."""
         # Convert parameters to int
         parameter_string = parameter.get_string()
@@ -165,40 +145,17 @@ class MainWindow(Gtk.ApplicationWindow):
         self.edit_detector_window = EditDetectorWindow(circuit_number, detector_number, self.edit_detector, self)
         self.edit_detector_window.present()
 
-    def on_edit_building_clicked(self, action, parameter):
+    def on_edit_building_clicked(self, *args):
         """Create an EditBuildingWindow."""
         self.edit_building_window = EditBuildingWindow(self)
         self.edit_building_window.present()
 
-    def on_edit_mode_clicked(self, action, parameter):
-        """Toggle between normal mode and edit mode."""
-        # Update the action’s stored state
-        current_state = action.get_state().get_boolean()
-        new_state =  not current_state
-        action.set_state(GLib.Variant.new_boolean(new_state))
-
-        # Update UI
-        self.create_circuit_action.set_enabled(new_state)
-        self.create_detector_action.set_enabled(new_state)
-        self.delete_circuit_action.set_enabled(new_state)
-        self.delete_detector_action.set_enabled(new_state)
-        self.edit_building_action.set_enabled(new_state)
-        self.edit_detector_action.set_enabled(new_state)
-
-        self.create_circuit_button.set_visible(new_state)
-
-        if new_state:
-            print("Edit mode active")
-
-        else:
-            print("Edit mode inactive")
-
-    def on_delete_circuit_clicked(self, action, parameter):
+    def on_delete_circuit_clicked(self, action, parameter, *args):
         """Convert parameter to int and call the delete_circuit method."""
         circuit_number = parameter.get_int32()
         self.delete_circuit(circuit_number)
 
-    def on_delete_detector_clicked(self, action, parameter):
+    def on_delete_detector_clicked(self, action, parameter, *args):
         """Convert parameters to int and call the delete_detector method."""
         parameter_string = parameter.get_string()
         parameter_list = parameter_string.split(", ")
@@ -207,8 +164,27 @@ class MainWindow(Gtk.ApplicationWindow):
 
         self.delete_detector(circuit_number, detector_number)
 
+    def on_edit_mode_clicked(self, action, *args):
+        """Toggle between normal mode and edit mode."""
+        # Update the action’s stored state
+        current_state = action.get_state().get_boolean()
+        new_state =  not current_state
+        action.set_state(GLib.Variant.new_boolean(new_state))
 
+        # Update UI
+        for name in self.edit_action_group.list_actions():
+            action = self.edit_action_group.lookup_action(name)
+            if isinstance(action, Gio.SimpleAction):
+                action.set_enabled(new_state)
 
+        self.create_circuit_button.set_visible(new_state)
+
+        # Print debug info
+        if new_state:
+            print("Edit mode active")
+
+        else:
+            print("Edit mode inactive")
 
 
     def create_circuit(self, circuit_number):
