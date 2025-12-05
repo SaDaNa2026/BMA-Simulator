@@ -4,7 +4,7 @@ import gi
 gi.require_version('Gtk', '4.0')
 from gi.repository import Gtk, Gio, GLib, Gdk
 
-from Building import Building
+from Model import BuildingModel
 from Circuit import Circuit
 from DefineObjectWindows import DefineCircuitWindow, DefineDetectorWindow
 from Detector import Detector
@@ -18,6 +18,8 @@ class MainWindow(Gtk.ApplicationWindow):
     application functionality."""
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        # Initialize the model
+        self.building_model = BuildingModel()
 
         self.set_default_size(700, 500)
         self.set_title("Steuerung Übungs-BMA")
@@ -98,7 +100,7 @@ class MainWindow(Gtk.ApplicationWindow):
             return
 
         # Get the circuit that was clicked
-        circuit = Building.circuit_dict[circuit_number]
+        circuit =
 
         # Create an invisible rectangle at the position of the click that the context menu points to
         rect = Gdk.Rectangle()
@@ -117,7 +119,7 @@ class MainWindow(Gtk.ApplicationWindow):
             return
 
         # Get the circuit that was clicked
-        detector = Building.circuit_dict[circuit_number].detector_dict[detector_number]
+        detector =
 
         # Create an invisible rectangle at the position of the click that the context menu points to
         rect = Gdk.Rectangle()
@@ -197,40 +199,35 @@ class MainWindow(Gtk.ApplicationWindow):
 
     def create_circuit(self, circuit_number):
         """Create a new Circuit instance."""
-
-        # Raise an exception if a circuit with this number already exists
-        if circuit_number in Building.circuit_dict:
-            raise AttributeError
-
+        self.building_model.add_circuit(circuit_number)
         circuit = Circuit(circuit_number)
 
         # Connect the event handler that detects if the circuit is right-clicked
         circuit.click_controller.connect("pressed", partial(self.on_circuit_pressed, circuit_number=circuit_number))
 
-        # Add the circuit to the main window and the circuit dict
+        # Add the circuit to the main window
         self.main_box.append(circuit)
-        Building.circuit_dict[circuit_number] = circuit
         return circuit
 
     def delete_circuit(self, circuit_number):
         """Delete the specified circuit and print the new detector state."""
 
-        circuit = Building.circuit_dict[circuit_number]
+        circuit = Model.circuit_dict[circuit_number]
         print(f"delete circuit {circuit_number}")
 
         self.main_box.remove(circuit)
-        del Building.circuit_dict[circuit_number]
+        del Model.circuit_dict[circuit_number]
         self.print_detector_state()
 
     def create_detector(self, circuit_number, detector_number, alarm_status=False, detector_description="Beschreibung"):
         """Create a new Detector instance."""
         # Raise an exception if a detector with this number already exists
-        if detector_number in Building.circuit_dict[circuit_number].detector_dict:
+        if detector_number in Model.circuit_dict[circuit_number].detector_dict:
             raise AttributeError
 
         # Create new detector and add it to the detector_dict of the circuit that it belongs to
         detector = Detector(circuit_number, detector_number)
-        Building.circuit_dict[circuit_number].detector_dict[detector_number] = detector
+        Model.circuit_dict[circuit_number].detector_dict[detector_number] = detector
 
         detector.description = detector_description
 
@@ -248,38 +245,38 @@ class MainWindow(Gtk.ApplicationWindow):
                                                              detector_number=detector_number))
 
         # Add the detector to its circuit
-        circuit = Building.circuit_dict[circuit_number]
+        circuit = Model.circuit_dict[circuit_number]
         circuit.append(detector)
         return detector
 
     def delete_detector(self, circuit_number, detector_number):
         """Delete a specified detector."""
         # Get the corresponding objects
-        circuit = Building.circuit_dict[circuit_number]
-        detector = Building.circuit_dict[circuit_number].detector_dict[detector_number]
+        circuit = Model.circuit_dict[circuit_number]
+        detector = Model.circuit_dict[circuit_number].detector_dict[detector_number]
 
         # Delete the detector from the dictionary and remove it from its circuit
-        del Building.circuit_dict[circuit_number].detector_dict[detector_number]
+        del Model.circuit_dict[circuit_number].detector_dict[detector_number]
         circuit.remove(detector)
         self.print_detector_state()
 
     def edit_detector(self, circuit_number, detector_number, description):
         """Change a specified detector's description."""
-        detector = Building.circuit_dict[circuit_number].detector_dict[detector_number]
+        detector = Model.circuit_dict[circuit_number].detector_dict[detector_number]
         detector.description = description
 
 
     def on_detector_toggled(self, detector_switch, state, circuit_number, detector_number):
         """Callback function for detector_switch. Set the alarm_status of the detector according to the position of
         the switch and print debugging info."""
-        Building.circuit_dict[circuit_number].detector_dict[detector_number].alarm_status = state
+        Model.circuit_dict[circuit_number].detector_dict[detector_number].alarm_status = state
         print(f"Melder {detector_number} in Melderlinie {circuit_number} {'aktiviert' if state else 'deaktiviert'}")
         self.print_detector_state()
 
     def print_detector_state(self):
         """Print the active detectors to the console."""
         print(f"Aktive Melder: ")
-        for circuit_number in Building.circuit_dict.keys():
-            for detector_number in Building.circuit_dict[circuit_number].detector_dict.keys():
-                if Building.circuit_dict[circuit_number].detector_dict[detector_number].alarm_status:
+        for circuit_number in Model.circuit_dict.keys():
+            for detector_number in Model.circuit_dict[circuit_number].detector_dict.keys():
+                if Model.circuit_dict[circuit_number].detector_dict[detector_number].alarm_status:
                     print(f"Melder {detector_number} in Melderlinie {circuit_number}")

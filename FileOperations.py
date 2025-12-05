@@ -7,7 +7,7 @@ import gi
 gi.require_version('Gtk', '4.0')
 from gi.repository import Gio, GLib
 
-from Building import Building
+from Model import Model
 from ErrorAlert import ErrorAlert
 from FileOpenDialog import FileOpenDialog
 from FileSaveDialog import FileSaveDialog
@@ -129,12 +129,12 @@ class FileOperations:
     @staticmethod
     def load_building_config(parent, load_dict):
         """Delete all current circuits, then create circuits and detectors according to the load_dict."""
-        delete_list = [num for num in Building.circuit_dict]
+        delete_list = [num for num in Model.circuit_dict]
         for circuit_number in delete_list:
             parent.delete_circuit(circuit_number)
 
         try:
-            Building.description = load_dict["building_description"]
+            Model.description = load_dict["building_description"]
 
             for circuit_string in load_dict["circuit_dict"]:
                 if not circuit_string.isdigit():
@@ -226,7 +226,7 @@ class FileOperations:
 
                 # Try to set the specified detector switch active
                 try:
-                    detector = Building.circuit_dict[circuit_number].detector_dict[detector_number]
+                    detector = Model.circuit_dict[circuit_number].detector_dict[detector_number]
                     detector.alarm_status = True
                     detector.detector_switch.set_active(True)
 
@@ -291,14 +291,14 @@ class FileOperations:
     @staticmethod
     def create_building_save_dict():
         """Create a dictionary that contains all information about the current building configuration."""
-        save_dict = {"circuit_dict": {}, "building_description": Building.description}
+        save_dict = {"circuit_dict": {}, "building_description": Model.description}
 
-        for circuit_number in Building.circuit_dict:
+        for circuit_number in Model.circuit_dict:
             save_dict["circuit_dict"][circuit_number] = {}
 
-            for detector_number in Building.circuit_dict[circuit_number].detector_dict:
+            for detector_number in Model.circuit_dict[circuit_number].detector_dict:
                 save_dict["circuit_dict"][circuit_number][detector_number] = \
-                    Building.circuit_dict[circuit_number].detector_dict[detector_number].description
+                    Model.circuit_dict[circuit_number].detector_dict[detector_number].description
 
         return save_dict
 
@@ -307,10 +307,10 @@ class FileOperations:
         """Create a dictionary that contains a list of active detectors and a description."""
         save_dict = {"active_detector_list": [], "scenario_description": "Beschreibung"}
 
-        for circuit_number in Building.circuit_dict:
+        for circuit_number in Model.circuit_dict:
 
-            for detector_number in Building.circuit_dict[circuit_number].detector_dict:
-                detector = Building.circuit_dict[circuit_number].detector_dict[detector_number]
+            for detector_number in Model.circuit_dict[circuit_number].detector_dict:
+                detector = Model.circuit_dict[circuit_number].detector_dict[detector_number]
 
                 if detector.alarm_status:
                     save_dict["active_detector_list"].append(f"{circuit_number}_{detector_number}")

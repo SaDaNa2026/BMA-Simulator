@@ -3,7 +3,7 @@ gi.require_version('Gtk', '4.0')
 from gi.repository import Gtk
 
 from DescriptionBox import DescriptionBox
-from Building import Building
+from Model import Model
 
 
 class EditWindow(Gtk.Window):
@@ -47,7 +47,7 @@ class EditDetectorWindow(EditWindow):
     def __init__(self, circuit_number, detector_number, edit_detector_callback, parent, *args, **kwargs):
         self.circuit_number = circuit_number
         self.detector_number = detector_number
-        detector = Building.circuit_dict[circuit_number].detector_dict[detector_number]
+        detector = Model.circuit_dict[circuit_number].detector_dict[detector_number]
         title = f"Bearbeite Melder {detector_number} (Linie {circuit_number})"
         super().__init__(lambda button: self.handle_edit_detector(edit_detector_callback), parent, title, detector.description, *args, **kwargs)
 
@@ -61,9 +61,9 @@ class EditBuildingWindow(EditWindow):
     """Window for editing the building description."""
     def __init__(self, parent, *args, **kwargs):
         title = f"Gebäudebeschreibung bearbeiten"
-        super().__init__(lambda button: self.handle_edit_building(), parent, title, Building.description, *args, **kwargs)
+        super().__init__(lambda button: self.handle_edit_building(), parent, title, Model.description, *args, **kwargs)
 
     def handle_edit_building(self):
         description = self.description_box.get_description()
-        Building.description = description
+        Model.description = description
         self.destroy()
