@@ -3,8 +3,6 @@ gi.require_version('Gtk', '4.0')
 from gi.repository import Gtk
 
 from DescriptionBox import DescriptionBox
-from Model import Model
-
 
 class EditWindow(Gtk.Window):
     """Base class for a window that lets the user edit a description."""
@@ -44,12 +42,11 @@ class EditWindow(Gtk.Window):
 
 class EditDetectorWindow(EditWindow):
     """Window for editing the description of a detector."""
-    def __init__(self, circuit_number, detector_number, edit_detector_callback, parent, *args, **kwargs):
+    def __init__(self, circuit_number, detector_number, edit_detector_callback, parent, current_description, *args, **kwargs):
         self.circuit_number = circuit_number
         self.detector_number = detector_number
-        detector = Model.circuit_dict[circuit_number].detector_dict[detector_number]
         title = f"Bearbeite Melder {detector_number} (Linie {circuit_number})"
-        super().__init__(lambda button: self.handle_edit_detector(edit_detector_callback), parent, title, detector.description, *args, **kwargs)
+        super().__init__(lambda button: self.handle_edit_detector(edit_detector_callback), parent, title, current_description, *args, **kwargs)
 
     def handle_edit_detector(self, edit_detector_callback):
         description = self.description_box.get_description()
@@ -59,11 +56,11 @@ class EditDetectorWindow(EditWindow):
 
 class EditBuildingWindow(EditWindow):
     """Window for editing the building description."""
-    def __init__(self, parent, *args, **kwargs):
+    def __init__(self, edit_building_callback, parent, current_description, *args, **kwargs):
         title = f"Gebäudebeschreibung bearbeiten"
-        super().__init__(lambda button: self.handle_edit_building(), parent, title, Model.description, *args, **kwargs)
+        super().__init__(lambda button: self.handle_edit_building(edit_building_callback), parent, title, current_description, *args, **kwargs)
 
-    def handle_edit_building(self):
+    def handle_edit_building(self, edit_building_callback):
         description = self.description_box.get_description()
-        Model.description = description
+        edit_building_callback(description)
         self.destroy()

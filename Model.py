@@ -43,6 +43,11 @@ class BuildingModel:
         if self.circuit_dict != {}:
             raise ValueError("circuit_dict must be empty upon initialization. Add circuits later via add_circuit")
 
+    def clear_data(self):
+        """Resets to init values."""
+        self.set_building_description("Hier Gebäudebeschreibung einfügen")
+        self.circuit_dict = {}
+
     def set_building_description(self, building_description: str) -> None:
         if not isinstance(building_description, str):
             raise TypeError("building_description must be a string")
@@ -119,10 +124,11 @@ class BuildingModel:
 
     def get_active_detectors(self) -> list:
         active_detector_list = []
-        for circuit in self.circuit_dict.values():
+        for circuit_number in self.circuit_dict:
+            circuit = self.circuit_dict[circuit_number]
             for detector_number in circuit.detector_dict:
                 if circuit.detector_dict[detector_number].alarm_status:
-                    active_detector_list.append(detector_number)
+                    active_detector_list.append((circuit_number, detector_number))
         return active_detector_list
 
     def get_detectors_for_circuit(self, circuit_number: int) -> list:

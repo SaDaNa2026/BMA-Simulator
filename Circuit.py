@@ -23,7 +23,6 @@ class Circuit(Gtk.Box):
         self.button_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
         self.append(self.button_box)
 
-
         # Context menu
         self.menu_model = CircuitContextMenu(circuit_number)
         self.context_menu_popover = Gtk.PopoverMenu.new_from_model(self.menu_model)

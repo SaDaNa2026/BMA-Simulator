@@ -16,10 +16,6 @@ class Detector(Gtk.Box):
         self.append(self.detector_switch)
         self.append(self.detector_label)
 
-        self.alarm_status: bool
-
-        self.description: str
-
         # A tool to register the detector_label being right-clicked
         self.click_controller = Gtk.GestureClick()
         self.click_controller.set_button(Gdk.BUTTON_SECONDARY)
