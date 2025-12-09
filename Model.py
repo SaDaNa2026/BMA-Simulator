@@ -1,6 +1,13 @@
 from dataclasses import dataclass, field
 from typing import Dict
 
+def sort_dict_by_key(input_dict: dict) -> dict:
+    if not type(input_dict) == dict:
+        raise TypeError("input_dict must be dict")
+    sorted_keys = sorted(input_dict.keys())
+    output_dict = {key : input_dict[key] for key in sorted_keys}
+    return output_dict
+
 
 @dataclass
 class Detector:
@@ -26,6 +33,7 @@ class Circuit:
     def add_detector(self, detector_number: int, detector_description: str) -> None:
         """Add a detector to this circuit."""
         self.detector_dict[detector_number] = Detector(detector_description)
+        self.detector_dict = sort_dict_by_key(self.detector_dict)
 
     def delete_detector(self, detector_number: int) -> None:
         """Remove a detector by index."""
@@ -67,6 +75,7 @@ class BuildingModel:
             raise ValueError("Diese Meldergruppe existiert bereits.")
 
         self.circuit_dict[circuit_number] = Circuit()
+        self.circuit_dict = sort_dict_by_key(self.circuit_dict)
 
     def delete_circuit(self, circuit_number: int):
         """Delete a specific circuit and all detectors in it."""

@@ -1,5 +1,5 @@
 import unittest
-from Model import BuildingModel
+from Model import BuildingModel, sort_dict_by_key
 
 
 class TestBuildingModel(unittest.TestCase):
@@ -20,6 +20,16 @@ class TestBuildingModel(unittest.TestCase):
             self.model.get_detectors_for_circuit(circuit_number),
             expected
         )
+
+    def test_sort_dict_by_key(self):
+        # Invalid type
+        with self.assertRaises(TypeError):
+            sort_dict_by_key(None)
+
+        # Verify correct sorting
+        test_dict = {5 : [1, 2], 3 : {4 : 2}, 1 : ""}
+        sorted_test_dict = {1 : "", 3 : {4 : 2}, 5 : [1, 2]}
+        self.assertEqual(sort_dict_by_key(test_dict), sorted_test_dict)
 
     def test_building_description(self):
         """Test getter, setter, and invalid inputs for building_description."""
