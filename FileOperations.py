@@ -85,7 +85,8 @@ class FileOperations:
 
     @staticmethod
     def load_building_config(model, load_dict):
-        """Delete all current circuits, then create circuits and detectors according to the load_dict."""
+        """Delete the current configuration, then parse the data from the load_dict."""
+        model.clear_data()
         model.set_building_description(load_dict["building_description"])
 
         for circuit_string in load_dict["circuit_dict"]:
@@ -111,19 +112,19 @@ class FileOperations:
     @staticmethod
     def apply_scenario(load_dict, model):
         """Set all detectors listed in load_dict to active"""
-        for name in load_dict["active_detector_list"]:
-            # Split the list into circuit and detector numbers
-            number_list = name.split("_")
-
+        for number_list in load_dict["active_detector_list"]:
             # Check for correct Syntax
-            if len(number_list) != 2:
-                raise SyntaxError("Inkorrektes Format der Meldernummer")
+            if not type(number_list) == list:
+                raise TypeError("Inkorrektes Format der Meldernummer.")
 
-            if not number_list[0].isdigit():
-                raise ValueError("Mindestens eine Melderlinien-Nummer ist keine natürliche Zahl.")
+            if not len(number_list) == 2:
+                raise SyntaxError("Inkorrektes Format der Meldernummer.")
 
-            if not number_list[1].isdigit():
-                raise ValueError("Mindestens eine Melder-Nummer ist keine natürliche Zahl.")
+            if not type(number_list[0]) == int:
+                raise TypeError("Mindestens eine Melderlinien-Nummer ist keine natürliche Zahl.")
+
+            if not type(number_list[1]) == int:
+                raise TypeError("Mindestens eine Melder-Nummer ist keine natürliche Zahl.")
 
             # Retrieve numbers from strings
             circuit_number = int(number_list[0])
@@ -177,5 +178,5 @@ class FileOperations:
     @staticmethod
     def create_scenario_save_dict(model) -> dict:
         """Create a dictionary that contains a list of active detectors and a description."""
-        save_dict = {"active_detector_list": model.get_active_detectors, "scenario_description": "Beschreibung"}
+        save_dict = {"active_detector_list": model.get_active_detectors(), "scenario_description": "Beschreibung"}
         return save_dict

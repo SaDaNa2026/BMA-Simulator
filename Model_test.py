@@ -43,7 +43,8 @@ class TestBuildingModel(unittest.TestCase):
 
         self.building_model.delete_circuit(1)
         self.assertEqual(self.building_model.get_circuits(), [999999999])
-        self.building_model.delete_circuit(999999999)
+        self.building_model.clear_data()
+        self.assertEqual(self.building_model.get_circuits(), [])
 
     def test_detector_functions(self):
         with self.assertRaises(KeyError):

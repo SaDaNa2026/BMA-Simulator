@@ -6,16 +6,29 @@ from gi.repository import GLib
 from json import JSONDecodeError
 
 from Model import BuildingModel
-from GtkApp import App
+from View import App
 
 
 class Controller:
     def __init__(self):
         self.model = BuildingModel()
-        self.view = App(self.on_save_building_clicked, self.on_save_scenario_clicked, self.on_open_clicked,
-                        self.on_add_circuit_clicked, self.on_delete_circuit_clicked, self.on_add_detector_clicked,
-                        self.on_delete_detector_clicked, self.on_edit_detector_clicked, self.on_edit_building_clicked,
-                        application_id="org.example.BMA-control")
+
+        # Actions for all buttons to connect to
+        data_action_entries = [("save_building", self.on_save_building_clicked, None),
+                               ("save_scenario", self.on_save_scenario_clicked, None),
+                               ("open", self.on_open_clicked, None),
+                               ("edit_mode", None, None, "false", self.on_edit_mode_clicked)]
+
+        edit_action_entries = [("create_circuit", self.on_add_circuit_clicked, None),
+                               ("delete_circuit", self.on_delete_circuit_clicked, "i"),
+                               ("create_detector", self.on_add_detector_clicked, "i"),
+                               ("delete_detector", self.on_delete_detector_clicked, "s"),
+                               ("edit_detector", self.on_edit_detector_clicked, "s"),
+                               ("edit_building", self.on_edit_building_clicked, None)]
+
+        hidden_action_entries = [("detector_toggle", self.on_detector_toggled, "s")]
+
+        self.view = App(data_action_entries, edit_action_entries, hidden_action_entries, application_id="org.example.BMA-control")
         self.view.run(sys.argv)
 
     def on_save_building_clicked(self, *args):
@@ -79,15 +92,18 @@ class Controller:
         if file_type == "building":
             try:
                 FileOperations.load_building_config(self.model, load_dict)
+                self.redraw_view()
 
             except KeyError as e:
                 print(f"KeyError: {e}")
                 self.view.show_error_alert(".building-Datei invalide", f"Key {e} fehlt oder ist falsch geschrieben.")
+                self.model.clear_data()
                 return True
 
             except (ValueError, TypeError) as e:
                 print(f"ValueError/TypeError: {e}")
                 self.view.show_error_alert(".building-Datei invalide", e)
+                self.model.clear_data()
                 return True
 
         else:
@@ -106,6 +122,7 @@ class Controller:
 
         try:
             FileOperations.apply_scenario(scenario_load_dict, self.model)
+            self.redraw_view()
 
         except TypeError as e:
             self.view.show_error_alert("scenario-Datei invalide", f"TypeError: {e}")
@@ -119,6 +136,25 @@ class Controller:
         except ValueError as e:
             self.view.show_error_alert(".scenario-Datei invalide", f"ValueError: {e}")
 
+
+    def on_detector_toggled(self, action, parameter, *args):
+        """Callback function for detector_switch. Set the alarm_status of the detector according to the position of
+        the switch and print debugging info."""
+        # Convert parameter to int
+        parameter_string = parameter.get_string()
+        parameter_list = parameter_string.split(", ")
+        circuit_number = int(parameter_list[0])
+        detector_number = int(parameter_list[1])
+
+        current_state = self.model.get_detector_alarm_status(circuit_number, detector_number)
+        new_state = not current_state
+        self.model.set_detector_alarm_status(circuit_number, detector_number, new_state)
+        print(f"Melder {detector_number} in Melderlinie {circuit_number} {'aktiviert' if new_state else 'deaktiviert'}")
+        self.print_detector_state()
+        self.redraw_view()
+
+    def on_edit_mode_clicked(self, action, *args):
+        self.view.toggle_edit_mode(action, *args)
 
     def on_add_circuit_clicked(self, *args):
         """Create a DefineCircuitWindow."""
@@ -137,7 +173,7 @@ class Controller:
         parameter_list = parameter_string.split(", ")
         circuit_number = int(parameter_list[0])
         detector_number = int(parameter_list[1])
-        current_description = self.model.get_building_description()
+        current_description = self.model.get_detector_description(circuit_number, detector_number)
 
         self.view.show_edit_detector_window(circuit_number, detector_number, self.edit_detector_callback, current_description)
 
@@ -150,21 +186,25 @@ class Controller:
         """Convert parameter to int and call the delete_circuit method."""
         circuit_number = parameter.get_int32()
         self.model.delete_circuit(circuit_number)
+        self.redraw_view()
 
     def on_delete_detector_clicked(self, action, parameter, *args):
-        """Convert parameters to int and call the delete_detector method."""
+        """Convert parameters to int and delete the specified detector."""
         parameter_string = parameter.get_string()
         parameter_list = parameter_string.split(", ")
         circuit_number = int(parameter_list[0])
         detector_number = int(parameter_list[1])
 
         self.model.delete_detector(circuit_number, detector_number)
+        self.redraw_view()
 
     def add_circuit_callback(self, circuit_number):
         self.model.add_circuit(circuit_number)
+        self.redraw_view()
 
     def add_detector_callback(self, circuit_number, detector_number, detector_description):
         self.model.add_detector(circuit_number, detector_number, detector_description)
+        self.redraw_view()
 
     def edit_building_callback(self, description: str):
         """Change the building description."""
@@ -174,12 +214,6 @@ class Controller:
         """Change a specified detector's description."""
         self.model.set_detector_description(circuit_number, detector_number, description)
 
-    def on_detector_toggled(self, detector_switch, state, circuit_number, detector_number):
-        """Callback function for detector_switch. Set the alarm_status of the detector according to the position of
-        the switch and print debugging info."""
-        self.model.set_detector_alarm_status(circuit_number, detector_number, state)
-        print(f"Melder {detector_number} in Melderlinie {circuit_number} {'aktiviert' if state else 'deaktiviert'}")
-        self.print_detector_state()
 
     def print_detector_state(self):
         """Print the active detectors to the console."""
@@ -189,3 +223,12 @@ class Controller:
             circuit_number = reference[0]
             detector_number = reference[1]
             print(f"Melder {detector_number} in Meldergruppe {circuit_number}")
+
+    def redraw_view(self):
+        """Redraw the view according to the current model state."""
+        self.view.clear()
+        for circuit_number in self.model.get_circuits():
+            self.view.add_circuit(circuit_number)
+            for detector_number in self.model.get_detectors_for_circuit(circuit_number):
+                alarm_status = self.model.get_detector_alarm_status(circuit_number, detector_number)
+                self.view.add_detector(circuit_number, detector_number, alarm_status)
