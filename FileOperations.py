@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 from functools import partial
 
 import gi
@@ -24,10 +25,7 @@ class FileOperations:
             load_dict = json.load(file_dict)
 
             filename = file.get_path()
-            # Find the last dot in the filename
-            dot_pos = filename.rfind('.')
-            # The extension is everything after the last dot
-            file_extension = filename[dot_pos + 1:]
+            file_extension = Path(filename).suffix.lstrip(".")
             if file_extension != "building" and file_extension != "scenario":
                 raise RuntimeError("Es können nur Dateien geladen werden, die auf .building oder .scenario enden")
 
@@ -73,10 +71,10 @@ class FileOperations:
 
         # Check if exactly one .building file was found
         if len(building_file_list) == 0:
-            raise GLib.Error("Keine .building-Datei in diesem Verzeichnis gefunden.")
+            raise GLib.Error(message="Keine .building-Datei in diesem Verzeichnis gefunden.")
 
         if len(building_file_list) > 1:
-            raise GLib.Error(f"Es wurden {len(building_file_list)} .building-Dateien gefunden.\nStellen Sie "
+            raise GLib.Error(message=f"Es wurden {len(building_file_list)} .building-Dateien gefunden.\nStellen Sie "
                              f"sicher, dass pro Ordner nur eine .building-Datei existiert.")
 
         # Load the building_config file that has been found
@@ -106,7 +104,6 @@ class FileOperations:
                 model.add_detector(circuit_number, detector_number,
                                    detector_description=detector_description)
 
-        print(model.circuit_dict)
         print("File loaded successfully")
 
     @staticmethod
@@ -121,7 +118,7 @@ class FileOperations:
                 raise SyntaxError("Inkorrektes Format der Meldernummer.")
 
             if not type(number_list[0]) == int:
-                raise TypeError("Mindestens eine Melderlinien-Nummer ist keine natürliche Zahl.")
+                raise TypeError("Mindestens eine Meldergruppen-Nummer ist keine natürliche Zahl.")
 
             if not type(number_list[1]) == int:
                 raise TypeError("Mindestens eine Melder-Nummer ist keine natürliche Zahl.")
@@ -148,14 +145,13 @@ class FileOperations:
 
     @staticmethod
     def save_to_file(file, save_dict: dict) -> None:
-        """Call the correct method to create save_dict depending on file_type, then save it as json to the specified
-        filepath."""
+        """Save save_dict as json to the specified filepath."""
         path = file.get_path()
         print(f"Saving to: {path}")
 
         # Write save_dict to the file in json format
-        with open(path, "w", encoding="utf-8") as config_dict:
-            json.dump(save_dict, config_dict, sort_keys=True, indent=4)
+        with open(path, "w", encoding="utf-8") as file_dict:
+            json.dump(save_dict, file_dict, sort_keys=True, indent=4)
 
         print("File saved successfully.")
 

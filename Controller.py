@@ -111,8 +111,8 @@ class Controller:
                 FileOperations.get_scenario_directory(file, load_dict, self.load_scenario_callback)
 
             except GLib.Error as error:
-                print(f"Error listing directory: {error}")
-                self.view.show_error_alert(f"Öffnen fehlgeschlagen", error)
+                print(f"Error listing directory: {error.message}")
+                self.view.show_error_alert(f"Öffnen fehlgeschlagen", error.message)
                 return True
 
     def load_scenario_callback(self, building_file, scenario_load_dict):
