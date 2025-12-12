@@ -32,12 +32,12 @@ class Circuit:
             raise TypeError("detector_number must be int")
         if not isinstance(detector_description, str):
             raise TypeError("detector_description must be a string")
-        if detector_number < 1 or detector_number >= 1000000000:
-            raise ValueError("Die Meldernummer muss zwischen 1 und 999999999 liegen.")
+        if detector_number < 1 or detector_number >= 100:
+            raise ValueError("Die Meldernummer muss zwischen 1 und 99 liegen.")
         if detector_number in self.detector_dict:
             raise ValueError("Dieser Melder existiert bereits.")
         if len(detector_description) > 20:
-            raise ValueError("detector_description must be a maximum of 20 characters")
+            raise ValueError("Die Beschreibung darf höchstens 20 Zeichen lang sein.")
         self.detector_dict[detector_number] = Detector(detector_description)
         self.detector_dict = sort_dict_by_key(self.detector_dict)
 
@@ -82,8 +82,8 @@ class BuildingModel:
         if not isinstance(circuit_number, int):
             raise TypeError("circuit_number must be int")
 
-        if circuit_number < 1 or circuit_number >= 1000000000:
-            raise ValueError("Die Meldergruppen-Nummer muss zwischen 1 und 999999999 liegen.")
+        if circuit_number < 1 or circuit_number >= 100000:
+            raise ValueError("Die Meldergruppen-Nummer muss zwischen 1 und 99999 liegen.")
         if circuit_number in self.circuit_dict:
             raise ValueError("Diese Meldergruppe existiert bereits.")
 

@@ -46,58 +46,18 @@ class DefineObjectWindow(Gtk.Window):
         self.confirm_button.connect("clicked", handle_create_method)
         self.confirmation_box.set_end_widget(self.confirm_button)
 
-        # Prepare labels if the ínput is incorrect
-        self.same_number_warning_label = Gtk.Label()
-        self.same_number_warning_label.set_markup(
-            f"<span foreground='red'>Wählen Sie eine Nummer, die nicht bereits existiert.</span>")
+        # Prepare a label to display an error if the input is wrong
+        self.warning_label = Gtk.Label()
 
-        self.wrong_type_warning_label = Gtk.Label()
-        self.wrong_type_warning_label.set_markup(f"<span foreground='red'>Geben Sie eine natürliche Zahl ein.</span>")
-
-        self.small_number_warning_label = Gtk.Label()
-        self.small_number_warning_label.set_markup(f"<span foreground='red'>Die Zahl muss größer 0 sein.</span>")
-
-        self.large_number_warning_label = Gtk.Label()
-        self.large_number_warning_label.set_markup(f"<span foreground='red'>Sie können nicht ernsthaft einen solch "
-                                                   f"großen Wert benötigen.\nGeben Sie einen Werten kleiner "
-                                                   f"1.000.000.000 ein.</span>")
-
-        self.long_description_warning_label = Gtk.Label()
-        self.long_description_warning_label.set_markup(f"<span foreground='red'>Die Beschreibung darf höchstens 20 "
-                                                       f"Zeichen lang sein,\ndamit sie auf das FAT passt.</span>")
-
-    def get_number_entry(self):
+    def get_number_entry(self) -> int:
         """Retrieve the entry and check it for correct syntax."""
         entry = self.choose_number_entry.get_text()
 
         # Remove old warnings
-        if self.wrong_type_warning_label.get_parent():
-            self.main_box.remove(self.wrong_type_warning_label)
-        if self.same_number_warning_label.get_parent():
-            self.main_box.remove(self.same_number_warning_label)
-        if self.small_number_warning_label.get_parent():
-            self.main_box.remove(self.small_number_warning_label)
-        if self.large_number_warning_label.get_parent():
-            self.main_box.remove(self.large_number_warning_label)
-        if self.long_description_warning_label.get_parent():
-            self.main_box.remove(self.long_description_warning_label)
+        if self.warning_label.get_parent():
+            self.main_box.remove(self.warning_label)
 
-        # Check for correct type
-        try:
-            object_number = int(entry)
-            if object_number <= 0:
-                raise ValueError("small")
-            if object_number > 999999999:
-                raise ValueError("large")
-            return object_number
-        except ValueError as e:
-            print("Input a positive integer smaller than 1000000000")
-            if str(e) == "small":
-                self.main_box.insert_child_after(self.small_number_warning_label, self.choose_number_box)
-            if str(e) == "large":
-                self.main_box.insert_child_after(self.large_number_warning_label, self.choose_number_box)
-            else:
-                self.main_box.insert_child_after(self.wrong_type_warning_label, self.choose_number_box)
+        return int(entry)
 
 
 class DefineCircuitWindow(DefineObjectWindow):
@@ -107,15 +67,17 @@ class DefineCircuitWindow(DefineObjectWindow):
         self.set_title("Melderlinie hinzufügen")
 
     def handle_create_circuit(self, create_circuit_callback):
-        circuit_number = self.get_number_entry()
-
-        # Check if the entry could be retrieved and create the circuit
-        if circuit_number is not None:
-            try:
-                create_circuit_callback(circuit_number)
-            except AttributeError:
-                print("AttributeError")
-                self.main_box.insert_child_after(self.same_number_warning_label, self.choose_number_box)
+        try:
+            circuit_number = self.get_number_entry()
+        except ValueError:
+            self.warning_label.set_markup(f"<span foreground='red'>Geben Sie eine natürliche Zahl ein.</span>")
+            self.main_box.insert_child_after(self.warning_label, self.choose_number_box)
+            return
+        try:
+            create_circuit_callback(circuit_number)
+        except ValueError as e:
+            self.warning_label.set_markup(f"<span foreground='red'>{e}.</span>")
+            self.main_box.insert_child_after(self.warning_label, self.choose_number_box)
 
 
 class DefineDetectorWindow(DefineObjectWindow):
@@ -131,14 +93,15 @@ class DefineDetectorWindow(DefineObjectWindow):
 
     def handle_create_detector(self, create_detector_callback):
         """Retrieve the user entry and create the according detector"""
-        detector_number = self.get_number_entry()
-        detector_description = self.description_box.get_description()
-
-        if detector_number is not None:
-            try:
-                create_detector_callback(circuit_number=self.circuit_number, detector_number=detector_number, detector_description=detector_description)
-            except AttributeError:
-                print("AttributeError")
-                self.main_box.insert_child_after(self.same_number_warning_label, self.choose_number_box)
-            except ValueError:
-                self.main_box.insert_child_after(self.long_description_warning_label, self.choose_number_box)
+        try:
+            detector_number = self.get_number_entry()
+        except ValueError:
+            self.warning_label.set_markup(f"<span foreground='red'>Geben Sie eine natürliche Zahl ein.</span>")
+            self.main_box.insert_child_after(self.warning_label, self.choose_number_box)
+            return
+        try:
+            description = self.description_box.get_description()
+            create_detector_callback(self.circuit_number, detector_number, description)
+        except ValueError as e:
+            self.warning_label.set_markup(f"<span foreground='red'>{e}</span>")
+            self.main_box.insert_child_after(self.warning_label, self.choose_number_box)
