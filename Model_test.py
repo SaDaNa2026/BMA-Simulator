@@ -34,7 +34,7 @@ class TestBuildingModel(unittest.TestCase):
     def test_building_description(self):
         """Test getter, setter, and invalid inputs for building_description."""
         # Default value
-        self.assertEqual(self.model.get_building_description(), "Hier Gebäudebeschreibung einfügen")
+        self.assertEqual(self.model.get_building_description(), "Gebäudebeschreibung")
 
         # Valid update
         self.model.set_building_description("Neue Beschreibung")
@@ -91,7 +91,7 @@ class TestBuildingModel(unittest.TestCase):
         self.assert_circuits_equal([])
         self.assertEqual(
             self.model.get_building_description(),
-            "Hier Gebäudebeschreibung einfügen"
+            "Gebäudebeschreibung"
         )
 
     def test_detector_lifecycle(self):
@@ -114,13 +114,15 @@ class TestBuildingModel(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.model.add_detector(1, 1_000_000_000)
 
-        # Reject wrong types
+        # Reject wrong types and length
         with self.assertRaises(TypeError):
             self.model.add_detector("1", 1)
         with self.assertRaises(TypeError):
             self.model.add_detector(1, "1")
         with self.assertRaises(TypeError):
-            self.model.add_detector(1, 1, 42)
+            self.model.add_detector(1, 10, 42)
+        with self.assertRaises(ValueError):
+            self.model.add_detector(1, 9, "Diese Beschreibung ist zu lang")
 
         # Add another detector
         self.model.add_detector(1, 999_999_999, "Heizung")
@@ -134,6 +136,8 @@ class TestBuildingModel(unittest.TestCase):
         )
         with self.assertRaises(TypeError):
             self.model.set_detector_description(1, 1, 123)
+        with self.assertRaises(ValueError):
+            self.model.set_detector_description(1, 1, "Diese Beschreibung ist zu lang")
 
         # Update alarm status
         self.model.set_detector_alarm_status(1, 1, True)

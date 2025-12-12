@@ -16,7 +16,7 @@ class DescriptionBox(Gtk.Box):
         self.textbuffer.set_text(default_text)
 
     def get_description(self):
-        """Get the content of the TextView."""
+        """Get the content of the TextView. Raise an error if the description is longer than 20 characters."""
         start = self.textbuffer.get_start_iter()
         end = self.textbuffer.get_end_iter()
         description = self.textbuffer.get_text(start, end, True)

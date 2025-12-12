@@ -11,11 +11,13 @@ def sort_dict_by_key(input_dict: dict) -> dict:
 
 @dataclass
 class Detector:
-    description: str
+    description: str = field(default="")
 
     def set_description(self, description: str) -> None:
         if not isinstance(description, str):
-            raise TypeError("Detector description must be a string")
+            raise TypeError("detector_description must be a string")
+        if len(description) > 20:
+            raise ValueError("detector_description must be a maximum of 20 characters")
         self.description = description
 
 
@@ -26,6 +28,16 @@ class Circuit:
 
     def add_detector(self, detector_number: int, detector_description: str) -> None:
         """Add a detector to this circuit."""
+        if not isinstance(detector_number, int):
+            raise TypeError("detector_number must be int")
+        if not isinstance(detector_description, str):
+            raise TypeError("detector_description must be a string")
+        if detector_number < 1 or detector_number >= 1000000000:
+            raise ValueError("Die Meldernummer muss zwischen 1 und 999999999 liegen.")
+        if detector_number in self.detector_dict:
+            raise ValueError("Dieser Melder existiert bereits.")
+        if len(detector_description) > 20:
+            raise ValueError("detector_description must be a maximum of 20 characters")
         self.detector_dict[detector_number] = Detector(detector_description)
         self.detector_dict = sort_dict_by_key(self.detector_dict)
 
@@ -36,7 +48,7 @@ class Circuit:
 
 @dataclass
 class BuildingModel:
-    building_description: str = field(default="Hier Gebäudebeschreibung einfügen")
+    building_description: str = field(default="Gebäudebeschreibung")
     circuit_dict: Dict[int, Circuit] = field(default_factory=dict)
     active_detector_list: List[tuple] = field(default_factory=list)
 
@@ -51,14 +63,16 @@ class BuildingModel:
 
     def clear_data(self):
         """Resets to init values."""
-        self.set_building_description("Hier Gebäudebeschreibung einfügen")
+        self.set_building_description("Gebäudebeschreibung")
         self.circuit_dict.clear()
         self.active_detector_list.clear()
 
-    def set_building_description(self, building_description: str) -> None:
-        if not isinstance(building_description, str):
+    def set_building_description(self, description: str) -> None:
+        if not isinstance(description, str):
             raise TypeError("building_description must be a string")
-        self.building_description = building_description
+        if len(description) > 20:
+            raise ValueError("building_description must be a maximum of 20 characters")
+        self.building_description = description
 
     def get_building_description(self) -> str:
         return self.building_description
@@ -93,21 +107,12 @@ class BuildingModel:
             circuit_number_list.append(circuit_number)
         return circuit_number_list
 
-    def add_detector(self, circuit_number: int, detector_number: int, detector_description: str = "") -> None:
+    def add_detector(self, circuit_number: int, detector_number: int, description: str = "") -> None:
         """Add a detector to a specific circuit."""
         if not isinstance(circuit_number, int):
             raise TypeError("circuit_number must be int")
-        if not isinstance(detector_number, int):
-            raise TypeError("detector_number must be int")
-        if not isinstance(detector_description, str):
-            raise TypeError("detector_description must be str")
 
-        if detector_number < 1 or detector_number >= 1000000000:
-            raise ValueError("Die Meldernummer muss zwischen 1 und 999999999 liegen.")
-        if detector_number in self.circuit_dict[circuit_number].detector_dict:
-            raise ValueError("Dieser Melder existiert bereits.")
-
-        self.circuit_dict[circuit_number].add_detector(detector_number, detector_description)
+        self.circuit_dict[circuit_number].add_detector(detector_number, description)
 
     def delete_detector(self, circuit_number: int, detector_number: int) -> None:
         """Remove a specific detector from a specific circuit."""
@@ -118,8 +123,8 @@ class BuildingModel:
 
         self.circuit_dict[circuit_number].delete_detector(detector_number)
 
-    def set_detector_description(self, circuit_number: int, detector_number: int, detector_description: str) ->None:
-        self.circuit_dict[circuit_number].detector_dict[detector_number].set_description(detector_description)
+    def set_detector_description(self, circuit_number: int, detector_number: int, description: str) ->None:
+        self.circuit_dict[circuit_number].detector_dict[detector_number].set_description(description)
 
     def get_detector_description(self, circuit_number: int, detector_number: int) -> str:
         return self.circuit_dict[circuit_number].detector_dict[detector_number].description

@@ -62,6 +62,10 @@ class DefineObjectWindow(Gtk.Window):
                                                    f"großen Wert benötigen.\nGeben Sie einen Werten kleiner "
                                                    f"1.000.000.000 ein.</span>")
 
+        self.long_description_warning_label = Gtk.Label()
+        self.long_description_warning_label.set_markup(f"<span foreground='red'>Die Beschreibung darf höchstens 20 "
+                                                       f"Zeichen lang sein,\ndamit sie auf das FAT passt.</span>")
+
     def get_number_entry(self):
         """Retrieve the entry and check it for correct syntax."""
         entry = self.choose_number_entry.get_text()
@@ -75,6 +79,8 @@ class DefineObjectWindow(Gtk.Window):
             self.main_box.remove(self.small_number_warning_label)
         if self.large_number_warning_label.get_parent():
             self.main_box.remove(self.large_number_warning_label)
+        if self.long_description_warning_label.get_parent():
+            self.main_box.remove(self.long_description_warning_label)
 
         # Check for correct type
         try:
@@ -134,3 +140,5 @@ class DefineDetectorWindow(DefineObjectWindow):
             except AttributeError:
                 print("AttributeError")
                 self.main_box.insert_child_after(self.same_number_warning_label, self.choose_number_box)
+            except ValueError:
+                self.main_box.insert_child_after(self.long_description_warning_label, self.choose_number_box)

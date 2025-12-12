@@ -102,7 +102,7 @@ class FileOperations:
                 detector_number = int(detector_string)
                 detector_description = load_dict["circuit_dict"][circuit_string][detector_string]
                 model.add_detector(circuit_number, detector_number,
-                                   detector_description=detector_description)
+                                   description=detector_description)
 
         print("File loaded successfully")
 
