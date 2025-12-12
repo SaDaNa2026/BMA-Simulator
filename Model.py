@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Dict
+from typing import Dict, List
 
 def sort_dict_by_key(input_dict: dict) -> dict:
     if not type(input_dict) == dict:
@@ -12,17 +12,11 @@ def sort_dict_by_key(input_dict: dict) -> dict:
 @dataclass
 class Detector:
     description: str
-    alarm_status: bool = field(default=False)
 
     def set_description(self, description: str) -> None:
         if not isinstance(description, str):
             raise TypeError("Detector description must be a string")
         self.description = description
-
-    def set_alarm_status(self, alarm_status) -> None:
-        if not isinstance(alarm_status, bool):
-            raise TypeError("alarm_status must be bool")
-        self.alarm_status = alarm_status
 
 
 @dataclass
@@ -44,17 +38,22 @@ class Circuit:
 class BuildingModel:
     building_description: str = field(default="Hier Gebäudebeschreibung einfügen")
     circuit_dict: Dict[int, Circuit] = field(default_factory=dict)
+    active_detector_list: List[tuple] = field(default_factory=list)
 
     def __post_init__(self):
         if not isinstance(self.building_description, str):
             raise TypeError("building_description must be a string")
         if self.circuit_dict != {}:
-            raise ValueError("circuit_dict must be empty upon initialization. Add circuits later via add_circuit")
+            raise ValueError("circuit_dict must be empty upon initialization. Add circuits later via add_circuit.")
+        if self.active_detector_list != []:
+            raise ValueError("active_detector_list must be empty upon initialization. Activate detectors later using "
+                             "set_detector_alarm_status.")
 
     def clear_data(self):
         """Resets to init values."""
         self.set_building_description("Hier Gebäudebeschreibung einfügen")
-        self.circuit_dict = {}
+        self.circuit_dict.clear()
+        self.active_detector_list.clear()
 
     def set_building_description(self, building_description: str) -> None:
         if not isinstance(building_description, str):
@@ -126,19 +125,27 @@ class BuildingModel:
         return self.circuit_dict[circuit_number].detector_dict[detector_number].description
 
     def set_detector_alarm_status(self, circuit_number: int, detector_number: int, alarm_status: bool) -> None:
-        self.circuit_dict[circuit_number].detector_dict[detector_number].set_alarm_status(alarm_status)
+        if not isinstance(alarm_status, bool):
+            raise TypeError("alarm_status must be bool")
+        if not circuit_number in self.circuit_dict:
+            raise ValueError("circuit does not exist")
+        if not detector_number in self.circuit_dict[circuit_number].detector_dict:
+            raise ValueError("detector does not exist")
+
+        detector_tuple: tuple = (circuit_number, detector_number)
+        if alarm_status:
+            if detector_tuple not in self.active_detector_list:
+                self.active_detector_list.append(detector_tuple)
+        else:
+            if detector_tuple in self.active_detector_list:
+                self.active_detector_list.remove(detector_tuple)
 
     def get_detector_alarm_status(self, circuit_number: int, detector_number: int) -> bool:
-        return self.circuit_dict[circuit_number].detector_dict[detector_number].alarm_status
+        detector_tuple: tuple = (circuit_number, detector_number)
+        return detector_tuple in self.active_detector_list
 
     def get_active_detectors(self) -> list:
-        active_detector_list = []
-        for circuit_number in self.circuit_dict:
-            circuit = self.circuit_dict[circuit_number]
-            for detector_number in circuit.detector_dict:
-                if circuit.detector_dict[detector_number].alarm_status:
-                    active_detector_list.append((circuit_number, detector_number))
-        return active_detector_list
+        return self.active_detector_list
 
     def get_detectors_for_circuit(self, circuit_number: int) -> list:
         """Get all detectors for a specific circuit."""

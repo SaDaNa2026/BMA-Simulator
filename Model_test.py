@@ -140,6 +140,10 @@ class TestBuildingModel(unittest.TestCase):
         self.assertTrue(self.model.get_detector_alarm_status(1, 1))
         with self.assertRaises(TypeError):
             self.model.set_detector_alarm_status(1, 1, "True")
+        with self.assertRaises(ValueError):
+            self.model.set_detector_alarm_status(5, 6, False)
+        with self.assertRaises(ValueError):
+            self.model.set_detector_alarm_status(1, 6, False)
 
         # Delete detector
         self.model.delete_detector(1, 1)
@@ -160,6 +164,7 @@ class TestBuildingModel(unittest.TestCase):
         self.model.add_circuit(1)
         self.model.add_detector(1, 1, "Sensor A")
         self.model.add_detector(1, 2, "Sensor B")
+        self.model.add_detector(1, 3, "Sensor C")
 
         # Initially no active detectors
         self.assertEqual(self.model.get_active_detectors(), [])
@@ -168,19 +173,26 @@ class TestBuildingModel(unittest.TestCase):
         self.model.set_detector_alarm_status(1, 1, True)
         self.assertEqual(self.model.get_active_detectors(), [(1, 1)])
 
-        # Activate second detector
+        # Activate second and third detector
         self.model.set_detector_alarm_status(1, 2, True)
+        self.model.set_detector_alarm_status(1, 3, True)
         self.assertCountEqual(
             self.model.get_active_detectors(),
-            [(1, 1), (1, 2)]
+            [(1, 1), (1, 2), (1, 3)]
         )
 
-        # Deactivate first detector
-        self.model.set_detector_alarm_status(1, 1, False)
-        self.assertEqual(self.model.get_active_detectors(), [(1, 2)])
+        # Deactivate second detector
+        self.model.set_detector_alarm_status(1, 2, False)
+        self.assertEqual(self.model.get_active_detectors(), [(1, 1), (1, 3)])
 
     def test_error_scenarios(self):
         """Ensure error cases are properly raised."""
+        # Setting circuit_dict or active_detector_list when instantiating
+        with self.assertRaises(ValueError):
+            circuit_building = BuildingModel(circuit_dict={1: 3})
+        with self.assertRaises(ValueError):
+            detector_building = BuildingModel(active_detector_list=[(1, 1), (2, 3)])
+
         # Non-existing circuit or detector
         with self.assertRaises(KeyError):
             self.model.delete_circuit(1)
