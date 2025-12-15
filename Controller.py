@@ -7,11 +7,13 @@ from json import JSONDecodeError
 
 from Model import BuildingModel
 from View import App
+from LCDController import LCDController
 
 
 class Controller:
     def __init__(self):
         self.model = BuildingModel()
+        self.lcd = LCDController(self.model)
 
         # Actions for all buttons to connect to
         data_action_entries = [("save_building", self.on_save_building_clicked, None),
@@ -123,6 +125,8 @@ class Controller:
         try:
             FileOperations.apply_scenario(scenario_load_dict, self.model)
             self.redraw_view()
+            for detector in self.model.get_active_detectors():
+                self.lcd.add_alarm(detector)
 
         except TypeError as e:
             self.view.show_error_alert("scenario-Datei invalide", f"TypeError: {e}")
@@ -146,12 +150,16 @@ class Controller:
         circuit_number = int(parameter_list[0])
         detector_number = int(parameter_list[1])
 
+        # Toggle alarm status
         current_state = self.model.get_detector_alarm_status(circuit_number, detector_number)
         new_state = not current_state
         self.model.set_detector_alarm_status(circuit_number, detector_number, new_state)
+
         print(f"Melder {detector_number} in Melderlinie {circuit_number} {'aktiviert' if new_state else 'deaktiviert'}")
         self.print_detector_state()
         self.redraw_view()
+        if new_state:
+            self.lcd.add_alarm((circuit_number, detector_number))
 
     def on_edit_mode_clicked(self, action, *args):
         self.view.toggle_edit_mode(action, *args)
