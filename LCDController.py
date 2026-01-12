@@ -49,6 +49,38 @@ class LCDController(CharLCD):
 
         self.refresh()
 
+    def clear_alarms(self):
+        """Clear all alarms."""
+        self.visible_alarm_dict.clear()
+        self.refresh()
+
+    def previous_alarm(self, *args):
+        """Set the top alarm to the previous alarm."""
+        # Check if there are enough alarms to scroll
+        if not len(self.model.get_active_detectors()) > 2:
+            return
+        current_index = self.model.get_active_detectors().index(self.visible_alarm_dict["top"])
+        # Return if the top alarm is already the first one
+        if current_index == 0:
+            return
+        new_index = current_index - 1
+        self.visible_alarm_dict["top"] = self.model.get_active_detectors()[new_index]
+        self.refresh()
+
+    def next_alarm(self, *args):
+        """Set the top alarm to the previous alarm."""
+        # Check if there are enough alarms to scroll
+        if not len(self.model.get_active_detectors()) > 2:
+            return
+        current_index = self.model.get_active_detectors().index(self.visible_alarm_dict["top"])
+        # Return if the top alarm is already the first one
+        if self.model.get_active_detectors()[current_index] == self.model.get_active_detectors()[-2]:
+            return
+        new_index = current_index + 1
+        self.visible_alarm_dict["top"] = self.model.get_active_detectors()[new_index]
+        self.refresh()
+
+
     def refresh(self):
         """Refresh the LCD according to visible_alarm_dict."""
         if len(self.visible_alarm_dict) > 2:

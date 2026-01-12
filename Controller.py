@@ -4,6 +4,8 @@ import gi
 gi.require_version('GLib', '2.0')
 from gi.repository import GLib
 from json import JSONDecodeError
+from mcp23017 import MCP23017, i2c, INPUT
+import smbus3
 
 from Model import BuildingModel
 from View import App
@@ -28,10 +30,23 @@ class Controller:
                                ("edit_detector", self.on_edit_detector_clicked, "s"),
                                ("edit_building", self.on_edit_building_clicked, None)]
 
-        hidden_action_entries = [("detector_toggle", self.on_detector_toggled, "s")]
+        hidden_action_entries = [("detector_toggle", self.on_detector_toggled, "s"),
+                                 ("previous_alarm", self.lcd.previous_alarm, None),
+                                 ("next_alarm", self.lcd.next_alarm, None),
+                                 ("clear_alarms", self.on_clear_alarms_clicked, None)]
 
         self.view = App(data_action_entries, edit_action_entries, hidden_action_entries, application_id="org.example.BMA-control")
         self.view.run(sys.argv)
+
+        # Set up the port expander
+        # i2c_controller = i2c.I2C(smbus3.SMBus(1))
+        # self.mcp = MCP23017(0x27, i2c_controller)
+        # self.mcp.pin_mode(0, INPUT)
+
+        # GLib.timeout_add(100, self.poll_buttons)
+
+    def poll_buttons(self):
+        print(self.mcp.digital_read(0))
 
     def on_save_building_clicked(self, *args):
         """Create a FileSaveDialog to save the building configuration."""
@@ -204,6 +219,12 @@ class Controller:
         detector_number = int(parameter_list[1])
 
         self.model.delete_detector(circuit_number, detector_number)
+        self.redraw_view()
+
+    def on_clear_alarms_clicked(self, *args):
+        """Clear all alarms."""
+        self.model.clear_alarms()
+        self.lcd.clear_alarms()
         self.redraw_view()
 
     def add_circuit_callback(self, circuit_number):

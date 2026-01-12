@@ -157,3 +157,7 @@ class BuildingModel:
         circuit = self.circuit_dict[circuit_number]
         detector_list = [num for num in circuit.detector_dict.keys()]
         return detector_list
+
+    def clear_alarms(self) -> None:
+        """Clear active_detector_list."""
+        self.active_detector_list.clear()

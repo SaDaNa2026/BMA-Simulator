@@ -41,6 +41,15 @@ class MainWindow(Gtk.ApplicationWindow):
         self.add_menubutton.set_visible(False)
         self.header.pack_start(self.add_menubutton)
 
+        # Buttons to control the LCD
+        self.clear_alarms_button = Gtk.Button(label="Clear", action_name="hidden_actions.clear_alarms")
+        self.header.pack_end(self.clear_alarms_button)
+        self.next_alarm_button = Gtk.Button(label=">", action_name="hidden_actions.next_alarm")
+        self.header.pack_end(self.next_alarm_button)
+        self.previous_alarm_button = Gtk.Button(label="<", action_name="hidden_actions.previous_alarm")
+        self.header.pack_end(self.previous_alarm_button)
+
+
         # Bind the action groups to the window
         self.insert_action_group("data", data_action_group)
         self.insert_action_group("edit", edit_action_group)
