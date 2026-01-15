@@ -19,12 +19,13 @@ class MainWindow(Gtk.ApplicationWindow):
         self.set_child(self.outer_box)
 
         # Box that contains all circuits and detectors
-        self.main_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+        self.main_box = Gtk.FlowBox(selection_mode=Gtk.SelectionMode.NONE, vexpand=True)
         self.main_box.set_margin_top(5)
         self.main_box.set_margin_bottom(5)
         self.main_box.set_margin_start(5)
         self.main_box.set_margin_end(5)
-        self.main_box.set_spacing(20)
+        self.main_box.set_row_spacing(20)
+        self.main_box.set_column_spacing(20)
         self.main_box.set_size_request(-1, 400)
         self.outer_box.append(self.main_box)
 
