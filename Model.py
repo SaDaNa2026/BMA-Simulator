@@ -18,6 +18,8 @@ class Detector:
             raise TypeError("detector_description must be a string")
         if len(description) > 20:
             raise ValueError("detector_description must be a maximum of 20 characters")
+        if f"\n" in description:
+            raise ValueError("No newlines allowed in a detector description")
         self.description = description
 
 
@@ -38,6 +40,9 @@ class Circuit:
             raise ValueError("Dieser Melder existiert bereits.")
         if len(detector_description) > 20:
             raise ValueError("Die Beschreibung darf höchstens 20 Zeichen lang sein.")
+        if f"\n" in detector_description:
+            raise ValueError("No newlines allowed in a detector description")
+
         self.detector_dict[detector_number] = Detector(detector_description)
         self.detector_dict = sort_dict_by_key(self.detector_dict)
 

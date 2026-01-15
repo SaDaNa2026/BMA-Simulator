@@ -56,11 +56,11 @@ class TestBuildingModel(unittest.TestCase):
         self.assert_circuits_equal([])
 
         # Add valid circuit numbers
-        for number in (1, 999_999_999):
+        for number in (1, 99999):
             self.model.add_circuit(number)
             self.assertIn(number, self.model.get_circuits())
 
-        self.assert_circuits_equal([1, 999_999_999])
+        self.assert_circuits_equal([1, 99999])
 
         # Reject duplicates and invalid numbers
         with self.assertRaises(ValueError):
@@ -68,7 +68,7 @@ class TestBuildingModel(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.model.add_circuit(0)
         with self.assertRaises(ValueError):
-            self.model.add_circuit(1_000_000_000)
+            self.model.add_circuit(100000)
 
         # Reject non-int circuit numbers
         with self.assertRaises(TypeError):
@@ -76,7 +76,7 @@ class TestBuildingModel(unittest.TestCase):
 
         # Delete existing circuit
         self.model.delete_circuit(1)
-        self.assert_circuits_equal([999_999_999])
+        self.assert_circuits_equal([99999])
 
         # Delete non-existing circuit
         with self.assertRaises(KeyError):
@@ -112,7 +112,7 @@ class TestBuildingModel(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.model.add_detector(1, 0)
         with self.assertRaises(ValueError):
-            self.model.add_detector(1, 1_000_000_000)
+            self.model.add_detector(1, 100)
 
         # Reject wrong types and length
         with self.assertRaises(TypeError):
@@ -123,10 +123,12 @@ class TestBuildingModel(unittest.TestCase):
             self.model.add_detector(1, 10, 42)
         with self.assertRaises(ValueError):
             self.model.add_detector(1, 9, "Diese Beschreibung ist zu lang")
+        with self.assertRaises(ValueError):
+            self.model.add_detector(1, 8, f"Newline test\n")
 
         # Add another detector
-        self.model.add_detector(1, 999_999_999, "Heizung")
-        self.assert_detectors_equal(1, [1, 999_999_999])
+        self.model.add_detector(1, 99, "Heizung")
+        self.assert_detectors_equal(1, [1, 99])
 
         # Update description
         self.model.set_detector_description(1, 1, "Rauchmelder OG")
@@ -138,6 +140,8 @@ class TestBuildingModel(unittest.TestCase):
             self.model.set_detector_description(1, 1, 123)
         with self.assertRaises(ValueError):
             self.model.set_detector_description(1, 1, "Diese Beschreibung ist zu lang")
+        with self.assertRaises(ValueError):
+            self.model.set_detector_description(1, 1, f"Newline test\n")
 
         # Update alarm status
         self.model.set_detector_alarm_status(1, 1, True)
@@ -151,7 +155,7 @@ class TestBuildingModel(unittest.TestCase):
 
         # Delete detector
         self.model.delete_detector(1, 1)
-        self.assert_detectors_equal(1, [999_999_999])
+        self.assert_detectors_equal(1, [99])
 
         # Reject wrong types for delete
         with self.assertRaises(TypeError):

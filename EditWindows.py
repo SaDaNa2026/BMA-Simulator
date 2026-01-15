@@ -41,14 +41,12 @@ class EditWindow(Gtk.Window):
         self.confirmation_box.set_end_widget(self.confirm_button)
 
         # Label to display an error if the description is too long
-        self.long_description_warning_label = Gtk.Label()
-        self.long_description_warning_label.set_markup(f"<span foreground='red'>Die Beschreibung darf höchstens 20 "
-                                                       f"Zeichen lang sein,\ndamit sie auf das FAT passt.</span>")
+        self.warning_label = Gtk.Label()
 
     def get_description(self):
         # Remove old warnings
-        if self.long_description_warning_label.get_parent():
-            self.main_box.remove(self.long_description_warning_label)
+        if self.warning_label.get_parent():
+            self.main_box.remove(self.warning_label)
 
         description = self.description_box.get_description()
         return description
@@ -68,8 +66,9 @@ class EditDetectorWindow(EditWindow):
         try:
             edit_detector_callback(self.circuit_number, self.detector_number, description)
             self.destroy()
-        except ValueError:
-            self.main_box.insert_child_after(self.long_description_warning_label, self.description_box)
+        except ValueError as e:
+            self.warning_label.set_markup(f"<span foreground='red'>{e}</span>")
+            self.main_box.insert_child_after(self.warning_label, self.description_box)
 
 
 class EditBuildingWindow(EditWindow):
@@ -83,5 +82,6 @@ class EditBuildingWindow(EditWindow):
         try:
             edit_building_callback(description)
             self.destroy()
-        except ValueError:
-            self.main_box.insert_child_after(self.long_description_warning_label, self.description_box)
+        except ValueError as e:
+            self.warning_label.set_markup(f"<span foreground='red'>{e}</span>")
+            self.main_box.insert_child_after(self.warning_label, self.description_box)

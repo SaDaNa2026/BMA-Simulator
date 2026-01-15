@@ -104,4 +104,4 @@ class DefineDetectorWindow(DefineObjectWindow):
             create_detector_callback(self.circuit_number, detector_number, description)
         except ValueError as e:
             self.warning_label.set_markup(f"<span foreground='red'>{e}</span>")
-            self.main_box.insert_child_after(self.warning_label, self.choose_number_box)
+            self.main_box.insert_child_after(self.warning_label, self.description_box)

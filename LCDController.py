@@ -2,7 +2,7 @@ from RPLCD.i2c import CharLCD
 
 class LCDController(CharLCD):
     def __init__(self, model):
-        super().__init__('PCF8574', 0x27)
+        super().__init__('PCF8574', 0x25)
         self.model = model
         self.visible_alarm_dict: dict = {}
 

@@ -12,17 +12,27 @@ class MainWindow(Gtk.ApplicationWindow):
 
     def __init__(self, data_action_group, edit_action_group, hidden_action_group, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.set_default_size(700, 500)
         self.set_title("Steuerung Übungs-BMA")
 
         # Create a box that contains all other widgets in this window
+        self.outer_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        self.set_child(self.outer_box)
+
+        # Box that contains all circuits and detectors
         self.main_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
         self.main_box.set_margin_top(5)
         self.main_box.set_margin_bottom(5)
         self.main_box.set_margin_start(5)
         self.main_box.set_margin_end(5)
         self.main_box.set_spacing(20)
-        self.set_child(self.main_box)
+        self.main_box.set_size_request(-1, 400)
+        self.outer_box.append(self.main_box)
+
+        # Console to print information about active detectors to
+        self.console_buffer = Gtk.TextBuffer()
+        self.console = Gtk.TextView(editable=False, buffer=self.console_buffer, cursor_visible=False, left_margin=10, monospace=True)
+        self.console_frame = Gtk.Frame(child=self.console, label="Aktive Melder")
+        self.outer_box.insert_child_after(self.console_frame, self.main_box)
 
         # Definition of the window header
         self.header = Gtk.HeaderBar()
@@ -42,7 +52,7 @@ class MainWindow(Gtk.ApplicationWindow):
         self.header.pack_start(self.add_menubutton)
 
         # Buttons to control the LCD
-        self.clear_alarms_button = Gtk.Button(label="Clear", action_name="hidden_actions.clear_alarms")
+        self.clear_alarms_button = Gtk.Button(label="Rücksetzen", action_name="hidden_actions.clear_alarms")
         self.header.pack_end(self.clear_alarms_button)
         self.next_alarm_button = Gtk.Button(label=">", action_name="hidden_actions.next_alarm")
         self.header.pack_end(self.next_alarm_button)

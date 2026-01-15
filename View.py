@@ -185,6 +185,11 @@ class App(Gtk.Application):
         circuit.remove(detector)
         del self.circuit_dict[circuit_number].detector_dict[detector_number]
 
+    def write_to_console(self, text: str):
+        if not isinstance(text, str):
+            raise TypeError("Text must be str")
+        self.window.console_buffer.set_text(text)
+
     def clear(self):
         delete_list = [num for num in self.circuit_dict]
         for circuit_number in delete_list:

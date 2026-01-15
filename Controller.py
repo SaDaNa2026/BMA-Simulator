@@ -139,21 +139,27 @@ class Controller:
 
         try:
             FileOperations.apply_scenario(scenario_load_dict, self.model)
-            self.redraw_view()
-            for detector in self.model.get_active_detectors():
-                self.lcd.add_alarm(detector)
 
         except TypeError as e:
             self.view.show_error_alert("scenario-Datei invalide", f"TypeError: {e}")
+            return
 
         except KeyError as e:
             self.view.show_error_alert(".scenario-Datei invalide", f"KeyError: {e}")
+            return
 
         except SyntaxError as e:
             self.view.show_error_alert(".scenario-Datei invalide", f"SyntaxError: {e}")
+            return
 
         except ValueError as e:
             self.view.show_error_alert(".scenario-Datei invalide", f"ValueError: {e}")
+            return
+
+        self.redraw_view()
+        self.print_detector_state()
+        for detector in self.model.get_active_detectors():
+            self.lcd.add_alarm(detector)
 
 
     def on_detector_toggled(self, action, parameter, *args):
@@ -210,6 +216,7 @@ class Controller:
         circuit_number = parameter.get_int32()
         self.model.delete_circuit(circuit_number)
         self.redraw_view()
+        self.print_detector_state()
 
     def on_delete_detector_clicked(self, action, parameter, *args):
         """Convert parameters to int and delete the specified detector."""
@@ -220,12 +227,14 @@ class Controller:
 
         self.model.delete_detector(circuit_number, detector_number)
         self.redraw_view()
+        self.print_detector_state()
 
     def on_clear_alarms_clicked(self, *args):
         """Clear all alarms."""
         self.model.clear_alarms()
         self.lcd.clear_alarms()
         self.redraw_view()
+        self.print_detector_state()
 
     def add_circuit_callback(self, circuit_number):
         self.model.add_circuit(circuit_number)
@@ -242,16 +251,28 @@ class Controller:
     def edit_detector_callback(self, circuit_number: int, detector_number: int, description: str):
         """Change a specified detector's description."""
         self.model.set_detector_description(circuit_number, detector_number, description)
+        self.print_detector_state()
 
 
     def print_detector_state(self):
         """Print the active detectors to the console."""
         active_detector_list = self.model.get_active_detectors()
+        active_detector_text = ""
         print("Aktive Melder:")
+
         for reference in active_detector_list:
             circuit_number = reference[0]
             detector_number = reference[1]
-            print(f"Melder {detector_number} in Meldergruppe {circuit_number}")
+            detector_description = self.model.get_detector_description(circuit_number, detector_number)
+            for i in range(4-len(str(circuit_number))):
+                active_detector_text += " "
+            active_detector_text += f"{circuit_number}/{detector_number}"
+            for i in range(2-len(str(detector_number))):
+                active_detector_text += " "
+            active_detector_text += f"        {detector_description}\n"
+
+        print(active_detector_text)
+        self.view.write_to_console(active_detector_text)
 
     def redraw_view(self):
         """Redraw the view according to the current model state."""
