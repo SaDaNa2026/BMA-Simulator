@@ -6,11 +6,7 @@
 #
 --extra-index-url https://www.piwheels.org/simple
 
-colorzero==2.0
-    # via gpiozero
-gpiozero==2.0.1
-    # via -r requirements.in
-lgpio==0.2.2.0
+mcp23017==1.1.0
     # via -r requirements.in
 pycairo==1.28.0
     # via pygobject
@@ -18,6 +14,5 @@ pygobject==3.54.5
     # via -r requirements.in
 rplcd==1.4.0
     # via -r requirements.in
-
-# The following packages are considered to be unsafe in a requirements file:
-# setuptools
+smbus3==0.5.5
+    # via -r requirements.in

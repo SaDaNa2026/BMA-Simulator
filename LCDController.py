@@ -80,6 +80,9 @@ class LCDController(CharLCD):
         self.visible_alarm_dict["top"] = self.model.get_active_detectors()[new_index]
         self.refresh()
 
+    def switch_view_level(self):
+        """Switch between alarms, errors and history. Currently a placeholder."""
+        pass
 
     def refresh(self):
         """Refresh the LCD according to visible_alarm_dict."""

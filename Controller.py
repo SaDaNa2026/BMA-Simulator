@@ -4,12 +4,12 @@ import gi
 gi.require_version('GLib', '2.0')
 from gi.repository import GLib
 from json import JSONDecodeError
-from mcp23017 import MCP23017, i2c, INPUT
-import smbus3
 
 from Model import BuildingModel
 from View import App
 from LCDController import LCDController
+from MCPController import MCPController
+from mcp23017 import *
 
 
 class Controller:
@@ -35,18 +35,17 @@ class Controller:
                                  ("next_alarm", self.lcd.next_alarm, None),
                                  ("clear_alarms", self.on_clear_alarms_clicked, None)]
 
+        # Set up the port expander
+        self.mcp_fat = MCPController(0x27,
+                                     [(GPB1, self.lcd.next_alarm),
+                                      (GPB3, self.beeper_off),
+                                      (GPB5, self.lcd.previous_alarm),
+                                      (GPB7, self.lcd.switch_view_level)])
+
         self.view = App(data_action_entries, edit_action_entries, hidden_action_entries, application_id="org.example.BMA-control")
         self.view.run(sys.argv)
 
-        # Set up the port expander
-        # i2c_controller = i2c.I2C(smbus3.SMBus(1))
-        # self.mcp = MCP23017(0x27, i2c_controller)
-        # self.mcp.pin_mode(0, INPUT)
 
-        # GLib.timeout_add(100, self.poll_buttons)
-
-    def poll_buttons(self):
-        print(self.mcp.digital_read(0))
 
     def on_save_building_clicked(self, *args):
         """Create a FileSaveDialog to save the building configuration."""
@@ -282,3 +281,7 @@ class Controller:
             for detector_number in self.model.get_detectors_for_circuit(circuit_number):
                 alarm_status = self.model.get_detector_alarm_status(circuit_number, detector_number)
                 self.view.add_detector(circuit_number, detector_number, alarm_status)
+
+    def beeper_off(self):
+        """Turns off the beeper. Currently a placeholder."""
+        pass
