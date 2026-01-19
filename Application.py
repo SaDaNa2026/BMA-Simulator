@@ -21,6 +21,7 @@ class App(Gtk.Application):
     def __init__(self, **kwargs):
         super().__init__(application_id="org.example.BMA-control", **kwargs)
         self.connect('activate', self.on_activate)
+        self.connect('shutdown', self.on_shutdown)
 
         self.model = BuildingModel()
         self.lcd = LCDController(self.model)
@@ -69,7 +70,7 @@ class App(Gtk.Application):
         self.set_accels_for_action("data.edit_mode", ["<Ctrl>E"])
 
 
-        fat_led_dict = {"previous_alarm": GPB4,
+        self.fat_led_dict = {"previous_alarm": GPB4,
                         "next_alarm": GPB0,
                         "switch_view_level": GPB6,
                         "beeper_off": GPB2,
@@ -84,12 +85,12 @@ class App(Gtk.Application):
                                       (GPB3, self.beeper_off),
                                       (GPB5, self.lcd.previous_alarm),
                                       (GPB7, self.lcd.switch_view_level)],
-                                     fat_led_dict)
+                                     self.fat_led_dict)
+
+        self.led_fat = LEDController(self.mcp_fat, self.fat_led_dict)
 
         # Turn on the green LED
-        self.mcp_fat.digital_write(fat_led_dict["working"], HIGH)
-
-        self.led_fat = LEDController(self.mcp_fat, fat_led_dict)
+        self.mcp_fat.digital_write(self.fat_led_dict["working"], HIGH)
 
         self.window = MainWindow(data_action_group=self.data_action_group,
                                  edit_action_group=self.edit_action_group,
@@ -98,6 +99,11 @@ class App(Gtk.Application):
     def on_activate(self, app):
         self.window.set_application(app)
         self.window.present()
+
+    def on_shutdown(self, app):
+        """Clean up the hardware interface when the application is closed."""
+        self.lcd.clear()
+        self.led_fat.shutdown()
 
     def on_circuit_pressed(self, gesture, n_press, x, y, circuit_number: int) -> None:
         """Present a context menu on a circuit if edit mode is enabled."""

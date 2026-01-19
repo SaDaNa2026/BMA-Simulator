@@ -23,16 +23,17 @@ class LEDController:
 
     def blink(self, led: str):
         print("blink")
-        if self.led_status[led] == LOW:
-            self.led_status[led] = HIGH
-            self.mcp.digital_write(self.led_pins[led], HIGH)
+        if self.led_blinking[led] and self.led_status[led] == LOW:
+                self.led_status[led] = HIGH
+                self.mcp.digital_write(self.led_pins[led], HIGH)
+                return True
         else:
             self.led_status[led] = LOW
             self.mcp.digital_write(self.led_pins[led], LOW)
-        if self.led_blinking[led]:
-            return True
-        else:
-            return False
+            if self.led_blinking[led]:
+                return True
+            else:
+                return False
 
     def start_blink(self, led: str):
         self.led_blinking[led] = True
@@ -40,3 +41,9 @@ class LEDController:
 
     def stop_blink(self, led: str):
         self.led_blinking[led] = False
+
+    def shutdown(self):
+        for led in self.led_pins:
+            self.stop_blink(led)
+            self.led_status[led] = LOW
+            self.mcp.digital_write(self.led_pins[led], LOW)
