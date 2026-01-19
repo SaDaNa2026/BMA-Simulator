@@ -1,22 +1,32 @@
-import sys
-from FileOperations import FileOperations
 import gi
+gi.require_version('Gtk', '4.0')
 gi.require_version('GLib', '2.0')
-from gi.repository import GLib
+from gi.repository import Gtk, Gio, GLib, Gdk
+
+from functools import partial
 from json import JSONDecodeError
 
 from Model import BuildingModel
-from View import App
+from FileOperations import FileOperations
+from MainWindow import MainWindow
+from Circuit import Circuit
+from Detector import Detector
 from LCDController import LCDController
 from MCPController import MCPController
 from mcp23017 import *
 from LEDController import LEDController
 
 
-class Controller:
-    def __init__(self):
+class App(Gtk.Application):
+    def __init__(self, **kwargs):
+        super().__init__(application_id="org.example.BMA-control", **kwargs)
+        self.connect('activate', self.on_activate)
+
         self.model = BuildingModel()
         self.lcd = LCDController(self.model)
+
+        # Dictionary to store references to the widget objects
+        self.circuit_dict = {}
 
         # Actions for all buttons to connect to
         data_action_entries = [("save_building", self.on_save_building_clicked, None),
@@ -36,15 +46,37 @@ class Controller:
                                  ("next_alarm", self.lcd.next_alarm, None),
                                  ("clear_alarms", self.on_clear_alarms_clicked, None)]
 
+        # Add the action entries to groups
+        self.data_action_group = Gio.SimpleActionGroup.new()
+        self.data_action_group.add_action_entries(data_action_entries, None)
+
+        self.edit_action_group = Gio.SimpleActionGroup.new()
+        self.edit_action_group.add_action_entries(edit_action_entries, None)
+
+        self.hidden_action_group = Gio.SimpleActionGroup()
+        self.hidden_action_group.add_action_entries(hidden_action_entries, None)
+
+        # Set edit actions disabled
+        for name in self.edit_action_group.list_actions():
+            action = self.edit_action_group.lookup_action(name)
+            if isinstance(action, Gio.SimpleAction):
+                action.set_enabled(False)
+
+        # Add shortcuts to the actions
+        self.set_accels_for_action("data.save_building", ["<Ctrl><Shift>S"])
+        self.set_accels_for_action("data.save_scenario", ["<Ctrl>S"])
+        self.set_accels_for_action("data.open", ["<Ctrl>O"])
+        self.set_accels_for_action("data.edit_mode", ["<Ctrl>E"])
+
 
         fat_led_dict = {"previous_alarm": GPB4,
-                         "next_alarm": GPB0,
-                         "switch_view_level": GPB6,
-                         "beeper_off": GPB2,
-                         "working" : GPA3,
-                         "alarm": GPA2,
-                         "error": GPA1,
-                         "turn_off": GPA0}
+                        "next_alarm": GPB0,
+                        "switch_view_level": GPB6,
+                        "beeper_off": GPB2,
+                        "working": GPA3,
+                        "alarm": GPA2,
+                        "error": GPA1,
+                        "turn_off": GPA0}
 
         # Set up the port expander
         self.mcp_fat = MCPController(0x27,
@@ -52,25 +84,151 @@ class Controller:
                                       (GPB3, self.beeper_off),
                                       (GPB5, self.lcd.previous_alarm),
                                       (GPB7, self.lcd.switch_view_level)],
-                                      fat_led_dict)
+                                     fat_led_dict)
 
         # Turn on the green LED
         self.mcp_fat.digital_write(fat_led_dict["working"], HIGH)
 
         self.led_fat = LEDController(self.mcp_fat, fat_led_dict)
 
-        self.view = App(data_action_entries, edit_action_entries, hidden_action_entries, application_id="org.example.BMA-control")
-        self.view.run(sys.argv)
+        self.window = MainWindow(data_action_group=self.data_action_group,
+                                 edit_action_group=self.edit_action_group,
+                                 hidden_action_group=self.hidden_action_group)
+
+    def on_activate(self, app):
+        self.window.set_application(app)
+        self.window.present()
+
+    def on_circuit_pressed(self, gesture, n_press, x, y, circuit_number: int) -> None:
+        """Present a context menu on a circuit if edit mode is enabled."""
+        # Don't respond if edit mode is disabled
+        if not self.data_action_group.lookup_action("edit_mode").get_state().get_boolean():
+            return
+
+        # Get the circuit that was clicked
+        circuit = self.circuit_dict[circuit_number]
+
+        # Create an invisible rectangle at the position of the click that the context menu points to
+        rect = Gdk.Rectangle()
+        rect.x = int(x)
+        rect.y = int(y)
+        rect.width = 1
+        rect.height = 1
+
+        circuit.context_menu_popover.set_pointing_to(rect)
+        circuit.context_menu_popover.popup()
+
+    def on_detector_pressed(self, gesture, n_press, x, y, circuit_number: int, detector_number: int) -> None:
+        """Present a context menu on a detector if edit mode is enabled."""
+        # Don't respond if edit mode is disabled
+        if not self.data_action_group.lookup_action("edit_mode").get_state().get_boolean():
+            return
+
+        # Get the detector that was clicked
+        detector = self.circuit_dict[circuit_number].detector_dict[detector_number]
+
+        # Create an invisible rectangle at the position of the click that the context menu points to
+        rect = Gdk.Rectangle()
+        rect.x = int(x)
+        rect.y = int(y)
+        rect.width = 1
+        rect.height = 1
+
+        detector.context_menu_popover.set_pointing_to(rect)
+        detector.context_menu_popover.popup()
+
+    def toggle_edit_mode(self, action, *args) -> None:
+        """Toggle between normal mode and edit mode."""
+        # Update the action’s stored state
+        current_state = action.get_state().get_boolean()
+        new_state = not current_state
+        action.set_state(GLib.Variant.new_boolean(new_state))
+
+        # Update UI
+        for name in self.edit_action_group.list_actions():
+            action = self.edit_action_group.lookup_action(name)
+            if isinstance(action, Gio.SimpleAction):
+                action.set_enabled(new_state)
+
+        self.window.add_menubutton.set_visible(new_state)
+
+        # Print debug info
+        if new_state:
+            print("Edit mode active")
+
+        else:
+            print("Edit mode inactive")
+
+    def add_circuit(self, circuit_number: int) -> None:
+        """Create a new Circuit instance and add it to the window."""
+        circuit = Circuit(circuit_number)
+        self.circuit_dict[circuit_number] = circuit
+        # Connect the event handler that detects if the circuit is right-clicked
+        circuit.click_controller.connect("pressed", partial(self.on_circuit_pressed, circuit_number=circuit_number))
+        self.window.main_box.append(circuit)
+
+    def delete_circuit(self, circuit_number: int) -> None:
+        """Delete the specified circuit."""
+        circuit = self.circuit_dict[circuit_number]
+        self.window.main_box.remove(circuit)
+        del self.circuit_dict[circuit_number]
+
+    def add_detector(self, circuit_number: int, detector_number: int, alarm_status: bool = False) -> None:
+        """Create a new Detector instance and add it to the window."""
+        detector = Detector(circuit_number, detector_number)
+        self.circuit_dict[circuit_number].detector_dict[detector_number] = detector
+
+        # Set the detector switch according to the alarm_status and connect it to its callback function
+        detector.detector_switch.set_action_name("hidden_actions.detector_toggle")
+        detector.detector_switch.set_action_target_value(GLib.Variant("s", f"{circuit_number}, {detector_number}"))
+        detector.detector_switch.set_active(alarm_status)
+
+        # Connect the event handler that detects if the circuit is right-clicked
+        detector.click_controller.connect("pressed", partial(self.on_detector_pressed,
+                                                             circuit_number=circuit_number,
+                                                             detector_number=detector_number))
+
+        # Add the detector to its circuit
+        circuit = self.circuit_dict[circuit_number]
+        circuit.append(detector)
+
+    def delete_detector(self, circuit_number: int, detector_number: int) -> None:
+        """Delete a specified detector."""
+        # Get the corresponding objects
+        circuit = self.circuit_dict[circuit_number]
+        detector = self.circuit_dict[circuit_number].detector_dict[detector_number]
+
+        # Delete the detector from the dictionary and remove it from its circuit
+        circuit.remove(detector)
+        del self.circuit_dict[circuit_number].detector_dict[detector_number]
+
+    def write_to_console(self, text: str):
+        if not isinstance(text, str):
+            raise TypeError("Text must be of type string")
+        self.window.console_buffer.set_text(text)
+
+    def clear_view(self):
+        delete_list = [num for num in self.circuit_dict]
+        for circuit_number in delete_list:
+            self.delete_circuit(circuit_number)
+
+    def redraw_view(self):
+        self.clear_view()
+        for circuit_number in self.model.get_circuits():
+            self.add_circuit(circuit_number)
+            for detector_number in self.model.get_detectors_for_circuit(circuit_number):
+                alarm_status = self.model.get_detector_alarm_status(circuit_number, detector_number)
+                self.add_detector(circuit_number, detector_number, alarm_status)
 
 
 
     def on_save_building_clicked(self, *args):
         """Create a FileSaveDialog to save the building configuration."""
-        self.view.show_save_dialog(self.on_file_save_response, "building")
+        self.window.show_save_dialog(self.on_file_save_response, "building")
 
     def on_save_scenario_clicked(self, *args):
         """Create a FileSaveDialog to save the scenario."""
-        self.view.show_save_dialog(self.on_file_save_response, "scenario")
+        self.window.show_save_dialog(self.on_file_save_response, "scenario")
 
     def on_file_save_response(self, dialog, result, file_type: str):
         try:
@@ -79,7 +237,7 @@ class Controller:
         except GLib.Error as e:
             print(f"Save canceled or failed: {e.message}")
             if not e.message == "Dismissed by user":
-                self.view.show_error_alert("Speichern fehlgeschlagen", e.message)
+                self.window.show_error_alert("Speichern fehlgeschlagen", e.message)
             return
 
         if file_type == "building":
@@ -89,22 +247,23 @@ class Controller:
             save_dict = FileOperations.create_scenario_save_dict(self.model)
 
         else:
-            self.view.show_error_alert("Invalide Dateiendung", "Datein müssen auf .building oder .scenario enden")
+            self.window.show_error_alert("Invalide Dateiendung", "Dateien müssen auf .building oder .scenario enden")
             return
 
         FileOperations.save_to_file(file, save_dict)
 
     def on_open_clicked(self, *args):
         """Creates a FileOpenDialog."""
-        self.view.show_open_dialog(self.on_file_open_response)
+        self.window.show_open_dialog(self.on_file_open_response)
 
     def on_file_open_response(self, dialog, result):
+        """Callback for the file dialog. Retrieves the file object and calls the load function."""
         try:
             file = FileOperations.retrieve_open_file(dialog, result)
         except GLib.Error as e:
             print(f"Open canceled or failed: {e.message}")
             if not e.message == "Dismissed by user":
-                self.view.show_error_alert("Öffnen fehlgeschlagen", e.message)
+                self.window.show_error_alert("Öffnen fehlgeschlagen", e.message)
             return
         self.load_file(file)
 
@@ -113,13 +272,13 @@ class Controller:
             load_dict, file_type = FileOperations.open_file(file)
 
         except JSONDecodeError:
-            self.view.show_error_alert("Fehler beim Laden der Datei",
+            self.window.show_error_alert("Fehler beim Laden der Datei",
                                        f"Invalides Dateiformat von {file.get_path()}\nStellen Sie sicher, "
                                        f"dass die Datei dem JSON-Standard entspricht.")
             return True
 
         except RuntimeError as e:
-            self.view.show_error_alert("Fehler beim Laden der Datei", e)
+            self.window.show_error_alert("Fehler beim Laden der Datei", e)
             return True
 
         if file_type == "building":
@@ -129,13 +288,13 @@ class Controller:
 
             except KeyError as e:
                 print(f"KeyError: {e}")
-                self.view.show_error_alert(".building-Datei invalide", f"Key {e} fehlt oder ist falsch geschrieben.")
+                self.window.show_error_alert(".building-Datei invalide", f"Key {e} fehlt oder ist falsch geschrieben.")
                 self.model.clear_data()
                 return True
 
             except (ValueError, TypeError) as e:
                 print(f"ValueError/TypeError: {e}")
-                self.view.show_error_alert(".building-Datei invalide", e)
+                self.window.show_error_alert(".building-Datei invalide", e)
                 self.model.clear_data()
                 return True
 
@@ -145,7 +304,7 @@ class Controller:
 
             except GLib.Error as error:
                 print(f"Error listing directory: {error.message}")
-                self.view.show_error_alert(f"Öffnen fehlgeschlagen", error.message)
+                self.window.show_error_alert(f"Öffnen fehlgeschlagen", error.message)
                 return True
 
     def load_scenario_callback(self, building_file, scenario_load_dict):
@@ -157,19 +316,19 @@ class Controller:
             FileOperations.apply_scenario(scenario_load_dict, self.model)
 
         except TypeError as e:
-            self.view.show_error_alert("scenario-Datei invalide", f"TypeError: {e}")
+            self.window.show_error_alert("scenario-Datei invalide", f"TypeError: {e}")
             return
 
         except KeyError as e:
-            self.view.show_error_alert(".scenario-Datei invalide", f"KeyError: {e}")
+            self.window.show_error_alert(".scenario-Datei invalide", f"KeyError: {e}")
             return
 
         except SyntaxError as e:
-            self.view.show_error_alert(".scenario-Datei invalide", f"SyntaxError: {e}")
+            self.window.show_error_alert(".scenario-Datei invalide", f"SyntaxError: {e}")
             return
 
         except ValueError as e:
-            self.view.show_error_alert(".scenario-Datei invalide", f"ValueError: {e}")
+            self.window.show_error_alert(".scenario-Datei invalide", f"ValueError: {e}")
             return
 
         self.redraw_view()
@@ -199,17 +358,17 @@ class Controller:
             self.lcd.add_alarm((circuit_number, detector_number))
 
     def on_edit_mode_clicked(self, action, *args):
-        self.view.toggle_edit_mode(action, *args)
+        self.toggle_edit_mode(action, *args)
 
     def on_add_circuit_clicked(self, *args):
         """Create a DefineCircuitWindow."""
-        self.view.show_define_circuit_window(self.add_circuit_callback)
+        self.window.show_define_circuit_window(self.add_circuit_callback)
 
     def on_add_detector_clicked(self, action, parameter, *args):
         """Creates a DefineDetectorWindow."""
         # Convert the action parameter to int
         circuit_number = parameter.get_int32()
-        self.view.show_define_detector_window(circuit_number, self.add_detector_callback)
+        self.window.show_define_detector_window(circuit_number, self.add_detector_callback)
 
     def on_edit_detector_clicked(self, action, parameter, *args):
         """Create an EditDetectorWindow."""
@@ -220,12 +379,12 @@ class Controller:
         detector_number = int(parameter_list[1])
         current_description = self.model.get_detector_description(circuit_number, detector_number)
 
-        self.view.show_edit_detector_window(circuit_number, detector_number, self.edit_detector_callback, current_description)
+        self.window.show_edit_detector_window(circuit_number, detector_number, self.edit_detector_callback, current_description)
 
     def on_edit_building_clicked(self, *args):
         """Create an EditBuildingWindow."""
         current_description = self.model.get_building_description()
-        self.view.show_edit_building_window(self.edit_building_callback, current_description)
+        self.window.show_edit_building_window(self.edit_building_callback, current_description)
 
     def on_delete_circuit_clicked(self, action, parameter, *args):
         """Convert parameter to int and call the delete_circuit method."""
@@ -288,16 +447,7 @@ class Controller:
             active_detector_text += f"        {detector_description}\n"
 
         print(active_detector_text)
-        self.view.write_to_console(active_detector_text)
-
-    def redraw_view(self):
-        """Redraw the view according to the current model state."""
-        self.view.clear()
-        for circuit_number in self.model.get_circuits():
-            self.view.add_circuit(circuit_number)
-            for detector_number in self.model.get_detectors_for_circuit(circuit_number):
-                alarm_status = self.model.get_detector_alarm_status(circuit_number, detector_number)
-                self.view.add_detector(circuit_number, detector_number, alarm_status)
+        self.write_to_console(active_detector_text)
 
     def beeper_off(self):
         """Turns off the beeper. Currently a placeholder."""

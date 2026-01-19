@@ -55,7 +55,7 @@ class EditWindow(Gtk.Window):
 
 class EditDetectorWindow(EditWindow):
     """Window for editing the description of a detector."""
-    def __init__(self, circuit_number, detector_number, edit_detector_callback, parent, current_description, *args, **kwargs):
+    def __init__(self, circuit_number, detector_number, current_description, edit_detector_callback, parent, *args, **kwargs):
         self.circuit_number = circuit_number
         self.detector_number = detector_number
         title = f"Bearbeite Melder {detector_number} (Linie {circuit_number})"
@@ -73,7 +73,7 @@ class EditDetectorWindow(EditWindow):
 
 class EditBuildingWindow(EditWindow):
     """Window for editing the building description."""
-    def __init__(self, edit_building_callback, parent, current_description, *args, **kwargs):
+    def __init__(self, current_description, edit_building_callback, parent, *args, **kwargs):
         title = f"Gebäudebeschreibung bearbeiten"
         super().__init__(lambda button, *args: self.handle_edit(edit_building_callback), parent, title, current_description, *args, **kwargs)
 

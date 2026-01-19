@@ -1,3 +1,5 @@
-from Controller import Controller
+from Application import App
+import sys
 
-controller = Controller()
+app = App()
+app.run(sys.argv)

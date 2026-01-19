@@ -2,8 +2,13 @@ import gi
 
 gi.require_version('Gtk', '4.0')
 from gi.repository import Gtk
+from functools import partial
 
 from Menus import DataMenu, AddMenu
+from FileOpenDialog import FileOpenDialog
+from FileSaveDialog import FileSaveDialog
+from DefineObjectWindows import DefineCircuitWindow, DefineDetectorWindow
+from EditWindows import EditBuildingWindow, EditDetectorWindow
 
 
 class MainWindow(Gtk.ApplicationWindow):
@@ -31,7 +36,12 @@ class MainWindow(Gtk.ApplicationWindow):
 
         # Console to print information about active detectors to
         self.console_buffer = Gtk.TextBuffer()
-        self.console = Gtk.TextView(editable=False, buffer=self.console_buffer, cursor_visible=False, left_margin=10, monospace=True)
+        self.console = Gtk.TextView(editable=False,
+                                    buffer=self.console_buffer,
+                                    cursor_visible=False,
+                                    left_margin=10,
+                                    top_margin=10,
+                                    monospace=True)
         self.console_frame = Gtk.Frame(child=self.console, label="Aktive Melder")
         self.outer_box.insert_child_after(self.console_frame, self.main_box)
 
@@ -65,3 +75,34 @@ class MainWindow(Gtk.ApplicationWindow):
         self.insert_action_group("data", data_action_group)
         self.insert_action_group("edit", edit_action_group)
         self.insert_action_group("hidden_actions", hidden_action_group)
+
+    def show_open_dialog(self, open_response_callback):
+        """Show a FileOpenDialog."""
+        file_open_dialog = FileOpenDialog()
+        file_open_dialog.open(self, None, open_response_callback)
+
+    def show_save_dialog(self, save_response_callback, file_type):
+        """Show a FileSaveDialog."""
+        file_save_dialog = FileSaveDialog(file_type)
+        file_save_dialog.save(self, None, partial(save_response_callback, file_type=file_type))
+
+    def show_error_alert(self, error_message, error_detail):
+        """Display an error alert."""
+        error_alert = Gtk.AlertDialog(message=error_message, detail=error_detail, modal=True)
+        error_alert.show(self)
+
+    def show_define_circuit_window(self, create_circuit_callback):
+        self.define_circuit_window = DefineCircuitWindow(create_circuit_callback, self)
+        self.define_circuit_window.present()
+
+    def show_define_detector_window(self, circuit_number, create_detector_callback):
+        self.define_detector_window = DefineDetectorWindow(circuit_number, create_detector_callback, self)
+        self.define_detector_window.present()
+
+    def show_edit_building_window(self, edit_building_callback, current_description):
+        self.edit_building_window = EditBuildingWindow(current_description, edit_building_callback, self)
+        self.edit_building_window.present()
+
+    def show_edit_detector_window(self, circuit_number, detector_number, edit_detector_callback, current_description):
+        self.edit_detector_window = EditDetectorWindow(circuit_number, detector_number, current_description, edit_detector_callback, self)
+        self.edit_detector_window.present()
