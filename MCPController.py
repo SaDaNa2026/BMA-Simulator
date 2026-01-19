@@ -6,7 +6,7 @@ from gi.repository import GLib
 
 
 class MCPController(MCP23017):
-    def __init__(self, address, button_list: list):
+    def __init__(self, address, button_list: list, led_dict: dict):
         super().__init__(address, smbus3.SMBus(1))
 
         self.button_list = button_list
@@ -18,15 +18,19 @@ class MCPController(MCP23017):
 
         for button_tuple in button_list:
             self.pin_mode(button_tuple[0], INPUT)
+        for led_pin in led_dict.values():
+            self.pin_mode(led_pin, OUTPUT)
 
         GLib.timeout_add(100, self.poll_buttons)
 
     def poll_buttons(self):
+        """Check the state of every button provided in the list. Execute callbacks for the pressed buttons."""
         for button_tuple in self.button_list:
             pin_number = button_tuple[0]
             if self.digital_read(pin_number) and not self.last_state[pin_number]:
                 print(pin_number)
                 self.last_state[pin_number] = True
+                # Execute registered callback
                 button_tuple[1]()
             elif not self.digital_read(pin_number):
                 self.last_state[pin_number] = False

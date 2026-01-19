@@ -187,7 +187,7 @@ class App(Gtk.Application):
 
     def write_to_console(self, text: str):
         if not isinstance(text, str):
-            raise TypeError("Text must be str")
+            raise TypeError("Text must be of type string")
         self.window.console_buffer.set_text(text)
 
     def clear(self):

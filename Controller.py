@@ -10,6 +10,7 @@ from View import App
 from LCDController import LCDController
 from MCPController import MCPController
 from mcp23017 import *
+from LEDController import LEDController
 
 
 class Controller:
@@ -35,12 +36,28 @@ class Controller:
                                  ("next_alarm", self.lcd.next_alarm, None),
                                  ("clear_alarms", self.on_clear_alarms_clicked, None)]
 
+
+        fat_led_dict = {"previous_alarm": GPB4,
+                         "next_alarm": GPB0,
+                         "switch_view_level": GPB6,
+                         "beeper_off": GPB2,
+                         "working" : GPA3,
+                         "alarm": GPA2,
+                         "error": GPA1,
+                         "turn_off": GPA0}
+
         # Set up the port expander
         self.mcp_fat = MCPController(0x27,
                                      [(GPB1, self.lcd.next_alarm),
                                       (GPB3, self.beeper_off),
                                       (GPB5, self.lcd.previous_alarm),
-                                      (GPB7, self.lcd.switch_view_level)])
+                                      (GPB7, self.lcd.switch_view_level)],
+                                      fat_led_dict)
+
+        # Turn on the green LED
+        self.mcp_fat.digital_write(fat_led_dict["working"], HIGH)
+
+        self.led_fat = LEDController(self.mcp_fat, fat_led_dict)
 
         self.view = App(data_action_entries, edit_action_entries, hidden_action_entries, application_id="org.example.BMA-control")
         self.view.run(sys.argv)
