@@ -1,4 +1,5 @@
 import gi
+
 gi.require_version('Gtk', '4.0')
 gi.require_version('GLib', '2.0')
 from gi.repository import Gtk, Gio, GLib, Gdk
@@ -43,8 +44,8 @@ class App(Gtk.Application):
                                ("edit_building", self.on_edit_building_clicked, None)]
 
         hidden_action_entries = [("detector_toggle", self.on_detector_toggled, "s"),
-                                 ("previous_alarm", self.lcd.previous_alarm, None),
-                                 ("next_alarm", self.lcd.next_alarm, None),
+                                 ("previous_alarm", self.on_previous_alarm_clicked, None),
+                                 ("next_alarm", self.on_next_alarm_clicked, None),
                                  ("clear_alarms", self.on_clear_alarms_clicked, None)]
 
         # Add the action entries to groups
@@ -69,21 +70,20 @@ class App(Gtk.Application):
         self.set_accels_for_action("data.open", ["<Ctrl>O"])
         self.set_accels_for_action("data.edit_mode", ["<Ctrl>E"])
 
-
         self.fat_led_dict = {"previous_alarm": GPB4,
-                        "next_alarm": GPB0,
-                        "switch_view_level": GPB6,
-                        "beeper_off": GPB2,
-                        "working": GPA3,
-                        "alarm": GPA2,
-                        "error": GPA1,
-                        "turn_off": GPA0}
+                             "next_alarm": GPB0,
+                             "switch_view_level": GPB6,
+                             "beeper_off": GPB2,
+                             "working": GPA3,
+                             "alarm": GPA2,
+                             "error": GPA1,
+                             "turn_off": GPA0}
 
         # Set up the port expander
         self.mcp_fat = MCPController(0x27,
-                                     [(GPB1, self.lcd.next_alarm),
+                                     [(GPB1, self.on_next_alarm_clicked),
                                       (GPB3, self.beeper_off),
-                                      (GPB5, self.lcd.previous_alarm),
+                                      (GPB5, self.on_previous_alarm_clicked),
                                       (GPB7, self.lcd.switch_view_level)],
                                      self.fat_led_dict)
 
@@ -226,8 +226,6 @@ class App(Gtk.Application):
                 alarm_status = self.model.get_detector_alarm_status(circuit_number, detector_number)
                 self.add_detector(circuit_number, detector_number, alarm_status)
 
-
-
     def on_save_building_clicked(self, *args):
         """Create a FileSaveDialog to save the building configuration."""
         self.window.show_save_dialog(self.on_file_save_response, "building")
@@ -279,8 +277,8 @@ class App(Gtk.Application):
 
         except JSONDecodeError:
             self.window.show_error_alert("Fehler beim Laden der Datei",
-                                       f"Invalides Dateiformat von {file.get_path()}\nStellen Sie sicher, "
-                                       f"dass die Datei dem JSON-Standard entspricht.")
+                                         f"Invalides Dateiformat von {file.get_path()}\nStellen Sie sicher, "
+                                         f"dass die Datei dem JSON-Standard entspricht.")
             return True
 
         except RuntimeError as e:
@@ -291,6 +289,8 @@ class App(Gtk.Application):
             try:
                 FileOperations.load_building_config(self.model, load_dict)
                 self.redraw_view()
+                self.print_detector_state()
+                self.update_leds()
 
             except KeyError as e:
                 print(f"KeyError: {e}")
@@ -341,7 +341,7 @@ class App(Gtk.Application):
         self.print_detector_state()
         for detector in self.model.get_active_detectors():
             self.lcd.add_alarm(detector)
-
+        self.update_leds()
 
     def on_detector_toggled(self, action, parameter, *args):
         """Callback function for detector_switch. Set the alarm_status of the detector according to the position of
@@ -360,6 +360,7 @@ class App(Gtk.Application):
         print(f"Melder {detector_number} in Melderlinie {circuit_number} {'aktiviert' if new_state else 'deaktiviert'}")
         self.print_detector_state()
         self.redraw_view()
+        self.update_leds()
         if new_state:
             self.lcd.add_alarm((circuit_number, detector_number))
 
@@ -385,7 +386,8 @@ class App(Gtk.Application):
         detector_number = int(parameter_list[1])
         current_description = self.model.get_detector_description(circuit_number, detector_number)
 
-        self.window.show_edit_detector_window(circuit_number, detector_number, self.edit_detector_callback, current_description)
+        self.window.show_edit_detector_window(circuit_number, detector_number, self.edit_detector_callback,
+                                              current_description)
 
     def on_edit_building_clicked(self, *args):
         """Create an EditBuildingWindow."""
@@ -398,6 +400,8 @@ class App(Gtk.Application):
         self.model.delete_circuit(circuit_number)
         self.redraw_view()
         self.print_detector_state()
+        self.lcd.reset()
+        self.update_leds()
 
     def on_delete_detector_clicked(self, action, parameter, *args):
         """Convert parameters to int and delete the specified detector."""
@@ -409,6 +413,16 @@ class App(Gtk.Application):
         self.model.delete_detector(circuit_number, detector_number)
         self.redraw_view()
         self.print_detector_state()
+        self.lcd.reset()
+        self.update_leds()
+
+    def on_previous_alarm_clicked(self, *args):
+        self.lcd.previous_alarm()
+        self.update_leds()
+
+    def on_next_alarm_clicked(self, *args):
+        self.lcd.next_alarm()
+        self.update_leds()
 
     def on_clear_alarms_clicked(self, *args):
         """Clear all alarms."""
@@ -416,6 +430,8 @@ class App(Gtk.Application):
         self.lcd.clear_alarms()
         self.redraw_view()
         self.print_detector_state()
+        self.led_fat.shutdown()
+        self.led_fat.turn_on("working")
 
     def add_circuit_callback(self, circuit_number):
         self.model.add_circuit(circuit_number)
@@ -434,26 +450,43 @@ class App(Gtk.Application):
         self.model.set_detector_description(circuit_number, detector_number, description)
         self.print_detector_state()
 
-
     def print_detector_state(self):
         """Print the active detectors to the console."""
         active_detector_list = self.model.get_active_detectors()
         active_detector_text = ""
         print("Aktive Melder:")
 
+        # Generate active_detector_text
         for reference in active_detector_list:
             circuit_number = reference[0]
             detector_number = reference[1]
             detector_description = self.model.get_detector_description(circuit_number, detector_number)
-            for i in range(4-len(str(circuit_number))):
+            for i in range(4 - len(str(circuit_number))):
                 active_detector_text += " "
             active_detector_text += f"{circuit_number}/{detector_number}"
-            for i in range(2-len(str(detector_number))):
+            for i in range(2 - len(str(detector_number))):
                 active_detector_text += " "
             active_detector_text += f"        {detector_description}\n"
 
         print(active_detector_text)
         self.write_to_console(active_detector_text)
+
+    def update_leds(self):
+        """Set the LED states according to the active detectors and contents of the LCD."""
+        if len(self.model.get_active_detectors()) > 0:
+            self.led_fat.turn_on("alarm")
+        else:
+            self.led_fat.turn_off("alarm")
+
+        if self.lcd.first_alarm_shown():
+            self.led_fat.stop_blink("previous_alarm")
+        else:
+            self.led_fat.start_blink("previous_alarm")
+
+        if self.lcd.last_alarm_shown():
+            self.led_fat.stop_blink("next_alarm")
+        else:
+            self.led_fat.start_blink("next_alarm")
 
     def beeper_off(self):
         """Turns off the beeper. Currently a placeholder."""

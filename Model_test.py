@@ -193,6 +193,10 @@ class TestBuildingModel(unittest.TestCase):
         self.model.set_detector_alarm_status(1, 2, False)
         self.assertEqual(self.model.get_active_detectors(), [(1, 1), (1, 3)])
 
+        # Delete first detector
+        self.model.delete_detector(1, 1)
+        self.assertEqual(self.model.get_active_detectors(), [(1, 3)])
+
     def test_error_scenarios(self):
         """Ensure error cases are properly raised."""
         # Setting circuit_dict or active_detector_list when instantiating

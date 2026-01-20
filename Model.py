@@ -127,6 +127,8 @@ class BuildingModel:
             raise TypeError("detector_number must be int")
 
         self.circuit_dict[circuit_number].delete_detector(detector_number)
+        if (circuit_number, detector_number) in self.active_detector_list:
+            self.active_detector_list.remove((circuit_number, detector_number))
 
     def set_detector_description(self, circuit_number: int, detector_number: int, description: str) ->None:
         self.circuit_dict[circuit_number].detector_dict[detector_number].set_description(description)

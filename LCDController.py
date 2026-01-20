@@ -54,31 +54,56 @@ class LCDController(CharLCD):
         self.visible_alarm_dict.clear()
         self.refresh()
 
-    def previous_alarm(self, *args):
+    def reset(self):
+        """Resets the LCD to display the first and last alarm, if available."""
+        self.clear_alarms()
+        for detector in self.model.get_active_detectors():
+            self.add_alarm(detector)
+
+
+    def previous_alarm(self) -> bool:
         """Set the top alarm to the previous alarm."""
+        active_detector_list = self.model.get_active_detectors()
         # Check if there are enough alarms to scroll
-        if not len(self.model.get_active_detectors()) > 2:
-            return
-        current_index = self.model.get_active_detectors().index(self.visible_alarm_dict["top"])
+        if not len(active_detector_list) > 2 or self.visible_alarm_dict["top"] not in active_detector_list:
+            return False
+        current_index = active_detector_list.index(self.visible_alarm_dict["top"])
         # Return if the top alarm is already the first one
         if current_index == 0:
-            return
+            return False
         new_index = current_index - 1
-        self.visible_alarm_dict["top"] = self.model.get_active_detectors()[new_index]
+        self.visible_alarm_dict["top"] = active_detector_list[new_index]
         self.refresh()
+        return True
 
-    def next_alarm(self, *args):
-        """Set the top alarm to the previous alarm."""
+    def next_alarm(self) -> bool:
+        """Set the top alarm to the next alarm."""
+        active_detector_list = self.model.get_active_detectors()
         # Check if there are enough alarms to scroll
-        if not len(self.model.get_active_detectors()) > 2:
-            return
-        current_index = self.model.get_active_detectors().index(self.visible_alarm_dict["top"])
+        if not len(active_detector_list) > 2 or self.visible_alarm_dict["top"] not in active_detector_list:
+            return False
+        current_index = active_detector_list.index(self.visible_alarm_dict["top"])
         # Return if the top alarm is already the first one
-        if self.model.get_active_detectors()[current_index] == self.model.get_active_detectors()[-2]:
-            return
+        if active_detector_list[current_index] == active_detector_list[-2]:
+            return False
         new_index = current_index + 1
-        self.visible_alarm_dict["top"] = self.model.get_active_detectors()[new_index]
+        self.visible_alarm_dict["top"] = active_detector_list[new_index]
         self.refresh()
+        return True
+
+    def first_alarm_shown(self) -> bool:
+        """Checks if the first alarm is shown in the top position of the LCD. Return True if there are less than or
+        equal to two alarms."""
+        if len(self.visible_alarm_dict) < 2 or len(self.model.get_active_detectors()) <= 2:
+            return True
+        return self.visible_alarm_dict["top"] == self.model.get_active_detectors()[0]
+
+    def last_alarm_shown(self) -> bool:
+        """Checks if the last scrollable (second to last) alarm is shown in the top position of the LCD. Returns
+        True if there are less than or equal to 2 alarms."""
+        if len(self.visible_alarm_dict) < 2 or len(self.model.get_active_detectors()) <= 2:
+            return True
+        return self.visible_alarm_dict["top"] == self.model.get_active_detectors()[-2]
 
     def switch_view_level(self):
         """Switch between alarms, errors and history. Currently a placeholder."""
