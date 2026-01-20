@@ -5,14 +5,21 @@ from gi.repository import Gtk, Gdk
 from Menus import CircuitContextMenu
 
 
-class Circuit(Gtk.Box):
+class Circuit(Gtk.Frame):
     """A container for managing multiple Detector instances."""
-    def __init__(self, circuit_number, *args, **kwargs):
-        super().__init__(*args, orientation=Gtk.Orientation.VERTICAL, spacing=10)
+    def __init__(self, circuit_number, **kwargs):
+        super().__init__(vexpand=False, **kwargs)
+        self.main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,
+                                spacing=10,
+                                margin_end=5,
+                                margin_top=5,
+                                margin_bottom=5,
+                                margin_start=5)
+        self.set_child(self.main_box)
 
         self.circuit_label = Gtk.Label()
         self.circuit_label.set_markup(f"<span size='large'>Melderlinie {circuit_number}</span>")
-        self.append(self.circuit_label)
+        self.main_box.append(self.circuit_label)
 
         # A tool to register the label of the circuit box being clicked
         self.click_controller = Gtk.GestureClick()
@@ -21,12 +28,12 @@ class Circuit(Gtk.Box):
 
         # Buttons to add or delete detectors
         self.button_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
-        self.append(self.button_box)
+        self.main_box.append(self.button_box)
 
         # Context menu
         self.menu_model = CircuitContextMenu(circuit_number)
         self.context_menu_popover = Gtk.PopoverMenu.new_from_model(self.menu_model)
-        self.context_menu_popover.set_parent(self)
+        self.context_menu_popover.set_parent(self.main_box)
         self.context_menu_popover.set_has_arrow(False)
 
         # A dictionary to manage detectors within this circuit

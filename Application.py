@@ -196,7 +196,7 @@ class App(Gtk.Application):
 
         # Add the detector to its circuit
         circuit = self.circuit_dict[circuit_number]
-        circuit.append(detector)
+        circuit.main_box.append(detector)
 
     def delete_detector(self, circuit_number: int, detector_number: int) -> None:
         """Delete a specified detector."""
@@ -205,7 +205,7 @@ class App(Gtk.Application):
         detector = self.circuit_dict[circuit_number].detector_dict[detector_number]
 
         # Delete the detector from the dictionary and remove it from its circuit
-        circuit.remove(detector)
+        circuit.main_box.remove(detector)
         del self.circuit_dict[circuit_number].detector_dict[detector_number]
 
     def write_to_console(self, text: str):

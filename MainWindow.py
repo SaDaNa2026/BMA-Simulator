@@ -24,15 +24,19 @@ class MainWindow(Gtk.ApplicationWindow):
         self.set_child(self.outer_box)
 
         # Box that contains all circuits and detectors
-        self.main_box = Gtk.FlowBox(selection_mode=Gtk.SelectionMode.NONE, vexpand=True)
+        self.scrollable = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.AUTOMATIC,
+                                             vscrollbar_policy=Gtk.PolicyType.AUTOMATIC)
+        self.outer_box.append(self.scrollable)
+        self.main_box = Gtk.FlowBox(selection_mode=Gtk.SelectionMode.NONE, vexpand=True, homogeneous=True)
         self.main_box.set_margin_top(5)
         self.main_box.set_margin_bottom(5)
         self.main_box.set_margin_start(5)
         self.main_box.set_margin_end(5)
         self.main_box.set_row_spacing(20)
         self.main_box.set_column_spacing(20)
-        self.main_box.set_size_request(-1, 400)
-        self.outer_box.append(self.main_box)
+        self.scrollable.set_size_request(-1, 400)
+        self.scrollable.set_child(self.main_box)
+
 
         # Console to print information about active detectors to
         self.console_buffer = Gtk.TextBuffer()
@@ -43,7 +47,7 @@ class MainWindow(Gtk.ApplicationWindow):
                                     top_margin=10,
                                     monospace=True)
         self.console_frame = Gtk.Frame(child=self.console, label="Aktive Melder")
-        self.outer_box.insert_child_after(self.console_frame, self.main_box)
+        self.outer_box.insert_child_after(self.console_frame, self.scrollable)
 
         # Definition of the window header
         self.header = Gtk.HeaderBar()
