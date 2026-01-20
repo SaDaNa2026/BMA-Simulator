@@ -19,6 +19,9 @@ class MainWindow(Gtk.ApplicationWindow):
         super().__init__(*args, **kwargs)
         self.set_title("Steuerung Übungs-BMA")
 
+        # A dictionary to keep track of the circuits in this window.
+        self.circuit_dict: dict = {}
+
         # Create a box that contains all other widgets in this window
         self.outer_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         self.set_child(self.outer_box)
@@ -27,13 +30,15 @@ class MainWindow(Gtk.ApplicationWindow):
         self.scrollable = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.AUTOMATIC,
                                              vscrollbar_policy=Gtk.PolicyType.AUTOMATIC)
         self.outer_box.append(self.scrollable)
-        self.main_box = Gtk.FlowBox(selection_mode=Gtk.SelectionMode.NONE, vexpand=True, homogeneous=True)
-        self.main_box.set_margin_top(5)
-        self.main_box.set_margin_bottom(5)
-        self.main_box.set_margin_start(5)
-        self.main_box.set_margin_end(5)
-        self.main_box.set_row_spacing(20)
-        self.main_box.set_column_spacing(20)
+        self.main_box = Gtk.FlowBox(selection_mode=Gtk.SelectionMode.NONE,
+                                    vexpand=True,
+                                    homogeneous=True,
+                                    margin_top=5,
+                                    margin_bottom=5,
+                                    margin_start=5,
+                                    margin_end=5,
+                                    column_spacing=5)
+        self.main_box.set_sort_func(self.sort_circuits, None)
         self.scrollable.set_size_request(-1, 400)
         self.scrollable.set_child(self.main_box)
 
@@ -110,3 +115,15 @@ class MainWindow(Gtk.ApplicationWindow):
     def show_edit_detector_window(self, circuit_number, detector_number, edit_detector_callback, current_description):
         self.edit_detector_window = EditDetectorWindow(circuit_number, detector_number, current_description, edit_detector_callback, self)
         self.edit_detector_window.present()
+
+    def sort_circuits(self, child1, child2, user_data) -> int:
+        """Sorting function for the circuits inside main_box."""
+        circuit1 = child1.get_child()
+        circuit2 = child2.get_child()
+
+        if circuit1.circuit_number < circuit2.circuit_number:
+            return -1
+        elif circuit1.circuit_number > circuit2.circuit_number:
+            return 1
+        else:
+            return 0

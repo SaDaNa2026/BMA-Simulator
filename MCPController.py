@@ -28,7 +28,6 @@ class MCPController(MCP23017):
         for button_tuple in self.button_list:
             pin_number = button_tuple[0]
             if self.digital_read(pin_number) and not self.last_state[pin_number]:
-                print(pin_number)
                 self.last_state[pin_number] = True
                 # Execute registered callback
                 button_tuple[1]()

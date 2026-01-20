@@ -57,8 +57,11 @@ class LCDController(CharLCD):
     def reset(self):
         """Resets the LCD to display the first and last alarm, if available."""
         self.clear_alarms()
-        for detector in self.model.get_active_detectors():
-            self.add_alarm(detector)
+        active_detector_list = self.model.get_active_detectors()
+        if len(active_detector_list) > 0:
+            self.add_alarm(active_detector_list[0])
+            if len(active_detector_list) > 1:
+                self.add_alarm(active_detector_list[-1])
 
 
     def previous_alarm(self) -> bool:

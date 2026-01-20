@@ -27,9 +27,6 @@ class App(Gtk.Application):
         self.model = BuildingModel()
         self.lcd = LCDController(self.model)
 
-        # Dictionary to store references to the widget objects
-        self.circuit_dict = {}
-
         # Actions for all buttons to connect to
         data_action_entries = [("save_building", self.on_save_building_clicked, None),
                                ("save_scenario", self.on_save_scenario_clicked, None),
@@ -112,7 +109,7 @@ class App(Gtk.Application):
             return
 
         # Get the circuit that was clicked
-        circuit = self.circuit_dict[circuit_number]
+        circuit = self.window.circuit_dict[circuit_number]
 
         # Create an invisible rectangle at the position of the click that the context menu points to
         rect = Gdk.Rectangle()
@@ -131,7 +128,7 @@ class App(Gtk.Application):
             return
 
         # Get the detector that was clicked
-        detector = self.circuit_dict[circuit_number].detector_dict[detector_number]
+        detector = self.window.circuit_dict[circuit_number].detector_dict[detector_number]
 
         # Create an invisible rectangle at the position of the click that the context menu points to
         rect = Gdk.Rectangle()
@@ -168,21 +165,20 @@ class App(Gtk.Application):
     def add_circuit(self, circuit_number: int) -> None:
         """Create a new Circuit instance and add it to the window."""
         circuit = Circuit(circuit_number)
-        self.circuit_dict[circuit_number] = circuit
+        self.window.circuit_dict[circuit_number] = circuit
         # Connect the event handler that detects if the circuit is right-clicked
         circuit.click_controller.connect("pressed", partial(self.on_circuit_pressed, circuit_number=circuit_number))
         self.window.main_box.append(circuit)
 
     def delete_circuit(self, circuit_number: int) -> None:
         """Delete the specified circuit."""
-        circuit = self.circuit_dict[circuit_number]
+        circuit = self.window.circuit_dict[circuit_number]
         self.window.main_box.remove(circuit)
-        del self.circuit_dict[circuit_number]
+        del self.window.circuit_dict[circuit_number]
 
     def add_detector(self, circuit_number: int, detector_number: int, alarm_status: bool = False) -> None:
         """Create a new Detector instance and add it to the window."""
         detector = Detector(circuit_number, detector_number)
-        self.circuit_dict[circuit_number].detector_dict[detector_number] = detector
 
         # Set the detector switch according to the alarm_status and connect it to its callback function
         detector.detector_switch.set_action_name("hidden_actions.detector_toggle")
@@ -195,18 +191,19 @@ class App(Gtk.Application):
                                                              detector_number=detector_number))
 
         # Add the detector to its circuit
-        circuit = self.circuit_dict[circuit_number]
+        circuit = self.window.circuit_dict[circuit_number]
+        circuit.detector_dict[detector_number] = detector
         circuit.main_box.append(detector)
 
     def delete_detector(self, circuit_number: int, detector_number: int) -> None:
         """Delete a specified detector."""
         # Get the corresponding objects
-        circuit = self.circuit_dict[circuit_number]
-        detector = self.circuit_dict[circuit_number].detector_dict[detector_number]
-
-        # Delete the detector from the dictionary and remove it from its circuit
+        circuit = self.window.circuit_dict[circuit_number]
+        detector = self.window.circuit_dict[circuit_number].detector_dict[detector_number]
         circuit.main_box.remove(detector)
-        del self.circuit_dict[circuit_number].detector_dict[detector_number]
+        del self.window.circuit_dict[circuit_number].detector_dict[detector_number]
+
+
 
     def write_to_console(self, text: str):
         if not isinstance(text, str):
@@ -214,14 +211,26 @@ class App(Gtk.Application):
         self.window.console_buffer.set_text(text)
 
     def clear_view(self):
-        delete_list = [num for num in self.circuit_dict]
+        delete_list = [num for num in self.window.circuit_dict]
         for circuit_number in delete_list:
             self.delete_circuit(circuit_number)
+        self.update_view()
 
-    def redraw_view(self):
-        self.clear_view()
+    def update_view(self):
+        """Update the GUI according to the model."""
+        circuit_list = [key for key in self.window.circuit_dict.keys()]
+        for circuit_number in circuit_list:
+            circuit = self.window.circuit_dict[circuit_number]
+            if circuit_number not in self.model.get_circuits():
+                self.delete_circuit(circuit_number)
+            else:
+                detector_list = [key for key in circuit.detector_dict.keys()]
+                for detector_number in detector_list:
+                    self.delete_detector(circuit_number, detector_number)
+
         for circuit_number in self.model.get_circuits():
-            self.add_circuit(circuit_number)
+            if circuit_number not in self.window.circuit_dict:
+                self.add_circuit(circuit_number)
             for detector_number in self.model.get_detectors_for_circuit(circuit_number):
                 alarm_status = self.model.get_detector_alarm_status(circuit_number, detector_number)
                 self.add_detector(circuit_number, detector_number, alarm_status)
@@ -288,7 +297,7 @@ class App(Gtk.Application):
         if file_type == "building":
             try:
                 FileOperations.load_building_config(self.model, load_dict)
-                self.redraw_view()
+                self.update_view()
                 self.print_detector_state()
                 self.update_leds()
 
@@ -337,7 +346,7 @@ class App(Gtk.Application):
             self.window.show_error_alert(".scenario-Datei invalide", f"ValueError: {e}")
             return
 
-        self.redraw_view()
+        self.update_view()
         self.print_detector_state()
         for detector in self.model.get_active_detectors():
             self.lcd.add_alarm(detector)
@@ -359,10 +368,11 @@ class App(Gtk.Application):
 
         print(f"Melder {detector_number} in Melderlinie {circuit_number} {'aktiviert' if new_state else 'deaktiviert'}")
         self.print_detector_state()
-        self.redraw_view()
         self.update_leds()
         if new_state:
             self.lcd.add_alarm((circuit_number, detector_number))
+        else:
+            self.lcd.reset()
 
     def on_edit_mode_clicked(self, action, *args):
         self.toggle_edit_mode(action, *args)
@@ -398,7 +408,7 @@ class App(Gtk.Application):
         """Convert parameter to int and call the delete_circuit method."""
         circuit_number = parameter.get_int32()
         self.model.delete_circuit(circuit_number)
-        self.redraw_view()
+        self.update_view()
         self.print_detector_state()
         self.lcd.reset()
         self.update_leds()
@@ -411,7 +421,7 @@ class App(Gtk.Application):
         detector_number = int(parameter_list[1])
 
         self.model.delete_detector(circuit_number, detector_number)
-        self.redraw_view()
+        self.update_view()
         self.print_detector_state()
         self.lcd.reset()
         self.update_leds()
@@ -428,18 +438,18 @@ class App(Gtk.Application):
         """Clear all alarms."""
         self.model.clear_alarms()
         self.lcd.clear_alarms()
-        self.redraw_view()
+        self.update_view()
         self.print_detector_state()
         self.led_fat.shutdown()
         self.led_fat.turn_on("working")
 
     def add_circuit_callback(self, circuit_number):
         self.model.add_circuit(circuit_number)
-        self.redraw_view()
+        self.update_view()
 
     def add_detector_callback(self, circuit_number, detector_number, detector_description):
         self.model.add_detector(circuit_number, detector_number, detector_description)
-        self.redraw_view()
+        self.update_view()
 
     def edit_building_callback(self, description: str):
         """Change the building description."""

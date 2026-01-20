@@ -8,6 +8,8 @@ from Menus import CircuitContextMenu
 class Circuit(Gtk.Frame):
     """A container for managing multiple Detector instances."""
     def __init__(self, circuit_number, **kwargs):
+        self.circuit_number = circuit_number
+
         super().__init__(vexpand=False, **kwargs)
         self.main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,
                                 spacing=10,
