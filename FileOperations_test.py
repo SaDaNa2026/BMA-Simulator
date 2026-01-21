@@ -26,8 +26,11 @@ class TestSaveDicts(unittest.TestCase):
         """Verify correct format of the save_dict."""
         mock_model = Mock()
         mock_model.get_active_detectors.return_value = [(1, 1), (1, 2), (3, 1)]
+        mock_model.get_disabled_detectors.return_value = [(1, 3), (2, 1)]
         save_dict = FileOperations.create_scenario_save_dict(mock_model)
-        self.assertEqual(save_dict, {"active_detector_list": [(1, 1), (1, 2), (3, 1)], "scenario_description": "Beschreibung"})
+        self.assertEqual(save_dict, {"active_detector_list": [(1, 1), (1, 2), (3, 1)],
+                                     "disabled_detector_list": [(1, 3), (2, 1)],
+                                     "scenario_description": "Beschreibung"})
 
 
 class TestSaveToFile(unittest.TestCase):
@@ -66,22 +69,29 @@ class TestSaveToFile(unittest.TestCase):
 
 class DummyScenarioModel:
     def __init__(self):
-        self.calls = []
+        self.alarm_calls = []
+        self.enabled_calls = []
         self.raise_key_error = False
 
     def set_detector_alarm_status(self, circuit_number, detector_number, status):
         if self.raise_key_error:
             raise KeyError
-        self.calls.append((circuit_number, detector_number, status))
+        self.alarm_calls.append((circuit_number, detector_number, status))
+
+    def set_detector_enabled(self, circuit_number, detector_number, enabled):
+        if self.raise_key_error:
+            raise KeyError
+        self.enabled_calls.append((circuit_number, detector_number, enabled))
 
 class TestApplyScenario(unittest.TestCase):
     def setUp(self):
         self.model = DummyScenarioModel()
 
     def test_valid_input_calls_model(self):
-        load_dict = {"active_detector_list": [[1, 2], [3, 4]]}
+        load_dict = {"active_detector_list": [[1, 2], [3, 4]], "disabled_detector_list" : [[1, 1], [2, 2]]}
         FileOperations.apply_scenario(load_dict, self.model)
-        self.assertEqual(self.model.calls, [(1, 2, True), (3, 4, True)])
+        self.assertEqual(self.model.alarm_calls, [(1, 2, True), (3, 4, True)])
+        self.assertEqual(self.model.enabled_calls, [(1, 1, False), (2, 2, False)])
 
     def test_non_list_raises_type_error(self):
         load_dict = {"active_detector_list": ["not_a_list"]}
@@ -118,11 +128,11 @@ class TestApplyScenario(unittest.TestCase):
     def test_multiple_entries_mixed(self):
         # First entry valid, second raises KeyError
         self.model.raise_key_error = False
-        FileOperations.apply_scenario({"active_detector_list": [[1, 1]]}, self.model)
+        FileOperations.apply_scenario({"active_detector_list" : [[1, 1]], "disabled_detector_list" : [[2, 1]]}, self.model)
         # now set to raise on second call
         self.model.raise_key_error = True
         with self.assertRaises(KeyError):
-            FileOperations.apply_scenario({"active_detector_list": [[2, 2]]}, self.model)
+            FileOperations.apply_scenario({"active_detector_list": [[2, 2]], "disabled_detector_list" : [[3, 1]]}, self.model)
 
 
 class DummyBuildingModel:
@@ -139,8 +149,8 @@ class DummyBuildingModel:
     def add_circuit(self, circuit_number):
         self.circuit_dict[circuit_number] = {}
 
-    def add_detector(self, circuit_number, detector_number, detector_description):
-        self.circuit_dict[circuit_number][detector_number] = detector_description
+    def add_detector(self, circuit_number, detector_number, description):
+        self.circuit_dict[circuit_number][detector_number] = description
 
     def set_building_description(self, description):
         self.building_description = description
@@ -201,7 +211,7 @@ class TestLoadBuildingConfig(unittest.TestCase):
         with self.assertRaises(ValueError) as exc_info:
             FileOperations.load_building_config(self.model, load_dict)
 
-        self.assertIn("Mindestens eine Melderlinien-Nummer ist keine natürliche Zahl.", str(exc_info.exception))
+        self.assertIn("Mindestens eine Meldergruppen-Nummer ist keine natürliche Zahl.", str(exc_info.exception))
 
 
     def test_load_building_config_non_digit_detector(self):
@@ -219,7 +229,7 @@ class TestLoadBuildingConfig(unittest.TestCase):
             FileOperations.load_building_config(self.model, load_dict)
 
         circuit_number = 1
-        expected_message = f"Mindestens eine Meldernummer in Melderlinie {circuit_number} ist keine natürliche Zahl."
+        expected_message = f"Mindestens eine Meldernummer in Meldergruppe {circuit_number} ist keine natürliche Zahl."
         self.assertIn(expected_message, str(exc_info.exception))
 
 

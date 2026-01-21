@@ -136,6 +136,32 @@ class FileOperations:
                                f"aber nicht in der Gebäudekonfiguration enthalten, die im selben Verzeichnis "
                                f"liegt.")
 
+        for number_list in load_dict["disabled_detector_list"]:
+            # Check for correct Syntax
+            if not type(number_list) == list:
+                raise TypeError("Inkorrektes Format der Meldernummer.")
+
+            if not len(number_list) == 2:
+                raise SyntaxError("Inkorrektes Format der Meldernummer.")
+
+            if not type(number_list[0]) == int:
+                raise TypeError("Mindestens eine Meldergruppen-Nummer ist keine natürliche Zahl.")
+
+            if not type(number_list[1]) == int:
+                raise TypeError("Mindestens eine Melder-Nummer ist keine natürliche Zahl.")
+
+            # Retrieve numbers from strings
+            circuit_number = int(number_list[0])
+            detector_number = int(number_list[1])
+
+            try:
+                model.set_detector_enabled(circuit_number, detector_number, False)
+
+            except KeyError:
+                raise KeyError(f"Melder {detector_number} in Melderlinie {circuit_number} ist im Szenario abgeschaltet, "
+                               f"aber nicht in der Gebäudekonfiguration enthalten, die im selben Verzeichnis "
+                               f"liegt.")
+
     @staticmethod
     def retrieve_save_file(dialog, result):
         """Retrieve the save path from the file dialog."""
@@ -145,11 +171,11 @@ class FileOperations:
 
     @staticmethod
     def save_to_file(file, save_dict: dict) -> None:
-        """Save save_dict as json to the specified filepath."""
+        """Save save_dict as JSON to the specified filepath."""
         path = file.get_path()
         print(f"Saving to: {path}")
 
-        # Write save_dict to the file in json format
+        # Write save_dict to the file in JSON format
         with open(path, "w", encoding="utf-8") as file_dict:
             json.dump(save_dict, file_dict, sort_keys=True, indent=4)
 
@@ -174,5 +200,7 @@ class FileOperations:
     @staticmethod
     def create_scenario_save_dict(model) -> dict:
         """Create a dictionary that contains a list of active detectors and a description."""
-        save_dict = {"active_detector_list": model.get_active_detectors(), "scenario_description": "Beschreibung"}
+        save_dict = {"active_detector_list": model.get_active_detectors(),
+                     "disabled_detector_list": model.get_disabled_detectors(),
+                     "scenario_description": "Beschreibung"}
         return save_dict
