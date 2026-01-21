@@ -102,7 +102,7 @@ class App(Gtk.Application):
     def on_circuit_pressed(self, gesture, n_press, x, y, circuit_number: int) -> None:
         """Present a context menu on a circuit if edit mode is enabled."""
         # Don't respond if edit mode is disabled
-        if not self.lookup_action("edit_mode").get_state().get_boolean():
+        if not self.get_action_state("edit_mode").get_boolean():
             return
 
         # Get the circuit that was clicked
@@ -121,7 +121,7 @@ class App(Gtk.Application):
     def on_detector_pressed(self, gesture, n_press, x, y, circuit_number: int, detector_number: int) -> None:
         """Present a context menu on a detector if edit mode is enabled."""
         # Don't respond if edit mode is disabled
-        if not self.lookup_action("edit_mode").get_state().get_boolean():
+        if not self.get_action_state("edit_mode").get_boolean():
             return
 
         # Get the detector that was clicked
@@ -192,6 +192,18 @@ class App(Gtk.Application):
         # Set the detector switch according to the alarm_status and connect it to its callback function
         detector.detector_switch.set_action_name(f"hidden_actions.{switch_action_name}")
 
+        # Create a new stateful action for the enabled state of the detector
+        enabled_action_name = f"enable_detector_{circuit_number}_{detector_number}"
+        enabled_action = Gio.SimpleAction.new_stateful(enabled_action_name,
+                                                       None,
+                                                       GLib.Variant.new_boolean(not enabled))
+        enabled_action.set_enabled(self.get_action_state("edit_mode").get_boolean())
+        enabled_action.connect("change-state",
+                               self.on_enable_detector_clicked,
+                               circuit_number,
+                               detector_number)
+        self.edit_action_group.add_action(enabled_action)
+
         # Connect the event handler that detects if the circuit is right-clicked
         detector.click_controller.connect("pressed", partial(self.on_detector_pressed,
                                                              circuit_number=circuit_number,
@@ -208,15 +220,15 @@ class App(Gtk.Application):
         circuit = self.window.circuit_dict[circuit_number]
         detector = self.window.circuit_dict[circuit_number].detector_dict[detector_number]
 
-        # Remove the detector switch's action
-        action_name = f"detector_toggle_{circuit_number}_{detector_number}"
-        self.hidden_action_group.remove_action(action_name)
+        # Remove the detector's actions
+        switch_action_name = f"detector_toggle_{circuit_number}_{detector_number}"
+        self.hidden_action_group.remove_action(switch_action_name)
+        enable_action_name = f"enable_detector_{circuit_number}_{detector_number}"
+        self.edit_action_group.remove_action(enable_action_name)
 
         # Remove the detector object and the reference to it
         circuit.main_box.remove(detector)
         del self.window.circuit_dict[circuit_number].detector_dict[detector_number]
-
-
 
     def write_to_console(self, text: str):
         if not isinstance(text, str):
@@ -381,6 +393,15 @@ class App(Gtk.Application):
             self.lcd.reset()
 
         self.update_leds()
+
+    def on_enable_detector_clicked(self, action, parameter, circuit_number: int, detector_number: int):
+        """Toggle the enabled state of the detector switch."""
+        action.set_state(parameter)
+        enabled = not parameter.get_boolean()
+        detector_switch_action = self.hidden_action_group.lookup_action(f"detector_toggle_{circuit_number}_{detector_number}")
+        if isinstance(detector_switch_action, Gio.SimpleAction):
+            detector_switch_action.set_enabled(enabled)
+
 
     def on_edit_mode_clicked(self, action, *args):
         self.toggle_edit_mode(action, *args)
