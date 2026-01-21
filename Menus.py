@@ -5,13 +5,13 @@ class DataMenu(Gio.Menu):
     """Menu model for the "Data" MenuButton in the header bar."""
     def __init__(self):
         super().__init__()
-        save_building_item = Gio.MenuItem.new("Gebäudekonfiguration speichern", "data.save_building")
+        save_building_item = Gio.MenuItem.new("Gebäudekonfiguration speichern", "app.save_building")
         self.append_item(save_building_item)
-        save_scenario_item = Gio.MenuItem.new("Szenario speichern", "data.save_scenario")
+        save_scenario_item = Gio.MenuItem.new("Szenario speichern", "app.save_scenario")
         self.append_item(save_scenario_item)
-        open_item = Gio.MenuItem.new("Datei öffnen", "data.open")
+        open_item = Gio.MenuItem.new("Datei öffnen", "app.open")
         self.append_item(open_item)
-        edit_mode_item = Gio.MenuItem.new("Bearbeitungsmodus", "data.edit_mode")
+        edit_mode_item = Gio.MenuItem.new("Bearbeitungsmodus", "app.edit_mode")
         self.append_item(edit_mode_item)
 
 

@@ -15,7 +15,7 @@ class MainWindow(Gtk.ApplicationWindow):
     """Main Window of the application. Displays Detectors grouped in circuits as well as menus to access all
     application functionality."""
 
-    def __init__(self, data_action_group, edit_action_group, hidden_action_group, *args, **kwargs):
+    def __init__(self, edit_action_group, hidden_action_group, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.set_title("Steuerung Übungs-BMA")
 
@@ -81,7 +81,6 @@ class MainWindow(Gtk.ApplicationWindow):
 
 
         # Bind the action groups to the window
-        self.insert_action_group("data", data_action_group)
         self.insert_action_group("edit", edit_action_group)
         self.insert_action_group("hidden_actions", hidden_action_group)
 

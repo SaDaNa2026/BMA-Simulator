@@ -28,7 +28,7 @@ class App(Gtk.Application):
         self.lcd = LCDController(self.model)
 
         # Actions for all buttons to connect to
-        data_action_entries = [("save_building", self.on_save_building_clicked, None),
+        app_action_entries = [("save_building", self.on_save_building_clicked, None),
                                ("save_scenario", self.on_save_scenario_clicked, None),
                                ("open", self.on_open_clicked, None),
                                ("edit_mode", None, None, "false", self.on_edit_mode_clicked)]
@@ -40,15 +40,13 @@ class App(Gtk.Application):
                                ("edit_detector", self.on_edit_detector_clicked, "s"),
                                ("edit_building", self.on_edit_building_clicked, None)]
 
-        hidden_action_entries = [("detector_toggle", self.on_detector_toggled, "s"),
-                                 ("previous_alarm", self.on_previous_alarm_clicked, None),
+        hidden_action_entries = [("previous_alarm", self.on_previous_alarm_clicked, None),
                                  ("next_alarm", self.on_next_alarm_clicked, None),
                                  ("clear_alarms", self.on_clear_alarms_clicked, None)]
 
-        # Add the action entries to groups
-        self.data_action_group = Gio.SimpleActionGroup.new()
-        self.data_action_group.add_action_entries(data_action_entries, None)
+        self.add_action_entries(app_action_entries, None)
 
+        # Add the window's action entries to groups
         self.edit_action_group = Gio.SimpleActionGroup.new()
         self.edit_action_group.add_action_entries(edit_action_entries, None)
 
@@ -62,10 +60,10 @@ class App(Gtk.Application):
                 action.set_enabled(False)
 
         # Add shortcuts to the actions
-        self.set_accels_for_action("data.save_building", ["<Ctrl><Shift>S"])
-        self.set_accels_for_action("data.save_scenario", ["<Ctrl>S"])
-        self.set_accels_for_action("data.open", ["<Ctrl>O"])
-        self.set_accels_for_action("data.edit_mode", ["<Ctrl>E"])
+        self.set_accels_for_action("app.save_building", ["<Ctrl><Shift>S"])
+        self.set_accels_for_action("app.save_scenario", ["<Ctrl>S"])
+        self.set_accels_for_action("app.open", ["<Ctrl>O"])
+        self.set_accels_for_action("app.edit_mode", ["<Ctrl>E"])
 
         self.fat_led_dict = {"previous_alarm": GPB4,
                              "next_alarm": GPB0,
@@ -89,8 +87,7 @@ class App(Gtk.Application):
         # Turn on the green LED
         self.mcp_fat.digital_write(self.fat_led_dict["working"], HIGH)
 
-        self.window = MainWindow(data_action_group=self.data_action_group,
-                                 edit_action_group=self.edit_action_group,
+        self.window = MainWindow(edit_action_group=self.edit_action_group,
                                  hidden_action_group=self.hidden_action_group)
 
     def on_activate(self, app):
@@ -105,7 +102,7 @@ class App(Gtk.Application):
     def on_circuit_pressed(self, gesture, n_press, x, y, circuit_number: int) -> None:
         """Present a context menu on a circuit if edit mode is enabled."""
         # Don't respond if edit mode is disabled
-        if not self.data_action_group.lookup_action("edit_mode").get_state().get_boolean():
+        if not self.lookup_action("edit_mode").get_state().get_boolean():
             return
 
         # Get the circuit that was clicked
@@ -124,7 +121,7 @@ class App(Gtk.Application):
     def on_detector_pressed(self, gesture, n_press, x, y, circuit_number: int, detector_number: int) -> None:
         """Present a context menu on a detector if edit mode is enabled."""
         # Don't respond if edit mode is disabled
-        if not self.data_action_group.lookup_action("edit_mode").get_state().get_boolean():
+        if not self.lookup_action("edit_mode").get_state().get_boolean():
             return
 
         # Get the detector that was clicked
@@ -176,14 +173,24 @@ class App(Gtk.Application):
         self.window.main_box.remove(circuit)
         del self.window.circuit_dict[circuit_number]
 
-    def add_detector(self, circuit_number: int, detector_number: int, alarm_status: bool = False) -> None:
+    def add_detector(self, circuit_number: int, detector_number: int, alarm_status: bool = False, enabled: bool = True) -> None:
         """Create a new Detector instance and add it to the window."""
         detector = Detector(circuit_number, detector_number)
 
+        # Create a new stateful action for the detector switch
+        switch_action_name = f"detector_toggle_{circuit_number}_{detector_number}"
+        switch_action = Gio.SimpleAction.new_stateful(switch_action_name,
+                                                      None,
+                                                      GLib.Variant.new_boolean(alarm_status))
+        switch_action.set_enabled(enabled)
+        switch_action.connect("change-state",
+                              self.on_detector_switch_toggled,
+                              circuit_number,
+                              detector_number)
+        self.hidden_action_group.add_action(switch_action)
+
         # Set the detector switch according to the alarm_status and connect it to its callback function
-        detector.detector_switch.set_action_name("hidden_actions.detector_toggle")
-        detector.detector_switch.set_action_target_value(GLib.Variant("s", f"{circuit_number}, {detector_number}"))
-        detector.detector_switch.set_active(alarm_status)
+        detector.detector_switch.set_action_name(f"hidden_actions.{switch_action_name}")
 
         # Connect the event handler that detects if the circuit is right-clicked
         detector.click_controller.connect("pressed", partial(self.on_detector_pressed,
@@ -200,6 +207,12 @@ class App(Gtk.Application):
         # Get the corresponding objects
         circuit = self.window.circuit_dict[circuit_number]
         detector = self.window.circuit_dict[circuit_number].detector_dict[detector_number]
+
+        # Remove the detector switch's action
+        action_name = f"detector_toggle_{circuit_number}_{detector_number}"
+        self.hidden_action_group.remove_action(action_name)
+
+        # Remove the detector object and the reference to it
         circuit.main_box.remove(detector)
         del self.window.circuit_dict[circuit_number].detector_dict[detector_number]
 
@@ -352,15 +365,9 @@ class App(Gtk.Application):
             self.lcd.add_alarm(detector)
         self.update_leds()
 
-    def on_detector_toggled(self, action, parameter, *args):
+    def on_detector_switch_toggled(self, action, parameter, circuit_number: int, detector_number: int):
         """Callback function for detector_switch. Set the alarm_status of the detector according to the position of
         the switch and print debugging info."""
-        # Convert parameter to int
-        parameter_string = parameter.get_string()
-        parameter_list = parameter_string.split(", ")
-        circuit_number = int(parameter_list[0])
-        detector_number = int(parameter_list[1])
-
         # Toggle alarm status
         current_state = self.model.get_detector_alarm_status(circuit_number, detector_number)
         new_state = not current_state
@@ -368,11 +375,12 @@ class App(Gtk.Application):
 
         print(f"Melder {detector_number} in Melderlinie {circuit_number} {'aktiviert' if new_state else 'deaktiviert'}")
         self.print_detector_state()
-        self.update_leds()
         if new_state:
             self.lcd.add_alarm((circuit_number, detector_number))
         else:
             self.lcd.reset()
+
+        self.update_leds()
 
     def on_edit_mode_clicked(self, action, *args):
         self.toggle_edit_mode(action, *args)
