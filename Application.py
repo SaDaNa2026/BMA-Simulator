@@ -381,13 +381,13 @@ class App(Gtk.Application):
         """Callback function for detector_switch. Set the alarm_status of the detector according to the position of
         the switch and print debugging info."""
         # Toggle alarm status
-        current_state = self.model.get_detector_alarm_status(circuit_number, detector_number)
-        new_state = not current_state
-        self.model.set_detector_alarm_status(circuit_number, detector_number, new_state)
+        action.set_state(parameter)
+        alarm_status = parameter.get_boolean()
+        self.model.set_detector_alarm_status(circuit_number, detector_number, alarm_status)
 
-        print(f"Melder {detector_number} in Melderlinie {circuit_number} {'aktiviert' if new_state else 'deaktiviert'}")
+        print(f"Melder {detector_number} in Melderlinie {circuit_number} {'aktiviert' if alarm_status else 'deaktiviert'}")
         self.print_detector_state()
-        if new_state:
+        if alarm_status:
             self.lcd.add_alarm((circuit_number, detector_number))
         else:
             self.lcd.reset()
