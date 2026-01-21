@@ -148,9 +148,9 @@ class TestBuildingModel(unittest.TestCase):
         self.assertTrue(self.model.get_detector_alarm_status(1, 1))
         with self.assertRaises(TypeError):
             self.model.set_detector_alarm_status(1, 1, "True")
-        with self.assertRaises(ValueError):
+        with self.assertRaises(KeyError):
             self.model.set_detector_alarm_status(5, 6, False)
-        with self.assertRaises(ValueError):
+        with self.assertRaises(KeyError):
             self.model.set_detector_alarm_status(1, 6, False)
 
         # Delete detector

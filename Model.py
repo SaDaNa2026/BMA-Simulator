@@ -140,9 +140,9 @@ class BuildingModel:
         if not isinstance(alarm_status, bool):
             raise TypeError("alarm_status must be bool")
         if not circuit_number in self.circuit_dict:
-            raise ValueError("circuit does not exist")
+            raise KeyError("circuit does not exist")
         if not detector_number in self.circuit_dict[circuit_number].detector_dict:
-            raise ValueError("detector does not exist")
+            raise KeyError("detector does not exist")
 
         detector_tuple: tuple = (circuit_number, detector_number)
         if alarm_status:

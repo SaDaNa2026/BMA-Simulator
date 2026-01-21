@@ -89,7 +89,7 @@ class FileOperations:
 
         for circuit_string in load_dict["circuit_dict"]:
             if not circuit_string.isdigit():
-                raise ValueError("Mindestens eine Melderlinien-Nummer ist keine natürliche Zahl.")
+                raise ValueError("Mindestens eine Meldergruppen-Nummer ist keine natürliche Zahl.")
 
             circuit_number = int(circuit_string)
             model.add_circuit(circuit_number)
@@ -97,7 +97,7 @@ class FileOperations:
             for detector_string in load_dict["circuit_dict"][circuit_string]:
                 if not detector_string.isdigit():
                     raise ValueError(
-                        f"Mindestens eine Meldernummer in Melderlinie {circuit_number} ist keine natürliche Zahl.")
+                        f"Mindestens eine Meldernummer in Meldergruppe {circuit_number} ist keine natürliche Zahl.")
 
                 detector_number = int(detector_string)
                 detector_description = load_dict["circuit_dict"][circuit_string][detector_string]
