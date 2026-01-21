@@ -257,9 +257,10 @@ class App(Gtk.Application):
             if circuit_number not in self.window.circuit_dict:
                 self.add_circuit(circuit_number)
             for detector_number in self.model.get_detectors_for_circuit(circuit_number):
-                alarm_status = self.model.get_detector_alarm_status(circuit_number, detector_number)
                 description = self.model.get_detector_description(circuit_number, detector_number)
-                self.add_detector(circuit_number, detector_number, description, alarm_status)
+                alarm_status = self.model.get_detector_alarm_status(circuit_number, detector_number)
+                enabled = self.model.get_detector_enabled(circuit_number, detector_number)
+                self.add_detector(circuit_number, detector_number, description, alarm_status, enabled)
 
     def on_save_building_clicked(self, *args):
         """Create a FileSaveDialog to save the building configuration."""
@@ -402,6 +403,11 @@ class App(Gtk.Application):
         detector_switch_action = self.hidden_action_group.lookup_action(f"detector_toggle_{circuit_number}_{detector_number}")
         if isinstance(detector_switch_action, Gio.SimpleAction):
             detector_switch_action.set_enabled(enabled)
+        self.model.set_detector_enabled(circuit_number, detector_number, enabled)
+        self.update_view()
+        self.print_detector_state()
+        self.lcd.reset()
+        self.update_leds()
 
 
     def on_edit_mode_clicked(self, action, *args):

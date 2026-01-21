@@ -197,6 +197,54 @@ class TestBuildingModel(unittest.TestCase):
         self.model.delete_detector(1, 1)
         self.assertEqual(self.model.get_active_detectors(), [(1, 3)])
 
+    def test_enable_detector(self):
+        """Test enabling/disabling of detectors."""
+        # Test adding, setting and getting the enabled state
+        self.model.add_circuit(1)
+        self.model.add_detector(1, 1)
+        self.assertEqual(self.model.get_detector_enabled(1, 1), True)
+        self.model.set_detector_enabled(1, 1, False)
+        self.assertEqual(self.model.get_detector_enabled(1, 1), False)
+
+        # Test getting the disabled list
+        self.model.add_detector(1, 2)
+        self.model.set_detector_enabled(1, 2, True)
+        self.assertEqual(self.model.get_disabled_detectors(), [(1, 1)])
+
+        # Test the removal of disabled detectors from active_detector_list
+        with self.assertRaises(ValueError):
+            self.model.set_detector_alarm_status(1, 1, True)
+        self.model.set_detector_alarm_status(1, 2, True)
+        self.assertEqual(self.model.get_detector_alarm_status(1, 2), True)
+        self.model.set_detector_enabled(1, 2, False)
+        self.assertEqual(self.model.get_detector_alarm_status(1, 2), False)
+
+        # Test removal of detectors
+        self.model.delete_detector(1, 1)
+        self.model.set_detector_enabled(1, 2, False)
+        self.assertEqual(self.model.get_disabled_detectors(), [(1, 2)])
+        self.model.delete_circuit(1)
+        self.assertEqual(self.model.get_disabled_detectors(), [])
+
+        # Test invalid syntax
+        with self.assertRaises(KeyError):
+            self.model.set_detector_enabled(2, 1, True)
+        with self.assertRaises(KeyError):
+            self.model.get_detector_enabled(2, 1)
+
+        self.model.add_circuit(1)
+        self.model.add_detector(1, 1)
+        with self.assertRaises(KeyError):
+            self.model.set_detector_enabled(1, 2, True)
+        with self.assertRaises(KeyError):
+            self.model.get_detector_enabled(1, 2)
+
+        with self.assertRaises(TypeError):
+            self.model.set_detector_enabled(1, 1, 1)
+
+        with self.assertRaises(TypeError):
+            self.model.add_detector(1, 2, enabled="test")
+
     def test_error_scenarios(self):
         """Ensure error cases are properly raised."""
         # Setting circuit_dict or active_detector_list when instantiating

@@ -56,6 +56,7 @@ class BuildingModel:
     building_description: str = field(default="Gebäudebeschreibung")
     circuit_dict: Dict[int, Circuit] = field(default_factory=dict)
     active_detector_list: List[tuple] = field(default_factory=list)
+    disabled_detector_list: List[tuple] = field(default_factory=list)
 
     def __post_init__(self):
         if not isinstance(self.building_description, str):
@@ -65,12 +66,16 @@ class BuildingModel:
         if self.active_detector_list != []:
             raise ValueError("active_detector_list must be empty upon initialization. Activate detectors later using "
                              "set_detector_alarm_status.")
+        if self.disabled_detector_list != []:
+            raise ValueError("disabled_detector_list must be empty upon initialization. Activate detectors later using "
+                             "set_detector_alarm_status.")
 
     def clear_data(self):
         """Resets to init values."""
         self.set_building_description("Gebäudebeschreibung")
         self.circuit_dict.clear()
         self.active_detector_list.clear()
+        self.disabled_detector_list.clear()
 
     def set_building_description(self, description: str) -> None:
         if not isinstance(description, str):
@@ -126,15 +131,55 @@ class BuildingModel:
         if not isinstance(detector_number, int):
             raise TypeError("detector_number must be int")
 
+        detector_tuple = (circuit_number, detector_number)
+
         self.circuit_dict[circuit_number].delete_detector(detector_number)
-        if (circuit_number, detector_number) in self.active_detector_list:
-            self.active_detector_list.remove((circuit_number, detector_number))
+        if detector_tuple in self.active_detector_list:
+            self.active_detector_list.remove(detector_tuple)
+        if detector_tuple in self.disabled_detector_list:
+            self.disabled_detector_list.remove(detector_tuple)
 
     def set_detector_description(self, circuit_number: int, detector_number: int, description: str) ->None:
         self.circuit_dict[circuit_number].detector_dict[detector_number].set_description(description)
 
     def get_detector_description(self, circuit_number: int, detector_number: int) -> str:
         return self.circuit_dict[circuit_number].detector_dict[detector_number].description
+
+    def set_detector_enabled(self, circuit_number: int, detector_number: int, enabled: bool) -> None:
+        if not isinstance(enabled, bool):
+            raise TypeError("enabled must be bool")
+        if not circuit_number in self.circuit_dict:
+            raise KeyError("circuit does not exist")
+        if not detector_number in self.circuit_dict[circuit_number].detector_dict:
+            raise KeyError("detector does not exist")
+
+        detector_tuple = (circuit_number, detector_number)
+
+        if enabled:
+            if detector_tuple in self.disabled_detector_list:
+                self.disabled_detector_list.remove(detector_tuple)
+
+        else:
+            if detector_tuple not in self.disabled_detector_list:
+                self.disabled_detector_list.append(detector_tuple)
+            if detector_tuple in self.active_detector_list:
+                self.active_detector_list.remove(detector_tuple)
+
+    def get_detector_enabled(self, circuit_number: int, detector_number: int) -> bool:
+        if not circuit_number in self.circuit_dict:
+            raise KeyError("circuit does not exist")
+        if not detector_number in self.circuit_dict[circuit_number].detector_dict:
+            raise KeyError("detector does not exist")
+
+        detector_tuple = (circuit_number, detector_number)
+
+        if detector_tuple in self.disabled_detector_list:
+            return False
+        else:
+            return True
+
+    def get_disabled_detectors(self) -> list:
+        return self.disabled_detector_list
 
     def set_detector_alarm_status(self, circuit_number: int, detector_number: int, alarm_status: bool) -> None:
         if not isinstance(alarm_status, bool):
@@ -145,6 +190,10 @@ class BuildingModel:
             raise KeyError("detector does not exist")
 
         detector_tuple: tuple = (circuit_number, detector_number)
+
+        if detector_tuple in self.disabled_detector_list:
+            raise ValueError("cannot activate disabled detector")
+
         if alarm_status:
             if detector_tuple not in self.active_detector_list:
                 self.active_detector_list.append(detector_tuple)
