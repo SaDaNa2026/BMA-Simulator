@@ -7,11 +7,11 @@ from Menus import DetectorContextMenu
 
 class Detector(Gtk.Box):
     """Contains a switch and a label with the number of the detector."""
-    def __init__(self, circuit_number, detector_number, *args, **kwargs):
+    def __init__(self, circuit_number, detector_number, description, *args, **kwargs):
         super().__init__(*args, orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
 
         self.detector_switch = Gtk.Switch()
-        self.detector_label = Gtk.Label(label=f"Melder {detector_number}")
+        self.detector_label = Gtk.Label(label=f"{detector_number}: {description}")
 
         self.append(self.detector_switch)
         self.append(self.detector_label)

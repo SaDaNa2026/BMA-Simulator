@@ -173,9 +173,9 @@ class App(Gtk.Application):
         self.window.main_box.remove(circuit)
         del self.window.circuit_dict[circuit_number]
 
-    def add_detector(self, circuit_number: int, detector_number: int, alarm_status: bool = False, enabled: bool = True) -> None:
+    def add_detector(self, circuit_number: int, detector_number: int, description: str, alarm_status: bool = False, enabled: bool = True) -> None:
         """Create a new Detector instance and add it to the window."""
-        detector = Detector(circuit_number, detector_number)
+        detector = Detector(circuit_number, detector_number, description)
 
         # Create a new stateful action for the detector switch
         switch_action_name = f"detector_toggle_{circuit_number}_{detector_number}"
@@ -258,7 +258,8 @@ class App(Gtk.Application):
                 self.add_circuit(circuit_number)
             for detector_number in self.model.get_detectors_for_circuit(circuit_number):
                 alarm_status = self.model.get_detector_alarm_status(circuit_number, detector_number)
-                self.add_detector(circuit_number, detector_number, alarm_status)
+                description = self.model.get_detector_description(circuit_number, detector_number)
+                self.add_detector(circuit_number, detector_number, description, alarm_status)
 
     def on_save_building_clicked(self, *args):
         """Create a FileSaveDialog to save the building configuration."""
@@ -487,7 +488,10 @@ class App(Gtk.Application):
     def edit_detector_callback(self, circuit_number: int, detector_number: int, description: str):
         """Change a specified detector's description."""
         self.model.set_detector_description(circuit_number, detector_number, description)
+        self.update_view()
         self.print_detector_state()
+        self.lcd.refresh()
+        self.update_leds()
 
     def print_detector_state(self):
         """Print the active detectors to the console."""
