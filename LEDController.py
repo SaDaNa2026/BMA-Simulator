@@ -2,7 +2,6 @@ import gi
 gi.require_version("GLib", "2.0")
 from gi.repository import GLib
 from mcp23017 import *
-from functools import partial
 
 
 class LEDController:

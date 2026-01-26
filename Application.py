@@ -67,7 +67,7 @@ class App(Gtk.Application):
 
         self.fat_led_dict = {"previous_alarm": GPB4,
                              "next_alarm": GPB0,
-                             "switch_view_level": GPB6,
+                             "view_level": GPB6,
                              "beeper_off": GPB2,
                              "working": GPA3,
                              "alarm": GPA2,
@@ -481,8 +481,10 @@ class App(Gtk.Application):
         self.lcd.clear_alarms()
         self.update_view()
         self.print_detector_state()
-        self.led_fat.shutdown()
-        self.led_fat.turn_on("working")
+        self.led_fat.stop_blink("next_alarm")
+        self.led_fat.stop_blink("previous_alarm")
+        self.led_fat.turn_off("alarm")
+
 
     def add_circuit_callback(self, circuit_number):
         self.model.add_circuit(circuit_number)
@@ -542,6 +544,13 @@ class App(Gtk.Application):
             self.led_fat.stop_blink("next_alarm")
         else:
             self.led_fat.start_blink("next_alarm")
+
+        if self.model.get_disabled_detectors():
+            self.led_fat.start_blink("view_level")
+            self.led_fat.start_blink("turn_off")
+        else:
+            self.led_fat.stop_blink("view_level")
+            self.led_fat.stop_blink("turn_off")
 
     def beeper_off(self):
         """Turns off the beeper. Currently a placeholder."""
