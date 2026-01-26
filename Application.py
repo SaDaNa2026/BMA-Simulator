@@ -400,11 +400,16 @@ class App(Gtk.Application):
         """Toggle the enabled state of the detector switch."""
         action.set_state(parameter)
         enabled = not parameter.get_boolean()
+        detector = self.window.circuit_dict[circuit_number].detector_dict[detector_number]
+
+        if not enabled:
+            detector.detector_switch.set_active(False)
+
         detector_switch_action = self.hidden_action_group.lookup_action(f"detector_toggle_{circuit_number}_{detector_number}")
         if isinstance(detector_switch_action, Gio.SimpleAction):
             detector_switch_action.set_enabled(enabled)
+
         self.model.set_detector_enabled(circuit_number, detector_number, enabled)
-        self.update_view()
         self.print_detector_state()
         self.lcd.reset()
         self.update_leds()
@@ -444,7 +449,7 @@ class App(Gtk.Application):
         """Convert parameter to int and call the delete_circuit method."""
         circuit_number = parameter.get_int32()
         self.model.delete_circuit(circuit_number)
-        self.update_view()
+        self.delete_circuit(circuit_number)
         self.print_detector_state()
         self.lcd.reset()
         self.update_leds()
@@ -457,7 +462,7 @@ class App(Gtk.Application):
         detector_number = int(parameter_list[1])
 
         self.model.delete_detector(circuit_number, detector_number)
-        self.update_view()
+        self.delete_detector(circuit_number, detector_number)
         self.print_detector_state()
         self.lcd.reset()
         self.update_leds()
@@ -481,11 +486,11 @@ class App(Gtk.Application):
 
     def add_circuit_callback(self, circuit_number):
         self.model.add_circuit(circuit_number)
-        self.update_view()
+        self.add_circuit(circuit_number)
 
     def add_detector_callback(self, circuit_number, detector_number, detector_description):
         self.model.add_detector(circuit_number, detector_number, detector_description)
-        self.update_view()
+        self.add_detector(circuit_number, detector_number, detector_description)
 
     def edit_building_callback(self, description: str):
         """Change the building description."""
@@ -494,7 +499,8 @@ class App(Gtk.Application):
     def edit_detector_callback(self, circuit_number: int, detector_number: int, description: str):
         """Change a specified detector's description."""
         self.model.set_detector_description(circuit_number, detector_number, description)
-        self.update_view()
+        detector = self.window.circuit_dict[circuit_number].detector_dict[detector_number]
+        detector.detector_label.set_label(f"{detector_number}: {description}")
         self.print_detector_state()
         self.lcd.refresh()
         self.update_leds()
