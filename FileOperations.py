@@ -1,9 +1,9 @@
 import json
+import time
 from pathlib import Path
 from functools import partial
-
+from git import Repo, InvalidGitRepositoryError
 import gi
-
 gi.require_version('Gtk', '4.0')
 from gi.repository import Gio, GLib
 
@@ -170,17 +170,43 @@ class FileOperations:
 
 
     @staticmethod
-    def save_to_file(file, save_dict: dict) -> None:
+    def save_to_file(file: Gio.File, save_dict: dict, message: str) -> None:
         """Save save_dict as JSON to the specified filepath."""
-        path = file.get_path()
-        print(f"Saving to: {path}")
+        file_path = file.get_path()
+        print(f"Saving to: {file_path}")
 
         # Write save_dict to the file in JSON format
-        with open(path, "w", encoding="utf-8") as file_dict:
+        with open(file_path, "w", encoding="utf-8") as file_dict:
             json.dump(save_dict, file_dict, sort_keys=True, indent=4)
+
+        FileOperations.commit_changes(file, message)
 
         print("File saved successfully.")
 
+    @staticmethod
+    def commit_changes(file, message: str) -> None:
+        """Commit changes to git."""
+        # Get the repo
+        file_path = Path(file.get_path()).resolve()
+        repo_dir = file_path.parent
+        try:
+            repo = Repo(repo_dir, search_parent_directories=True)
+        except InvalidGitRepositoryError:
+            repo = Repo.init(repo_dir)
+
+        # Path relative to repo root (important!)
+        repo_root = Path(repo.working_tree_dir)
+        rel_path = file_path.relative_to(repo_root)
+
+        # 2. Check file status
+        is_tracked = rel_path.as_posix() not in repo.untracked_files
+
+        if (not is_tracked) or repo.is_dirty(path=rel_path.as_posix(), untracked_files=True):
+            repo.index.add([rel_path.as_posix()])
+
+            commit_message = (message or ("Add file" if not is_tracked else "Update file"))
+            commit_date = time.strftime("%Y-%m-%d %H:%M:%S %z", time.localtime())
+            repo.index.commit(message=commit_message, commit_date=commit_date)
 
     @staticmethod
     def create_building_save_dict(model) -> dict:

@@ -28,8 +28,8 @@ class App(Gtk.Application):
         self.lcd = LCDController(self.model)
 
         # Actions for all buttons to connect to
-        app_action_entries = [("save_building", self.on_save_building_clicked, None),
-                               ("save_scenario", self.on_save_scenario_clicked, None),
+        app_action_entries = [("save_building", self.on_save_clicked, None),
+                               ("save_scenario", self.on_save_clicked, None),
                                ("open", self.on_open_clicked, None),
                                ("edit_mode", None, None, "false", self.on_edit_mode_clicked)]
 
@@ -262,15 +262,19 @@ class App(Gtk.Application):
                 enabled = self.model.get_detector_enabled(circuit_number, detector_number)
                 self.add_detector(circuit_number, detector_number, description, alarm_status, enabled)
 
-    def on_save_building_clicked(self, *args):
+    def on_save_clicked(self, action, *args):
+        """Show a dialog to enter a commit message."""
+        action_name = action.get_name()
+        if action_name == "save_building":
+            self.window.show_commit_message_window(self.on_commit_message_defined, "building")
+        elif action_name == "save_scenario":
+            self.window.show_commit_message_window(self.on_commit_message_defined, "building")
+
+    def on_commit_message_defined(self, message, file_type):
         """Create a FileSaveDialog to save the building configuration."""
-        self.window.show_save_dialog(self.on_file_save_response, "building")
+        self.window.show_save_dialog(self.on_file_save_response, message, file_type)
 
-    def on_save_scenario_clicked(self, *args):
-        """Create a FileSaveDialog to save the scenario."""
-        self.window.show_save_dialog(self.on_file_save_response, "scenario")
-
-    def on_file_save_response(self, dialog, result, file_type: str):
+    def on_file_save_response(self, dialog, result, message: str, file_type: str):
         try:
             file = FileOperations.retrieve_save_file(dialog, result)
 
@@ -290,7 +294,7 @@ class App(Gtk.Application):
             self.window.show_error_alert("Invalide Dateiendung", "Dateien müssen auf .building oder .scenario enden")
             return
 
-        FileOperations.save_to_file(file, save_dict)
+        FileOperations.save_to_file(file, save_dict, message)
 
     def on_open_clicked(self, *args):
         """Creates a FileOpenDialog."""

@@ -8,7 +8,7 @@ from Menus import DataMenu, AddMenu
 from FileOpenDialog import FileOpenDialog
 from FileSaveDialog import FileSaveDialog
 from DefineObjectWindows import DefineCircuitWindow, DefineDetectorWindow
-from EditWindows import EditBuildingWindow, EditDetectorWindow
+from EditWindows import EditBuildingWindow, EditDetectorWindow, EditCommitMessageWindow
 
 
 class MainWindow(Gtk.ApplicationWindow):
@@ -72,13 +72,8 @@ class MainWindow(Gtk.ApplicationWindow):
         self.header.pack_start(self.add_menubutton)
 
         # Buttons to control the LCD
-        self.clear_alarms_button = Gtk.Button(label="Rücksetzen", action_name="hidden_actions.clear_alarms")
+        self.clear_alarms_button = Gtk.Button(label="Zurückstellen", action_name="hidden_actions.clear_alarms")
         self.header.pack_end(self.clear_alarms_button)
-        self.next_alarm_button = Gtk.Button(label=">", action_name="hidden_actions.next_alarm")
-        self.header.pack_end(self.next_alarm_button)
-        self.previous_alarm_button = Gtk.Button(label="<", action_name="hidden_actions.previous_alarm")
-        self.header.pack_end(self.previous_alarm_button)
-
 
         # Bind the action groups to the window
         self.insert_action_group("edit", edit_action_group)
@@ -89,10 +84,14 @@ class MainWindow(Gtk.ApplicationWindow):
         file_open_dialog = FileOpenDialog()
         file_open_dialog.open(self, None, open_response_callback)
 
-    def show_save_dialog(self, save_response_callback, file_type):
+    def show_commit_message_window(self, finish_callback, file_type):
+        self.commit_message_window = EditCommitMessageWindow(finish_callback, file_type, self)
+        self.commit_message_window.present()
+
+    def show_save_dialog(self, save_response_callback, message, file_type):
         """Show a FileSaveDialog."""
         file_save_dialog = FileSaveDialog(file_type)
-        file_save_dialog.save(self, None, partial(save_response_callback, file_type=file_type))
+        file_save_dialog.save(self, None, partial(save_response_callback, message= message, file_type=file_type))
 
     def show_error_alert(self, error_message, error_detail):
         """Display an error alert."""

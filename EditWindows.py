@@ -7,7 +7,7 @@ from DescriptionBox import DescriptionBox
 
 class EditWindow(Gtk.Window):
     """Base class for a window that lets the user edit a description."""
-    def __init__(self, edit_callback, parent, title, default_text, *args, **kwargs):
+    def __init__(self, edit_callback, parent, title, default_text = "", *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         self.set_default_size(350, 100)
@@ -58,7 +58,7 @@ class EditDetectorWindow(EditWindow):
     def __init__(self, circuit_number, detector_number, current_description, edit_detector_callback, parent, *args, **kwargs):
         self.circuit_number = circuit_number
         self.detector_number = detector_number
-        title = f"Bearbeite Melder {detector_number} (Linie {circuit_number})"
+        title = f"Bearbeite Melder {detector_number} (Gruppe {circuit_number})"
         super().__init__(lambda button, *args: self.handle_edit(edit_detector_callback), parent, title, current_description, *args, **kwargs)
 
     def handle_edit(self, edit_detector_callback):
@@ -85,3 +85,15 @@ class EditBuildingWindow(EditWindow):
         except ValueError as e:
             self.warning_label.set_markup(f"<span foreground='red'>{e}</span>")
             self.main_box.insert_child_after(self.warning_label, self.description_box)
+
+
+class EditCommitMessageWindow(EditWindow):
+    """Window for entering a commit message."""
+    def __init__(self, finish_callback, file_type, parent, *args, **kwargs):
+        title = "Änderungen beschreiben..."
+        super().__init__(lambda button, *args: self.handle_edit(finish_callback, file_type), parent, title, *args, **kwargs)
+
+    def handle_edit(self, commit_callback, file_type):
+        message = self.get_description()
+        commit_callback(message, file_type)
+        self.close()
