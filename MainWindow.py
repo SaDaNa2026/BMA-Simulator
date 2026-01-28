@@ -79,18 +79,18 @@ class MainWindow(Gtk.ApplicationWindow):
         self.insert_action_group("edit", edit_action_group)
         self.insert_action_group("hidden_actions", hidden_action_group)
 
-    def show_open_dialog(self, open_response_callback):
+    def show_open_dialog(self, open_response_callback, last_dir):
         """Show a FileOpenDialog."""
-        file_open_dialog = FileOpenDialog()
+        file_open_dialog = FileOpenDialog(last_dir)
         file_open_dialog.open(self, None, open_response_callback)
 
     def show_commit_message_window(self, finish_callback, file_type):
         self.commit_message_window = EditCommitMessageWindow(finish_callback, file_type, self)
         self.commit_message_window.present()
 
-    def show_save_dialog(self, save_response_callback, message, file_type):
+    def show_save_dialog(self, save_response_callback, message, file_type, last_dir, last_name):
         """Show a FileSaveDialog."""
-        file_save_dialog = FileSaveDialog(file_type)
+        file_save_dialog = FileSaveDialog(file_type, last_dir, last_name)
         file_save_dialog.save(self, None, partial(save_response_callback, message= message, file_type=file_type))
 
     def show_error_alert(self, error_message, error_detail):

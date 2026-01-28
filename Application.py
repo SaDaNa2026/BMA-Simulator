@@ -27,6 +27,9 @@ class App(Gtk.Application):
         self.model = BuildingModel()
         self.lcd = LCDController(self.model)
 
+        # Create a placeholder to memorize opened files
+        self.last_file = Gio.File.new_for_path("/home/lfs-bma/git_test1")
+
         # Actions for all buttons to connect to
         app_action_entries = [("save_building", self.on_save_clicked, None),
                                ("save_scenario", self.on_save_clicked, None),
@@ -268,11 +271,14 @@ class App(Gtk.Application):
         if action_name == "save_building":
             self.window.show_commit_message_window(self.on_commit_message_defined, "building")
         elif action_name == "save_scenario":
-            self.window.show_commit_message_window(self.on_commit_message_defined, "building")
+            self.window.show_commit_message_window(self.on_commit_message_defined, "scenario")
 
     def on_commit_message_defined(self, message, file_type):
         """Create a FileSaveDialog to save the building configuration."""
-        self.window.show_save_dialog(self.on_file_save_response, message, file_type)
+        file_path = self.last_file.get_path().split(".")[0]
+        last_name = file_path.split("/")[-1]
+        last_dir = self.last_file.get_parent()
+        self.window.show_save_dialog(self.on_file_save_response, message, file_type, last_dir, last_name)
 
     def on_file_save_response(self, dialog, result, message: str, file_type: str):
         try:
@@ -294,11 +300,13 @@ class App(Gtk.Application):
             self.window.show_error_alert("Invalide Dateiendung", "Dateien müssen auf .building oder .scenario enden")
             return
 
+        self.last_file = file
         FileOperations.save_to_file(file, save_dict, message)
 
     def on_open_clicked(self, *args):
         """Creates a FileOpenDialog."""
-        self.window.show_open_dialog(self.on_file_open_response)
+        last_dir = self.last_file.get_parent()
+        self.window.show_open_dialog(self.on_file_open_response, last_dir)
 
     def on_file_open_response(self, dialog, result):
         """Callback for the file dialog. Retrieves the file object and calls the load function."""
@@ -309,6 +317,7 @@ class App(Gtk.Application):
             if not e.message == "Dismissed by user":
                 self.window.show_error_alert("Öffnen fehlgeschlagen", e.message)
             return
+        self.last_file = file
         self.load_file(file)
 
     def load_file(self, file):
