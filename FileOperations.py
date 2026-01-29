@@ -2,7 +2,7 @@ import json
 import time
 from pathlib import Path
 from functools import partial
-from git import Repo, InvalidGitRepositoryError
+from git import Repo, InvalidGitRepositoryError, NULL_TREE
 import gi
 gi.require_version('Gtk', '4.0')
 from gi.repository import Gio, GLib
@@ -184,7 +184,7 @@ class FileOperations:
         print("File saved successfully.")
 
     @staticmethod
-    def commit_changes(file, message: str) -> None:
+    def commit_changes(file: Gio.File, message: str) -> None:
         """Commit changes to git."""
         # Get the repo
         file_path = Path(file.get_path()).resolve()
@@ -194,19 +194,46 @@ class FileOperations:
         except InvalidGitRepositoryError:
             repo = Repo.init(repo_dir)
 
-        # Path relative to repo root (important!)
-        repo_root = Path(repo.working_tree_dir)
-        rel_path = file_path.relative_to(repo_root)
+        # Stage all files in the directory
+        repo.git.add(A=True)
 
-        # 2. Check file status
-        is_tracked = rel_path.as_posix() not in repo.untracked_files
+        # Only commit if there is something to commit
+        if repo.is_dirty(untracked_files=True):
+            repo.index.commit(message or "Update files")
 
-        if (not is_tracked) or repo.is_dirty(path=rel_path.as_posix(), untracked_files=True):
-            repo.index.add([rel_path.as_posix()])
+    @staticmethod
+    def get_commits_for_dir(directory):
+        """Returns a list of all commits for the provided directory containing tuples with commit date and message.
+        Returns None if the directory is not a git repository."""
+        try:
+            repo = Repo(directory)
+        except InvalidGitRepositoryError:
+            return None
 
-            commit_message = (message or ("Add file" if not is_tracked else "Update file"))
-            commit_date = time.strftime("%Y-%m-%d %H:%M:%S %z", time.localtime())
-            repo.index.commit(message=commit_message, commit_date=commit_date)
+        commit_list = list(repo.iter_commits())
+        return_list = []
+        for commit in commit_list:
+            parent = commit.parents[0] if commit.parents else None
+            if parent:
+                diffs = commit.diff(parent)
+            else:
+                # Initial commit (no parent): diff against empty tree
+                diffs = commit.diff(NULL_TREE)
+
+            diff_list = []
+            for diff in diffs:
+                diff_list.append((diff.a_path, diff.b_path, diff.change_type))
+
+            return_list.append((commit.committed_date, diff_list, commit.message))
+        return return_list
+
+    @staticmethod
+    def rollback(directory, commit_index):
+        """Perform a hard reset of the specified directory to the specified index in the commit list."""
+        repo = Repo(directory)
+        commit_list = list(repo.iter_commits())
+        commit = commit_list[commit_index]
+        repo.head.reset(commit, index=True, working_tree=True)
 
     @staticmethod
     def create_building_save_dict(model) -> dict:

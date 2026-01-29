@@ -6,6 +6,10 @@
 #
 --extra-index-url https://www.piwheels.org/simple
 
+gitdb==4.0.12
+    # via gitpython
+gitpython==3.1.46
+    # via -r requirements.in
 mcp23017==1.1.0
     # via -r requirements.in
 pycairo==1.28.0
@@ -16,3 +20,5 @@ rplcd==1.4.0
     # via -r requirements.in
 smbus3==0.5.5
     # via -r requirements.in
+smmap==5.0.2
+    # via gitdb

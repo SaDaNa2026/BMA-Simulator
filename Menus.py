@@ -11,6 +11,8 @@ class DataMenu(Gio.Menu):
         self.append_item(save_scenario_item)
         open_item = Gio.MenuItem.new("Datei öffnen", "app.open")
         self.append_item(open_item)
+        rollback_item = Gio.MenuItem.new("Dateistand wiederherstellen", "app.rollback")
+        self.append_item(rollback_item)
         edit_mode_item = Gio.MenuItem.new("Bearbeitungsmodus", "app.edit_mode")
         self.append_item(edit_mode_item)
 

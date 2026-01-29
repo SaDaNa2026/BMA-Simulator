@@ -9,6 +9,7 @@ from FileOpenDialog import FileOpenDialog
 from FileSaveDialog import FileSaveDialog
 from DefineObjectWindows import DefineCircuitWindow, DefineDetectorWindow
 from EditWindows import EditBuildingWindow, EditDetectorWindow, EditCommitMessageWindow
+from CommitListWindow import CommitListWindow
 
 
 class MainWindow(Gtk.ApplicationWindow):
@@ -91,7 +92,11 @@ class MainWindow(Gtk.ApplicationWindow):
     def show_save_dialog(self, save_response_callback, message, file_type, last_dir, last_name):
         """Show a FileSaveDialog."""
         file_save_dialog = FileSaveDialog(file_type, last_dir, last_name)
-        file_save_dialog.save(self, None, partial(save_response_callback, message= message, file_type=file_type))
+        file_save_dialog.save(self, None, partial(save_response_callback, message=message, file_type=file_type))
+
+    def show_commit_list(self, directory, commit_list, rollback_callback):
+        commit_list_window = CommitListWindow(self, directory, commit_list, rollback_callback)
+        commit_list_window.show()
 
     def show_error_alert(self, error_message, error_detail):
         """Display an error alert."""

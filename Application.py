@@ -34,6 +34,7 @@ class App(Gtk.Application):
         app_action_entries = [("save_building", self.on_save_clicked, None),
                                ("save_scenario", self.on_save_clicked, None),
                                ("open", self.on_open_clicked, None),
+                               ("rollback", self.on_rollback_clicked, None),
                                ("edit_mode", None, None, "false", self.on_edit_mode_clicked)]
 
         edit_action_entries = [("create_circuit", self.on_add_circuit_clicked, None),
@@ -391,6 +392,19 @@ class App(Gtk.Application):
         for detector in self.model.get_active_detectors():
             self.lcd.add_alarm(detector)
         self.update_leds()
+
+    def on_rollback_clicked(self, *args):
+        """Present a list of all commits for the current directory."""
+        directory = self.last_file.get_parent().get_path()
+        commit_list = FileOperations.get_commits_for_dir(directory)
+
+        # Display an error if the directory is not a repository
+        if commit_list is None:
+            self.window.show_error_alert("Dateifehler",
+                                         "Öffnen Sie eine Datei aus dem Ordner, den Sie zurücksetzen wollen")
+            return
+
+        self.window.show_commit_list(directory, commit_list, FileOperations.rollback)
 
     def on_detector_switch_toggled(self, action, parameter, circuit_number: int, detector_number: int):
         """Callback function for detector_switch. Set the alarm_status of the detector according to the position of
