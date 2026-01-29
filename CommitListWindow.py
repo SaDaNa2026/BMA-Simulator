@@ -4,6 +4,11 @@ from gi.repository import Gtk
 from datetime import datetime
 
 
+class ConfirmationAlert(Gtk.AlertDialog):
+    def __init__(self):
+        super().__init__()
+
+
 class CommitBox(Gtk.Box):
     def __init__(self, commit: tuple, commit_index: int):
         super().__init__(orientation=Gtk.Orientation.HORIZONTAL, spacing=20, homogeneous=True)
@@ -88,8 +93,15 @@ class CommitListWindow(Gtk.Window):
         self.confirmation_box.set_start_widget(self.cancel_button)
 
         self.confirm_button = Gtk.Button(label="Zurücksetzen")
-        self.confirm_button.connect("clicked", self.on_confirm_clicked)
+        self.confirm_button.connect("clicked", self.on_rollback_clicked)
         self.confirmation_box.set_end_widget(self.confirm_button)
+
+    def on_rollback_clicked(self, *args):
+        confirmation_alert = Gtk.AlertDialog(message="Dateistand zurücksetzen",
+                                             detail=f"Wenn Sie fortfahren, gehen alle Änderungen\n"
+                                                    f"nach dem ausgewählten Dateistand verloren.",
+                                             buttons=["Abbrechen", "OK"])
+        confirmation_alert.choose(self, None, self.on_confirm_clicked, None)
 
     def on_confirm_clicked(self, *args):
         selected_row = self.list_box.get_selected_row().get_child()
