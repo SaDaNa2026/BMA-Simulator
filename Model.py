@@ -63,10 +63,10 @@ class BuildingModel:
             raise TypeError("building_description must be a string")
         if self.circuit_dict != {}:
             raise ValueError("circuit_dict must be empty upon initialization. Add circuits later via add_circuit.")
-        if self.active_detector_list != []:
+        if self.active_detector_list:
             raise ValueError("active_detector_list must be empty upon initialization. Activate detectors later using "
                              "set_detector_alarm_status.")
-        if self.disabled_detector_list != []:
+        if self.disabled_detector_list:
             raise ValueError("disabled_detector_list must be empty upon initialization. Activate detectors later using "
                              "set_detector_alarm_status.")
 

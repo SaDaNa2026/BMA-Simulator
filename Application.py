@@ -3,15 +3,11 @@ import gi
 gi.require_version('Gtk', '4.0')
 gi.require_version('GLib', '2.0')
 from gi.repository import Gtk, Gio, GLib, Gdk
-
-from functools import partial
 from json import JSONDecodeError
-
+from Operations import DetectorOps, CircuitOps
 from Model import BuildingModel
 from FileOperations import FileOperations
 from MainWindow import MainWindow
-from Circuit import Circuit
-from Detector import Detector
 from LCDController import LCDController
 from MCPController import MCPController
 from mcp23017 import *
@@ -29,6 +25,13 @@ class App(Gtk.Application):
 
         # Create a placeholder to memorize opened files
         self.last_file = Gio.File.new_for_path("/home/lfs-bma/git_test1")
+
+        self.undo_stack: list = []
+        self.redo_stack: list = []
+
+        # Initialize the operations
+        self.detector_ops = DetectorOps(self.model, self)
+        self.circuit_ops = CircuitOps(self.model, self)
 
         # Actions for all buttons to connect to
         app_action_entries = [("save_building", self.on_save_clicked, None),
@@ -163,108 +166,17 @@ class App(Gtk.Application):
         else:
             print("Edit mode inactive")
 
-    def add_circuit(self, circuit_number: int) -> None:
-        """Create a new Circuit instance and add it to the window."""
-        circuit = Circuit(circuit_number)
-        self.window.circuit_dict[circuit_number] = circuit
-        # Connect the event handler that detects if the circuit is right-clicked
-        circuit.click_controller.connect("pressed", partial(self.on_circuit_pressed, circuit_number=circuit_number))
-        self.window.main_box.append(circuit)
-
-    def delete_circuit(self, circuit_number: int) -> None:
-        """Delete the specified circuit."""
-        circuit = self.window.circuit_dict[circuit_number]
-        self.window.main_box.remove(circuit)
-        del self.window.circuit_dict[circuit_number]
-
-    def add_detector(self, circuit_number: int, detector_number: int, description: str, alarm_status: bool = False, enabled: bool = True) -> None:
-        """Create a new Detector instance and add it to the window."""
-        detector = Detector(circuit_number, detector_number, description)
-
-        # Create a new stateful action for the detector switch
-        switch_action_name = f"detector_toggle_{circuit_number}_{detector_number}"
-        switch_action = Gio.SimpleAction.new_stateful(switch_action_name,
-                                                      None,
-                                                      GLib.Variant.new_boolean(alarm_status))
-        switch_action.set_enabled(enabled)
-        switch_action.connect("change-state",
-                              self.on_detector_switch_toggled,
-                              circuit_number,
-                              detector_number)
-        self.hidden_action_group.add_action(switch_action)
-
-        # Set the detector switch according to the alarm_status and connect it to its callback function
-        detector.detector_switch.set_action_name(f"hidden_actions.{switch_action_name}")
-
-        # Create a new stateful action for the enabled state of the detector
-        enabled_action_name = f"enable_detector_{circuit_number}_{detector_number}"
-        enabled_action = Gio.SimpleAction.new_stateful(enabled_action_name,
-                                                       None,
-                                                       GLib.Variant.new_boolean(not enabled))
-        enabled_action.set_enabled(self.get_action_state("edit_mode").get_boolean())
-        enabled_action.connect("change-state",
-                               self.on_enable_detector_clicked,
-                               circuit_number,
-                               detector_number)
-        self.edit_action_group.add_action(enabled_action)
-
-        # Connect the event handler that detects if the circuit is right-clicked
-        detector.click_controller.connect("pressed", partial(self.on_detector_pressed,
-                                                             circuit_number=circuit_number,
-                                                             detector_number=detector_number))
-
-        # Add the detector to its circuit
-        circuit = self.window.circuit_dict[circuit_number]
-        circuit.detector_dict[detector_number] = detector
-        circuit.main_box.append(detector)
-
-    def delete_detector(self, circuit_number: int, detector_number: int) -> None:
-        """Delete a specified detector."""
-        # Get the corresponding objects
-        circuit = self.window.circuit_dict[circuit_number]
-        detector = self.window.circuit_dict[circuit_number].detector_dict[detector_number]
-
-        # Remove the detector's actions
-        switch_action_name = f"detector_toggle_{circuit_number}_{detector_number}"
-        self.hidden_action_group.remove_action(switch_action_name)
-        enable_action_name = f"enable_detector_{circuit_number}_{detector_number}"
-        self.edit_action_group.remove_action(enable_action_name)
-
-        # Remove the detector object and the reference to it
-        circuit.main_box.remove(detector)
-        del self.window.circuit_dict[circuit_number].detector_dict[detector_number]
-
     def write_to_console(self, text: str):
         if not isinstance(text, str):
             raise TypeError("Text must be of type string")
         self.window.console_buffer.set_text(text)
 
-    def clear_view(self):
-        delete_list = [num for num in self.window.circuit_dict]
-        for circuit_number in delete_list:
-            self.delete_circuit(circuit_number)
-        self.update_view()
-
-    def update_view(self):
-        """Update the GUI according to the model."""
-        circuit_list = [key for key in self.window.circuit_dict.keys()]
-        for circuit_number in circuit_list:
+    def delete_all(self):
+        """Removes all circuits and detectors"""
+        for circuit_number in self.window.circuit_dict:
             circuit = self.window.circuit_dict[circuit_number]
-            if circuit_number not in self.model.get_circuits():
-                self.delete_circuit(circuit_number)
-            else:
-                detector_list = [key for key in circuit.detector_dict.keys()]
-                for detector_number in detector_list:
-                    self.delete_detector(circuit_number, detector_number)
-
-        for circuit_number in self.model.get_circuits():
-            if circuit_number not in self.window.circuit_dict:
-                self.add_circuit(circuit_number)
-            for detector_number in self.model.get_detectors_for_circuit(circuit_number):
-                description = self.model.get_detector_description(circuit_number, detector_number)
-                alarm_status = self.model.get_detector_alarm_status(circuit_number, detector_number)
-                enabled = self.model.get_detector_enabled(circuit_number, detector_number)
-                self.add_detector(circuit_number, detector_number, description, alarm_status, enabled)
+            self.window.main_box.remove(circuit)
+            del circuit
 
     def on_save_clicked(self, action, *args):
         """Show a dialog to enter a commit message."""
@@ -337,10 +249,10 @@ class App(Gtk.Application):
 
         if file_type == "building":
             try:
-                FileOperations.load_building_config(self.model, load_dict)
-                self.update_view()
-                self.print_detector_state()
-                self.update_leds()
+                self.delete_all()
+                FileOperations.load_building_config(self.model, load_dict, self.circuit_ops.add, self.detector_ops.add)
+                self.undo_stack.clear()
+                self.redo_stack.clear()
 
             except KeyError as e:
                 print(f"KeyError: {e}")
@@ -369,7 +281,7 @@ class App(Gtk.Application):
             return
 
         try:
-            FileOperations.apply_scenario(scenario_load_dict, self.model)
+            FileOperations.apply_scenario(scenario_load_dict, self.window.circuit_dict, self.edit_action_group)
 
         except TypeError as e:
             self.window.show_error_alert("scenario-Datei invalide", f"TypeError: {e}")
@@ -387,7 +299,6 @@ class App(Gtk.Application):
             self.window.show_error_alert(".scenario-Datei invalide", f"ValueError: {e}")
             return
 
-        self.update_view()
         self.print_detector_state()
         for detector in self.model.get_active_detectors():
             self.lcd.add_alarm(detector)
@@ -408,13 +319,12 @@ class App(Gtk.Application):
 
     def on_detector_switch_toggled(self, action, parameter, circuit_number: int, detector_number: int):
         """Callback function for detector_switch. Set the alarm_status of the detector according to the position of
-        the switch and print debugging info."""
+        the switch"""
         # Toggle alarm status
         action.set_state(parameter)
         alarm_status = parameter.get_boolean()
         self.model.set_detector_alarm_status(circuit_number, detector_number, alarm_status)
 
-        print(f"Melder {detector_number} in Melderlinie {circuit_number} {'aktiviert' if alarm_status else 'deaktiviert'}")
         self.print_detector_state()
         if alarm_status:
             self.lcd.add_alarm((circuit_number, detector_number))
@@ -423,10 +333,13 @@ class App(Gtk.Application):
 
         self.update_leds()
 
-    def on_enable_detector_clicked(self, action, parameter, circuit_number: int, detector_number: int):
+    def on_enable_detector_clicked(self, action, parameter):
         """Toggle the enabled state of the detector switch."""
         action.set_state(parameter)
         enabled = not parameter.get_boolean()
+        _, _, circuit_string, detector_string = action.get_name().split("_")
+        circuit_number = int(circuit_string)
+        detector_number = int(detector_string)
         detector = self.window.circuit_dict[circuit_number].detector_dict[detector_number]
 
         if not enabled:
@@ -447,13 +360,13 @@ class App(Gtk.Application):
 
     def on_add_circuit_clicked(self, *args):
         """Create a DefineCircuitWindow."""
-        self.window.show_define_circuit_window(self.add_circuit_callback)
+        self.window.show_define_circuit_window(self.circuit_ops.add)
 
     def on_add_detector_clicked(self, action, parameter, *args):
         """Creates a DefineDetectorWindow."""
         # Convert the action parameter to int
         circuit_number = parameter.get_int32()
-        self.window.show_define_detector_window(circuit_number, self.add_detector_callback)
+        self.window.show_define_detector_window(circuit_number, self.detector_ops.add)
 
     def on_edit_detector_clicked(self, action, parameter, *args):
         """Create an EditDetectorWindow."""
@@ -464,7 +377,7 @@ class App(Gtk.Application):
         detector_number = int(parameter_list[1])
         current_description = self.model.get_detector_description(circuit_number, detector_number)
 
-        self.window.show_edit_detector_window(circuit_number, detector_number, self.edit_detector_callback,
+        self.window.show_edit_detector_window(circuit_number, detector_number, self.detector_ops.edit,
                                               current_description)
 
     def on_edit_building_clicked(self, *args):
@@ -475,11 +388,7 @@ class App(Gtk.Application):
     def on_delete_circuit_clicked(self, action, parameter, *args):
         """Convert parameter to int and call the delete_circuit method."""
         circuit_number = parameter.get_int32()
-        self.model.delete_circuit(circuit_number)
-        self.delete_circuit(circuit_number)
-        self.print_detector_state()
-        self.lcd.reset()
-        self.update_leds()
+        self.circuit_ops.delete(circuit_number)
 
     def on_delete_detector_clicked(self, action, parameter, *args):
         """Convert parameters to int and delete the specified detector."""
@@ -488,11 +397,7 @@ class App(Gtk.Application):
         circuit_number = int(parameter_list[0])
         detector_number = int(parameter_list[1])
 
-        self.model.delete_detector(circuit_number, detector_number)
-        self.delete_detector(circuit_number, detector_number)
-        self.print_detector_state()
-        self.lcd.reset()
-        self.update_leds()
+        self.detector_ops.delete(circuit_number, detector_number)
 
     def on_previous_alarm_clicked(self, *args):
         self.lcd.previous_alarm()
@@ -504,35 +409,16 @@ class App(Gtk.Application):
 
     def on_clear_alarms_clicked(self, *args):
         """Clear all alarms."""
-        self.model.clear_alarms()
-        self.lcd.clear_alarms()
-        self.update_view()
-        self.print_detector_state()
-        self.led_fat.stop_blink("next_alarm")
-        self.led_fat.stop_blink("previous_alarm")
-        self.led_fat.turn_off("alarm")
-
-
-    def add_circuit_callback(self, circuit_number):
-        self.model.add_circuit(circuit_number)
-        self.add_circuit(circuit_number)
-
-    def add_detector_callback(self, circuit_number, detector_number, detector_description):
-        self.model.add_detector(circuit_number, detector_number, detector_description)
-        self.add_detector(circuit_number, detector_number, detector_description)
+        # FIX THIS FUNCTION
+        active_detectors = self.model.get_active_detectors()
+        print(active_detectors)
+        for detector_tuple in active_detectors:
+            detector = self.window.circuit_dict[detector_tuple[0]].detector_dict[detector_tuple[1]]
+            detector.detector_switch.set_active(False)
 
     def edit_building_callback(self, description: str):
         """Change the building description."""
         self.model.set_building_description(description)
-
-    def edit_detector_callback(self, circuit_number: int, detector_number: int, description: str):
-        """Change a specified detector's description."""
-        self.model.set_detector_description(circuit_number, detector_number, description)
-        detector = self.window.circuit_dict[circuit_number].detector_dict[detector_number]
-        detector.detector_label.set_label(f"{detector_number}: {description}")
-        self.print_detector_state()
-        self.lcd.refresh()
-        self.update_leds()
 
     def print_detector_state(self):
         """Print the active detectors to the console."""

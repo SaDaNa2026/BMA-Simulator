@@ -1,5 +1,4 @@
 import json
-import time
 from pathlib import Path
 from functools import partial
 from git import Repo, InvalidGitRepositoryError, NULL_TREE
@@ -82,7 +81,7 @@ class FileOperations:
         load_scenario_callback(building_file, scenario_load_dict)
 
     @staticmethod
-    def load_building_config(model, load_dict):
+    def load_building_config(model, load_dict, add_circuit_function, add_detector_function):
         """Delete the current configuration, then parse the data from the load_dict."""
         model.clear_data()
         model.set_building_description(load_dict["building_description"])
@@ -92,7 +91,7 @@ class FileOperations:
                 raise ValueError("Mindestens eine Meldergruppen-Nummer ist keine natürliche Zahl.")
 
             circuit_number = int(circuit_string)
-            model.add_circuit(circuit_number)
+            add_circuit_function(circuit_number)
 
             for detector_string in load_dict["circuit_dict"][circuit_string]:
                 if not detector_string.isdigit():
@@ -101,13 +100,13 @@ class FileOperations:
 
                 detector_number = int(detector_string)
                 detector_description = load_dict["circuit_dict"][circuit_string][detector_string]
-                model.add_detector(circuit_number, detector_number,
+                add_detector_function(circuit_number, detector_number,
                                    description=detector_description)
 
         print("File loaded successfully")
 
     @staticmethod
-    def apply_scenario(load_dict, model):
+    def apply_scenario(load_dict, circuit_dict, edit_action_group):
         """Set all detectors listed in load_dict to active"""
         for number_list in load_dict["active_detector_list"]:
             # Check for correct Syntax
@@ -129,7 +128,8 @@ class FileOperations:
 
             # Try to set the specified detector switch active
             try:
-                model.set_detector_alarm_status(circuit_number, detector_number, True)
+                detector = circuit_dict[circuit_number].detector_dict[detector_number]
+                detector.detector_switch.set_active(True)
 
             except KeyError:
                 raise KeyError(f"Melder {detector_number} in Melderlinie {circuit_number} ist im Szenario aktiv, "
@@ -155,7 +155,9 @@ class FileOperations:
             detector_number = int(number_list[1])
 
             try:
-                model.set_detector_enabled(circuit_number, detector_number, False)
+                enable_action = edit_action_group.lookup_action(f"enable_detector_{circuit_number}_{detector_number}")
+                enable_action.change_state(GLib.Variant.new_boolean(True))
+                print(enable_action.get_state())
 
             except KeyError:
                 raise KeyError(f"Melder {detector_number} in Melderlinie {circuit_number} ist im Szenario abgeschaltet, "
