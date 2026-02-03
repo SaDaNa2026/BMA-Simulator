@@ -409,9 +409,9 @@ class App(Gtk.Application):
 
     def on_clear_alarms_clicked(self, *args):
         """Clear all alarms."""
-        # FIX THIS FUNCTION
-        active_detectors = self.model.get_active_detectors()
-        print(active_detectors)
+        # Convert list to tuple to make it immutable for iteration
+        active_detectors = tuple(self.model.get_active_detectors())
+
         for detector_tuple in active_detectors:
             detector = self.window.circuit_dict[detector_tuple[0]].detector_dict[detector_tuple[1]]
             detector.detector_switch.set_active(False)

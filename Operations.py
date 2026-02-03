@@ -211,7 +211,9 @@ class CircuitOps(Operation):
         detector_list = [detector_number for detector_number in circuit.detector_dict]
         detectors = []
         for detector_number in detector_list:
-            detector_props = detector_number + self.detector_ops.remove_detector(circuit_number, detector_number)
+            detector_props = [detector_number]
+            for value in self.detector_ops.remove_detector(circuit_number, detector_number):
+                detector_props.append(value)
             detectors.append(detector_props)
 
         self.model.delete_circuit(circuit_number)
