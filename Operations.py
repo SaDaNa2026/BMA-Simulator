@@ -87,10 +87,12 @@ class DetectorOps(Operation):
         self.app.undo_stack.append((self.undo_delete, (description, alarm_status, enabled, detector)))
 
     def edit(self, circuit_number: int, detector_number: int, description: str) -> None:
-        """Change a specified detector's description."""
-        self._set_description(circuit_number, detector_number, description)
-        self.app.redo_stack.clear()
-        self.app.undo_stack.append((self.undo_edit, (circuit_number, detector_number, description)))
+        """Change a specified detector's description if it differs from the previous one."""
+        previous_description = self.model.get_detector_description(circuit_number, detector_number)
+        if description != previous_description:
+            self._set_description(circuit_number, detector_number, description)
+            self.app.redo_stack.clear()
+            self.app.undo_stack.append((self.undo_edit, (circuit_number, detector_number, previous_description)))
 
     def undo_edit(self, circuit_number: int, detector_number: int, description: str) -> None:
         self._set_description(circuit_number, detector_number, description)
@@ -231,3 +233,22 @@ class CircuitOps(Operation):
             detector_number, description, alarm_status, enabled, detector = detector
             self.detector_ops.readd_detector(circuit_number, detector_number, description, alarm_status, enabled, detector)
 
+
+class BuildingOps(Operation):
+    def edit(self, description: str) -> None:
+        """Set the building description if it differs from the previous one."""
+        previous_description = self.model.get_building_description()
+        if description != previous_description:
+            self.model.set_building_description(description)
+            self.app.redo_stack.clear()
+            self.app.undo_stack.append((self.undo_edit, previous_description))
+
+    def undo_edit(self, description: str) -> None:
+        previous_description = self.model.get_detector_description()
+        self.model.set_building_description(description)
+        self.app.redo_stack.append((self.redo_edit, previous_description))
+
+    def redo_edit(self, description: str) -> None:
+        previous_description = self.model.get_detector_description()
+        self.model.set_building_description(description)
+        self.app.undo_stack.append((self.undo_edit, previous_description))

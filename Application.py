@@ -4,7 +4,7 @@ gi.require_version('Gtk', '4.0')
 gi.require_version('GLib', '2.0')
 from gi.repository import Gtk, Gio, GLib, Gdk
 from json import JSONDecodeError
-from Operations import DetectorOps, CircuitOps
+from Operations import DetectorOps, CircuitOps, BuildingOps
 from Model import BuildingModel
 from FileOperations import FileOperations
 from MainWindow import MainWindow
@@ -32,6 +32,7 @@ class App(Gtk.Application):
         # Initialize the operations
         self.detector_ops = DetectorOps(self.model, self)
         self.circuit_ops = CircuitOps(self.model, self)
+        self.building_ops = BuildingOps(self.model, self)
 
         # Actions for all buttons to connect to
         app_action_entries = [("save_building", self.on_save_clicked, None),
@@ -383,7 +384,7 @@ class App(Gtk.Application):
     def on_edit_building_clicked(self, *args):
         """Create an EditBuildingWindow."""
         current_description = self.model.get_building_description()
-        self.window.show_edit_building_window(self.edit_building_callback, current_description)
+        self.window.show_edit_building_window(self.building_ops.edit, current_description)
 
     def on_delete_circuit_clicked(self, action, parameter, *args):
         """Convert parameter to int and call the delete_circuit method."""
@@ -415,10 +416,6 @@ class App(Gtk.Application):
         for detector_tuple in active_detectors:
             detector = self.window.circuit_dict[detector_tuple[0]].detector_dict[detector_tuple[1]]
             detector.detector_switch.set_active(False)
-
-    def edit_building_callback(self, description: str):
-        """Change the building description."""
-        self.model.set_building_description(description)
 
     def print_detector_state(self):
         """Print the active detectors to the console."""
