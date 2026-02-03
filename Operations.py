@@ -55,52 +55,52 @@ class DetectorOps(Operation):
         circuit.detector_dict[detector_number] = detector
         circuit.main_box.append(detector)
 
-        self.app.redo_stack.clear()
-        self.app.undo_stack.append((self.undo_add, (circuit_number, detector_number)))
+        self.app.clear_redo()
+        self.app.append_undo((self.undo_add, (circuit_number, detector_number)))
 
     def undo_add(self, circuit_number: int, detector_number: int) -> None:
         description, alarm_status, enabled, detector = self.remove_detector(circuit_number, detector_number)
 
-        self.app.redo_stack.append((self.redo_add,
+        self.app.append_redo((self.redo_add,
                                      (circuit_number, detector_number, description, alarm_status, enabled, detector))
                                    )
 
     def redo_add(self, circuit_number: int, detector_number: int, description: str, alarm_status: bool, enabled: bool, detector) -> None:
         self.readd_detector(circuit_number, detector_number, description, alarm_status, enabled, detector)
 
-        self.app.undo_stack.append((self.undo_add, (circuit_number, detector_number)))
+        self.app.append_undo((self.undo_add, (circuit_number, detector_number)))
 
     def delete(self, circuit_number: int, detector_number: int) -> None:
         """Remove a detector from the view and model and keep a reference to it"""
         description, alarm_status, enabled, detector = self.remove_detector(circuit_number, detector_number)
-        self.app.redo_stack.clear()
-        self.app.undo_stack.append((self.undo_delete,
+        self.app.clear_redo()
+        self.app.append_undo((self.undo_delete,
                                      (circuit_number, detector_number, description, alarm_status, enabled, detector))
                                    )
 
     def undo_delete(self, circuit_number: int, detector_number: int, description: str, alarm_status: bool, enabled: bool, detector: Any) -> None:
         self.readd_detector(circuit_number, detector_number, description, alarm_status, enabled, detector)
-        self.app.redo_stack.append((self.redo_delete, (circuit_number, detector_number)))
+        self.app.append_redo((self.redo_delete, (circuit_number, detector_number)))
 
     def redo_delete(self, circuit_number: int, detector_number: int) -> None:
         description, alarm_status, enabled, detector = self.remove_detector(circuit_number, detector_number)
-        self.app.undo_stack.append((self.undo_delete, (circuit_number, detector_number, description, alarm_status, enabled, detector)))
+        self.app.append_undo((self.undo_delete, (circuit_number, detector_number, description, alarm_status, enabled, detector)))
 
     def edit(self, circuit_number: int, detector_number: int, description: str) -> None:
         """Change a specified detector's description if it differs from the previous one."""
         previous_description = self.model.get_detector_description(circuit_number, detector_number)
         if description != previous_description:
             self._set_description(circuit_number, detector_number, description)
-            self.app.redo_stack.clear()
-            self.app.undo_stack.append((self.undo_edit, (circuit_number, detector_number, previous_description)))
+            self.app.clear_redo()
+            self.app.append_undo((self.undo_edit, (circuit_number, detector_number, previous_description)))
 
     def undo_edit(self, circuit_number: int, detector_number: int, description: str) -> None:
         self._set_description(circuit_number, detector_number, description)
-        self.app.redo_stack.append((self.redo_edit, (circuit_number, detector_number, description)))
+        self.app.append_redo((self.redo_edit, (circuit_number, detector_number, description)))
 
     def redo_edit(self, circuit_number: int, detector_number: int, description: str) -> None:
         self._set_description(circuit_number, detector_number, description)
-        self.app.undo_stack.append((self.undo_edit, (circuit_number, detector_number, description)))
+        self.app.append_undo((self.undo_edit, (circuit_number, detector_number, description)))
 
     def set_alarm(self, circuit_number: int, detector_number: int, alarm_status: bool) -> None:
         self.model.set_detector_alarm_status(circuit_number, detector_number, alarm_status)
@@ -198,29 +198,29 @@ class CircuitOps(Operation):
         circuit.click_controller.connect("pressed", partial(self.app.on_circuit_pressed, circuit_number=circuit_number))
         self.app.window.main_box.append(circuit)
 
-        self.app.redo_stack.clear()
-        self.app.undo_stack.append((self.undo_add, (circuit_number,)))
+        self.app.clear_redo()
+        self.app.append_undo((self.undo_add, (circuit_number,)))
 
     def undo_add(self, circuit_number: int) -> None:
         circuit, detectors = self._remove_circuit(circuit_number)
-        self.app.redo_stack.append((self.redo_add, (circuit_number, circuit, detectors)))
+        self.app.append_redo((self.redo_add, (circuit_number, circuit, detectors)))
 
     def redo_add(self, circuit_number: int, circuit: Any, detectors: Any) -> None:
         self._readd_circuit(circuit_number, circuit, detectors)
-        self.app.undo_stack.append((self.undo_add, (circuit_number,)))
+        self.app.append_undo((self.undo_add, (circuit_number,)))
 
     def delete(self, circuit_number: int) -> None:
         circuit, detectors = self._remove_circuit(circuit_number)
-        self.app.redo_stack.clear()
-        self.app.undo_stack.append((self.undo_delete, (circuit_number, circuit, detectors)))
+        self.app.clear_redo()
+        self.app.append_undo((self.undo_delete, (circuit_number, circuit, detectors)))
 
     def undo_delete(self, circuit_number: int, circuit: Any, detectors: list):
         self._readd_circuit(circuit_number, circuit, detectors)
-        self.app.redo_stack.append((self.redo_delete, (circuit_number,)))
+        self.app.append_redo((self.redo_delete, (circuit_number,)))
 
     def redo_delete(self, circuit_number: int):
         circuit, detectors = self._remove_circuit(circuit_number)
-        self.app.undo_stack.append((self.undo_delete, (circuit_number, circuit, detectors)))
+        self.app.append_undo((self.undo_delete, (circuit_number, circuit, detectors)))
 
     def _remove_circuit(self, circuit_number: int) -> tuple[Any, list]:
         circuit = self.app.window.circuit_dict[circuit_number]
@@ -254,15 +254,15 @@ class BuildingOps(Operation):
         previous_description = self.model.get_building_description()
         if description != previous_description:
             self.model.set_building_description(description)
-            self.app.redo_stack.clear()
-            self.app.undo_stack.append((self.undo_edit, (previous_description,)))
+            self.app.clear_redo()
+            self.app.append_undo((self.undo_edit, (previous_description,)))
 
     def undo_edit(self, description: str) -> None:
         previous_description = self.model.get_detector_description()
         self.model.set_building_description(description)
-        self.app.redo_stack.append((self.redo_edit, (previous_description,)))
+        self.app.append_redo((self.redo_edit, (previous_description,)))
 
     def redo_edit(self, description: str) -> None:
         previous_description = self.model.get_detector_description()
         self.model.set_building_description(description)
-        self.app.undo_stack.append((self.undo_edit, (previous_description,)))
+        self.app.append_undo((self.undo_edit, (previous_description,)))

@@ -54,7 +54,14 @@ class App(Gtk.Application):
                                  ("next_alarm", self.on_next_alarm_clicked, None),
                                  ("clear_alarms", self.on_clear_alarms_clicked, None)]
 
+        # Add app actions to self
         self.add_action_entries(app_action_entries, None)
+
+        # Disable undo and redo actions (will be enabled when the respective stack has entries)
+        for action_name in ("undo", "redo"):
+            action = self.lookup_action(action_name)
+            if isinstance(action, Gio.SimpleAction):
+                action.set_enabled(False)
 
         # Add the window's action entries to groups
         self.edit_action_group = Gio.SimpleActionGroup.new()
@@ -110,6 +117,34 @@ class App(Gtk.Application):
         """Clean up the hardware interface when the application is closed."""
         self.lcd.clear()
         self.led_fat.shutdown()
+
+    def append_undo(self, entry: tuple) -> None:
+        """Append the given entry to the undo stack and enable the undo action"""
+        self.undo_stack.append(entry)
+        undo_action = self.lookup_action("undo")
+        if isinstance(undo_action, Gio.SimpleAction):
+            undo_action.set_enabled(True)
+
+    def append_redo(self, entry: tuple) -> None:
+        """Append the given entry to the redo stack and enable the redo action"""
+        self.redo_stack.append(entry)
+        redo_action = self.lookup_action("redo")
+        if isinstance(redo_action, Gio.SimpleAction):
+            redo_action.set_enabled(True)
+
+    def clear_undo(self):
+        """Clear the undo stack"""
+        self.undo_stack.clear()
+        undo_action = self.lookup_action("undo")
+        if isinstance(undo_action, Gio.SimpleAction):
+            undo_action.set_enabled(False)
+
+    def clear_redo(self):
+        """Clear the undo stack"""
+        self.redo_stack.clear()
+        redo_action = self.lookup_action("redo")
+        if isinstance(redo_action, Gio.SimpleAction):
+            redo_action.set_enabled(False)
 
     def on_circuit_pressed(self, gesture, n_press, x, y, circuit_number: int) -> None:
         """Present a context menu on a circuit if edit mode is enabled."""
@@ -170,18 +205,6 @@ class App(Gtk.Application):
 
         else:
             print("Edit mode inactive")
-
-    def write_to_console(self, text: str):
-        if not isinstance(text, str):
-            raise TypeError("Text must be of type string")
-        self.window.console_buffer.set_text(text)
-
-    def delete_all(self):
-        """Removes all circuits and detectors"""
-        for circuit_number in self.window.circuit_dict:
-            circuit = self.window.circuit_dict[circuit_number]
-            self.window.main_box.remove(circuit)
-            del circuit
 
     def on_save_clicked(self, action, *args):
         """Show a dialog to enter a commit message."""
@@ -256,8 +279,8 @@ class App(Gtk.Application):
             try:
                 self.delete_all()
                 FileOperations.load_building_config(self.model, load_dict, self.circuit_ops.add, self.detector_ops.add)
-                self.undo_stack.clear()
-                self.redo_stack.clear()
+                self.clear_undo()
+                self.clear_redo()
 
             except KeyError as e:
                 print(f"KeyError: {e}")
@@ -427,11 +450,21 @@ class App(Gtk.Application):
             operation_tuple = self.undo_stack.pop(-1)
             operation_tuple[0](*operation_tuple[1])
 
+        if len(self.undo_stack) == 0:
+            undo_action = self.lookup_action("undo")
+            if isinstance(undo_action, Gio.SimpleAction):
+                undo_action.set_enabled(False)
+
     def on_redo_clicked(self, *args):
         """Pop the top entry of redo_stack and execute it"""
         if len(self.redo_stack) > 0:
             operation_tuple = self.redo_stack.pop(-1)
             operation_tuple[0](*operation_tuple[1])
+
+        if len(self.redo_stack) == 0:
+            redo_action = self.lookup_action("redo")
+            if isinstance(redo_action, Gio.SimpleAction):
+                redo_action.set_enabled(False)
 
     def print_detector_state(self):
         """Print the active detectors to the console."""
@@ -453,6 +486,18 @@ class App(Gtk.Application):
 
         print(active_detector_text)
         self.write_to_console(active_detector_text)
+
+    def write_to_console(self, text: str):
+        if not isinstance(text, str):
+            raise TypeError("Text must be of type string")
+        self.window.console_buffer.set_text(text)
+
+    def delete_all(self):
+        """Removes all circuits and detectors"""
+        for circuit_number in self.window.circuit_dict:
+            circuit = self.window.circuit_dict[circuit_number]
+            self.window.main_box.remove(circuit)
+            del circuit
 
     def update_leds(self):
         """Set the LED states according to the active detectors and contents of the LCD."""
