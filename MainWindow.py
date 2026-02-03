@@ -72,7 +72,13 @@ class MainWindow(Gtk.ApplicationWindow):
         self.add_menubutton.set_visible(False)
         self.header.pack_start(self.add_menubutton)
 
-        # Buttons to control the LCD
+        # Buttons for undo/redo
+        self.undo_button = Gtk.Button(icon_name="edit-undo", action_name="app.undo")
+        self.header.pack_start(self.undo_button)
+        self.redo_button = Gtk.Button(icon_name="edit-redo", action_name="app.redo")
+        self.header.pack_start(self.redo_button)
+
+        # Button to clear alarms
         self.clear_alarms_button = Gtk.Button(label="Zurückstellen", action_name="hidden_actions.clear_alarms")
         self.header.pack_end(self.clear_alarms_button)
 

@@ -39,7 +39,9 @@ class App(Gtk.Application):
                                ("save_scenario", self.on_save_clicked, None),
                                ("open", self.on_open_clicked, None),
                                ("rollback", self.on_rollback_clicked, None),
-                               ("edit_mode", None, None, "false", self.on_edit_mode_clicked)]
+                               ("edit_mode", None, None, "false", self.on_edit_mode_clicked),
+                               ("undo", self.on_undo_clicked, None),
+                               ("redo", self.on_redo_clicked, None)]
 
         edit_action_entries = [("create_circuit", self.on_add_circuit_clicked, None),
                                ("delete_circuit", self.on_delete_circuit_clicked, "i"),
@@ -72,6 +74,8 @@ class App(Gtk.Application):
         self.set_accels_for_action("app.save_scenario", ["<Ctrl>S"])
         self.set_accels_for_action("app.open", ["<Ctrl>O"])
         self.set_accels_for_action("app.edit_mode", ["<Ctrl>E"])
+        self.set_accels_for_action("app.undo", ["<Ctrl>Z"])
+        self.set_accels_for_action("app.redo", ["<Ctrl><Shift>Z", "<Ctrl>Y"])
 
         self.fat_led_dict = {"previous_alarm": GPB4,
                              "next_alarm": GPB0,
@@ -416,6 +420,18 @@ class App(Gtk.Application):
         for detector_tuple in active_detectors:
             detector = self.window.circuit_dict[detector_tuple[0]].detector_dict[detector_tuple[1]]
             detector.detector_switch.set_active(False)
+
+    def on_undo_clicked(self, *args):
+        """Pop the top entry of undo_stack and execute it"""
+        if len(self.undo_stack) > 0:
+            operation_tuple = self.undo_stack.pop(-1)
+            operation_tuple[0](*operation_tuple[1])
+
+    def on_redo_clicked(self, *args):
+        """Pop the top entry of redo_stack and execute it"""
+        if len(self.redo_stack) > 0:
+            operation_tuple = self.redo_stack.pop(-1)
+            operation_tuple[0](*operation_tuple[1])
 
     def print_detector_state(self):
         """Print the active detectors to the console."""
