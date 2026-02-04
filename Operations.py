@@ -102,15 +102,54 @@ class DetectorOps(Operation):
         self._set_description(circuit_number, detector_number, description)
         self.app.append_undo((self.undo_edit, (circuit_number, detector_number, description)))
 
-    def set_alarm(self, circuit_number: int, detector_number: int, alarm_status: bool) -> None:
-        self.model.set_detector_alarm_status(circuit_number, detector_number, alarm_status)
+    def set_enabled(self, circuit_number: int, detector_number: int, enabled: bool) -> None:
+        """Set the enabled status of a detector"""
+        previous_alarm_status = self.model.get_detector_alarm_status(circuit_number, detector_number)
 
-        self.app.print_detector_state()
+        self._enable_detector_switch(circuit_number, detector_number, enabled)
+
+        self.app.clear_redo()
+        self.app.append_undo((self.undo_set_enabled, (circuit_number, detector_number, not enabled, previous_alarm_status)))
+
+    def undo_set_enabled(self, circuit_number: int, detector_number: int, enabled: bool, alarm_status: bool) -> None:
+        previous_alarm_status = self.model.get_detector_alarm_status(circuit_number, detector_number)
+        self._enable_detector_switch(circuit_number, detector_number, enabled)
+
+        detector = self.app.window.circuit_dict[circuit_number].detector_dict[detector_number]
         if alarm_status:
-            self.app.lcd.add_alarm((circuit_number, detector_number))
-        else:
-            self.app.lcd.reset()
+            detector.detector_switch.set_active(True)
 
+        enable_action = self.app.edit_action_group.lookup_action(f"enable_detector_{circuit_number}_{detector_number}")
+        enable_action.set_state(GLib.Variant.new_boolean(not enabled))
+
+        self.app.append_redo((self.redo_set_enabled, (circuit_number, detector_number, not enabled, previous_alarm_status)))
+
+    def redo_set_enabled(self, circuit_number: int, detector_number: int, enabled: bool, alarm_status: bool) -> None:
+        previous_alarm_status = self.model.get_detector_alarm_status(circuit_number, detector_number)
+        self._enable_detector_switch(circuit_number, detector_number, enabled)
+
+        detector = self.app.window.circuit_dict[circuit_number].detector_dict[detector_number]
+        if alarm_status:
+            detector.detector_switch.set_active(True)
+
+        enable_action = self.app.edit_action_group.lookup_action(f"enable_detector_{circuit_number}_{detector_number}")
+        enable_action.set_state(GLib.Variant.new_boolean(not enabled))
+
+        self.app.append_undo((self.undo_set_enabled, (circuit_number, detector_number, not enabled, previous_alarm_status)))
+
+    def _enable_detector_switch(self, circuit_number: int, detector_number: int, enabled: bool) -> None:
+        detector = self.app.window.circuit_dict[circuit_number].detector_dict[detector_number]
+        if not enabled:
+            detector.detector_switch.set_active(False)
+
+        detector_switch_action = self.app.hidden_action_group.lookup_action(
+            f"detector_toggle_{circuit_number}_{detector_number}")
+        if isinstance(detector_switch_action, Gio.SimpleAction):
+            detector_switch_action.set_enabled(enabled)
+
+        self.model.set_detector_enabled(circuit_number, detector_number, enabled)
+        self.app.print_detector_state()
+        self.app.lcd.reset()
         self.app.update_leds()
 
     def _set_description(self, circuit_number: int, detector_number: int, description: str) -> None:

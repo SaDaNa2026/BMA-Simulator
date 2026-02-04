@@ -310,6 +310,8 @@ class App(Gtk.Application):
 
         try:
             FileOperations.apply_scenario(scenario_load_dict, self.window.circuit_dict, self.edit_action_group)
+            self.clear_redo()
+            self.clear_undo()
 
         except TypeError as e:
             self.window.show_error_alert("scenario-Datei invalide", f"TypeError: {e}")
@@ -368,19 +370,7 @@ class App(Gtk.Application):
         _, _, circuit_string, detector_string = action.get_name().split("_")
         circuit_number = int(circuit_string)
         detector_number = int(detector_string)
-        detector = self.window.circuit_dict[circuit_number].detector_dict[detector_number]
-
-        if not enabled:
-            detector.detector_switch.set_active(False)
-
-        detector_switch_action = self.hidden_action_group.lookup_action(f"detector_toggle_{circuit_number}_{detector_number}")
-        if isinstance(detector_switch_action, Gio.SimpleAction):
-            detector_switch_action.set_enabled(enabled)
-
-        self.model.set_detector_enabled(circuit_number, detector_number, enabled)
-        self.print_detector_state()
-        self.lcd.reset()
-        self.update_leds()
+        self.detector_ops.set_enabled(circuit_number, detector_number, enabled)
 
 
     def on_edit_mode_clicked(self, action, *args):
