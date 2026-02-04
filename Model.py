@@ -53,7 +53,7 @@ class Circuit:
 
 @dataclass
 class BuildingModel:
-    building_description: str = field(default="Gebäudebeschreibung")
+    building_description: str = field(default="BMA-Simulator")
     circuit_dict: Dict[int, Circuit] = field(default_factory=dict)
     active_detector_list: List[tuple] = field(default_factory=list)
     disabled_detector_list: List[tuple] = field(default_factory=list)

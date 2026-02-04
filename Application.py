@@ -50,8 +50,8 @@ class App(Gtk.Application):
                                ("edit_detector", self.on_edit_detector_clicked, "s"),
                                ("edit_building", self.on_edit_building_clicked, None)]
 
-        hidden_action_entries = [("previous_alarm", self.on_previous_alarm_clicked, None),
-                                 ("next_alarm", self.on_next_alarm_clicked, None),
+        hidden_action_entries = [("previous_alarm", self.on_previous_message_clicked, None),
+                                 ("next_alarm", self.on_next_message_clicked, None),
                                  ("clear_alarms", self.on_clear_alarms_clicked, None)]
 
         # Add app actions to self
@@ -95,10 +95,10 @@ class App(Gtk.Application):
 
         # Set up the port expander
         self.mcp_fat = MCPController(0x27,
-                                     [(GPB1, self.on_next_alarm_clicked),
+                                     [(GPB1, self.on_next_message_clicked),
                                       (GPB3, self.beeper_off),
-                                      (GPB5, self.on_previous_alarm_clicked),
-                                      (GPB7, self.lcd.switch_view_level)],
+                                      (GPB5, self.on_previous_message_clicked),
+                                      (GPB7, self.on_view_level_clicked)],
                                      self.fat_led_dict)
 
         self.led_fat = LEDController(self.mcp_fat, self.fat_led_dict)
@@ -279,6 +279,8 @@ class App(Gtk.Application):
             try:
                 self.delete_all()
                 FileOperations.load_building_config(self.model, load_dict, self.circuit_ops.add, self.detector_ops.add)
+                self.lcd.reset()
+                self.update_leds()
                 self.clear_undo()
                 self.clear_redo()
 
@@ -330,6 +332,7 @@ class App(Gtk.Application):
             return
 
         self.print_detector_state()
+        self.lcd.reset()
         for detector in self.model.get_active_detectors():
             self.lcd.add_alarm(detector)
         self.update_leds()
@@ -417,12 +420,16 @@ class App(Gtk.Application):
 
         self.detector_ops.delete(circuit_number, detector_number)
 
-    def on_previous_alarm_clicked(self, *args):
-        self.lcd.previous_alarm()
+    def on_previous_message_clicked(self, *args):
+        self.lcd.previous_message()
         self.update_leds()
 
-    def on_next_alarm_clicked(self, *args):
-        self.lcd.next_alarm()
+    def on_next_message_clicked(self, *args):
+        self.lcd.next_message()
+        self.update_leds()
+
+    def on_view_level_clicked(self, *args):
+        self.lcd.toggle_view_level()
         self.update_leds()
 
     def on_clear_alarms_clicked(self, *args):
@@ -496,21 +503,25 @@ class App(Gtk.Application):
         else:
             self.led_fat.turn_off("alarm")
 
-        if self.lcd.first_alarm_shown():
+        if self.lcd.first_message_shown():
             self.led_fat.stop_blink("previous_alarm")
         else:
             self.led_fat.start_blink("previous_alarm")
 
-        if self.lcd.last_alarm_shown():
+        if self.lcd.last_message_shown():
             self.led_fat.stop_blink("next_alarm")
         else:
             self.led_fat.start_blink("next_alarm")
 
-        if self.model.get_disabled_detectors():
+        if ((self.model.get_disabled_detectors() and not self.lcd.current_screen == 2)
+                or (self.model.get_active_detectors() and not self.lcd.current_screen == 1)):
             self.led_fat.start_blink("view_level")
-            self.led_fat.start_blink("turn_off")
         else:
             self.led_fat.stop_blink("view_level")
+
+        if self.model.get_disabled_detectors():
+            self.led_fat.start_blink("turn_off")
+        else:
             self.led_fat.stop_blink("turn_off")
 
     def beeper_off(self):
