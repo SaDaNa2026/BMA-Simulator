@@ -464,30 +464,37 @@ class App(Gtk.Application):
                 redo_action.set_enabled(False)
 
     def print_detector_state(self):
-        """Print the active detectors to the console."""
+        """Print the active and disabled detectors to the console."""
         active_detector_list = self.model.get_active_detectors()
-        active_detector_text = ""
-        print("Aktive Melder:")
+        disabled_detector_list = self.model.get_disabled_detectors()
 
-        # Generate active_detector_text
-        for reference in active_detector_list:
+        active_detector_text = self.generate_text(active_detector_list)
+        disabled_detector_text = self.generate_text(disabled_detector_list)
+
+        self.write_to_console(active_detector_text, disabled_detector_text)
+
+    def generate_text(self, detector_list: list) -> str:
+        detector_text = ""
+        for reference in detector_list:
             circuit_number = reference[0]
             detector_number = reference[1]
             detector_description = self.model.get_detector_description(circuit_number, detector_number)
             for i in range(4 - len(str(circuit_number))):
-                active_detector_text += " "
-            active_detector_text += f"{circuit_number}/{detector_number}"
+                detector_text += " "
+            detector_text += f"{circuit_number}/{detector_number}"
             for i in range(2 - len(str(detector_number))):
-                active_detector_text += " "
-            active_detector_text += f"        {detector_description}\n"
+                detector_text += " "
+            detector_text += f"        {detector_description}\n"
 
-        print(active_detector_text)
-        self.write_to_console(active_detector_text)
+        return detector_text
 
-    def write_to_console(self, text: str):
-        if not isinstance(text, str):
-            raise TypeError("Text must be of type string")
-        self.window.console_buffer.set_text(text)
+    def write_to_console(self, active_text: str, disabled_text: str):
+        if not isinstance(active_text, str):
+            raise TypeError("active_text must be str")
+        if not isinstance(disabled_text, str):
+            raise TypeError("disabled_text must be str")
+        self.window.active_console.buffer.set_text(active_text)
+        self.window.disabled_console.buffer.set_text(disabled_text)
 
     def delete_all(self):
         """Removes all circuits and detectors"""

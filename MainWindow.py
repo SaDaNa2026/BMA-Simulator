@@ -10,6 +10,7 @@ from FileSaveDialog import FileSaveDialog
 from DefineObjectWindows import DefineCircuitWindow, DefineDetectorWindow
 from EditWindows import EditBuildingWindow, EditDetectorWindow, EditCommitMessageWindow
 from CommitListWindow import CommitListWindow
+from Console import Console
 
 
 class MainWindow(Gtk.ApplicationWindow):
@@ -44,16 +45,13 @@ class MainWindow(Gtk.ApplicationWindow):
         self.scrollable.set_child(self.main_box)
 
 
-        # Console to print information about active detectors to
-        self.console_buffer = Gtk.TextBuffer()
-        self.console = Gtk.TextView(editable=False,
-                                    buffer=self.console_buffer,
-                                    cursor_visible=False,
-                                    left_margin=10,
-                                    top_margin=10,
-                                    monospace=True)
-        self.console_frame = Gtk.Frame(child=self.console, label="Aktive Melder")
-        self.outer_box.insert_child_after(self.console_frame, self.scrollable)
+        # Consoles that display information about active and disabled detectors
+        self.console_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+        self.outer_box.insert_child_after(self.console_box, self.scrollable)
+        self.active_console = Console("Ausgelöste Melder")
+        self.console_box.append(self.active_console)
+        self.disabled_console = Console("Abgeschaltete Melder")
+        self.console_box.append(self.disabled_console)
 
         # Definition of the window header
         self.header = Gtk.HeaderBar()
