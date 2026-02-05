@@ -18,6 +18,7 @@ class DetectorOps(Operation):
     def add(self, circuit_number: int, detector_number: int, description: str, alarm_status: bool = False, enabled: bool = True) -> None:
         """Create a new Detector instance and add it to the window."""
         self.model.add_detector(circuit_number, detector_number, description)
+        circuit = self.app.window.circuit_dict[circuit_number]
 
         detector = Detector(circuit_number, detector_number, description)
 
@@ -50,10 +51,15 @@ class DetectorOps(Operation):
                                                              circuit_number=circuit_number,
                                                              detector_number=detector_number))
 
+        # Get the previous detector to add this one in the correct position (default None => top position)
+        previous_detector = None
+        for other_detector_number in self.model.get_detectors_for_circuit(circuit_number):
+            if detector_number > other_detector_number:
+                previous_detector = circuit.detector_dict[other_detector_number]
+
         # Add the detector to its circuit
-        circuit = self.app.window.circuit_dict[circuit_number]
         circuit.detector_dict[detector_number] = detector
-        circuit.main_box.append(detector)
+        circuit.button_box.insert_child_after(detector, previous_detector)
 
         self.app.clear_redo()
         self.app.append_undo((self.undo_add, (circuit_number, detector_number)))
@@ -183,12 +189,18 @@ class DetectorOps(Operation):
         enabled_action.connect("change-state", self.app.on_enable_detector_clicked)
         self.app.edit_action_group.add_action(enabled_action)
 
+        # Get the previous detector to add this one in the correct position (default None => top position)
+        previous_detector = None
+        for other_detector_number in self.model.get_detectors_for_circuit(circuit_number):
+            if detector_number > other_detector_number:
+                previous_detector = circuit.detector_dict[other_detector_number]
+
         # Add the detector object and the reference to it
-        self.app.window.circuit_dict[circuit_number].detector_dict[detector_number] = detector
+        circuit.detector_dict[detector_number] = detector
         self.model.add_detector(circuit_number, detector_number, description)
         self.model.set_detector_alarm_status(circuit_number, detector_number, alarm_status)
         self.model.set_detector_enabled(circuit_number, detector_number, enabled)
-        circuit.main_box.append(detector)
+        circuit.button_box.insert_child_after(detector, previous_detector)
 
         # Update state
         self.app.print_detector_state()
@@ -204,7 +216,7 @@ class DetectorOps(Operation):
         enabled = self.model.get_detector_enabled(circuit_number, detector_number)
 
         # Remove the detector object and the reference to it
-        circuit.main_box.remove(detector)
+        circuit.button_box.remove(detector)
         del self.app.window.circuit_dict[circuit_number].detector_dict[detector_number]
         self.model.delete_detector(circuit_number, detector_number)
 
