@@ -112,14 +112,14 @@ class DetectorOps(Operation):
         """Set the enabled status of a detector"""
         previous_alarm_status = self.model.get_detector_alarm_status(circuit_number, detector_number)
 
-        self._enable_detector_switch(circuit_number, detector_number, enabled)
+        self.enable_detector_switch(circuit_number, detector_number, enabled)
 
         self.app.clear_redo()
         self.app.append_undo((self.undo_set_enabled, (circuit_number, detector_number, not enabled, previous_alarm_status)))
 
     def undo_set_enabled(self, circuit_number: int, detector_number: int, enabled: bool, alarm_status: bool) -> None:
         previous_alarm_status = self.model.get_detector_alarm_status(circuit_number, detector_number)
-        self._enable_detector_switch(circuit_number, detector_number, enabled)
+        self.enable_detector_switch(circuit_number, detector_number, enabled)
 
         detector = self.app.window.circuit_dict[circuit_number].detector_dict[detector_number]
         if alarm_status:
@@ -132,7 +132,7 @@ class DetectorOps(Operation):
 
     def redo_set_enabled(self, circuit_number: int, detector_number: int, enabled: bool, alarm_status: bool) -> None:
         previous_alarm_status = self.model.get_detector_alarm_status(circuit_number, detector_number)
-        self._enable_detector_switch(circuit_number, detector_number, enabled)
+        self.enable_detector_switch(circuit_number, detector_number, enabled)
 
         detector = self.app.window.circuit_dict[circuit_number].detector_dict[detector_number]
         if alarm_status:
@@ -143,7 +143,7 @@ class DetectorOps(Operation):
 
         self.app.append_undo((self.undo_set_enabled, (circuit_number, detector_number, not enabled, previous_alarm_status)))
 
-    def _enable_detector_switch(self, circuit_number: int, detector_number: int, enabled: bool) -> None:
+    def enable_detector_switch(self, circuit_number: int, detector_number: int, enabled: bool) -> None:
         detector = self.app.window.circuit_dict[circuit_number].detector_dict[detector_number]
         if not enabled:
             detector.detector_switch.set_active(False)
@@ -265,11 +265,11 @@ class CircuitOps(Operation):
         self.app.clear_redo()
         self.app.append_undo((self.undo_delete, (circuit_number, circuit, detectors)))
 
-    def undo_delete(self, circuit_number: int, circuit: Any, detectors: list):
+    def undo_delete(self, circuit_number: int, circuit: Any, detectors: list) -> None:
         self._readd_circuit(circuit_number, circuit, detectors)
         self.app.append_redo((self.redo_delete, (circuit_number,)))
 
-    def redo_delete(self, circuit_number: int):
+    def redo_delete(self, circuit_number: int) -> None:
         circuit, detectors = self._remove_circuit(circuit_number)
         self.app.append_undo((self.undo_delete, (circuit_number, circuit, detectors)))
 

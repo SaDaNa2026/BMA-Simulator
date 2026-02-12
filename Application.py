@@ -84,6 +84,7 @@ class App(Gtk.Application):
         self.set_accels_for_action("app.undo", ["<Ctrl>Z"])
         self.set_accels_for_action("app.redo", ["<Ctrl><Shift>Z", "<Ctrl>Y"])
 
+        # Set up the port expander on the FAT
         self.fat_led_dict = {"previous_alarm": GPB4,
                              "next_alarm": GPB0,
                              "view_level": GPB6,
@@ -93,18 +94,37 @@ class App(Gtk.Application):
                              "error": GPA1,
                              "turn_off": GPA0}
 
-        # Set up the port expander
         self.mcp_fat = MCPController(0x27,
-                                     [(GPB1, self.on_next_message_clicked),
-                                      (GPB3, self.beeper_off),
-                                      (GPB5, self.on_previous_message_clicked),
-                                      (GPB7, self.on_view_level_clicked)],
+                                     [(GPB1, self.on_next_message_clicked, 0),
+                                      (GPB3, self.beeper_off, 0),
+                                      (GPB5, self.on_previous_message_clicked, 0),
+                                      (GPB7, self.on_view_level_clicked, 0)],
                                      self.fat_led_dict)
 
         self.led_fat = LEDController(self.mcp_fat, self.fat_led_dict)
 
-        # Turn on the green LED
-        self.mcp_fat.digital_write(self.fat_led_dict["working"], HIGH)
+        # Set up the port expander on the FBF
+        self.fbf_led_dict = {"working": GPA0,
+                             "extinguisher_triggered": GPA1,
+                             "acoustic_signals_off": GPA2,
+                             "UE_off": GPA3,
+                             "UE_triggered": GPB5,
+                             "fire_controls_off": GPB4,
+                             "alarm": GPB3}
+
+        self.mcp_fbf = MCPController(0x26,
+                                     [(GPA4, self.on_acoustic_signals_off_clicked, 0),
+                                      (GPA5, self.on_UE_off_clicked, 0),
+                                      (GPB2, self.on_fire_controls_off_clicked, 1),
+                                      (GPB1, self.on_clear_alarms_clicked, 0),
+                                      (GPB0, self.on_UE_test_clicked, 0)],
+                                     self.fbf_led_dict)
+
+        self.led_fbf = LEDController(self.mcp_fbf, self.fbf_led_dict)
+
+        # Turn on the green LEDs
+        self.led_fat.turn_on("working")
+        self.led_fbf.turn_on("working")
 
         self.window = MainWindow(edit_action_group=self.edit_action_group,
                                  hidden_action_group=self.hidden_action_group)
@@ -117,6 +137,7 @@ class App(Gtk.Application):
         """Clean up the hardware interface when the application is closed."""
         self.lcd.clear()
         self.led_fat.shutdown()
+        self.led_fbf.shutdown()
 
     def append_undo(self, entry: tuple) -> None:
         """Append the given entry to the undo stack and enable the undo action"""
@@ -463,6 +484,22 @@ class App(Gtk.Application):
             if isinstance(redo_action, Gio.SimpleAction):
                 redo_action.set_enabled(False)
 
+    def on_acoustic_signals_off_clicked(self, *args):
+        """Turn off acoustic signals. Currently a placeholder."""
+        pass
+
+    def on_UE_off_clicked(self, *args):
+        """Turn off the transmission unit (UE). Currently a placeholder."""
+        pass
+
+    def on_fire_controls_off_clicked(self, *args):
+        """Turn off special functions activated in case of an alarm. Currently a placeholder."""
+        pass
+
+    def on_UE_test_clicked(self, *args):
+        """Test the transmission unit (UE). Currently a placeholder."""
+        pass
+
     def print_detector_state(self):
         """Print the active and disabled detectors to the console."""
         active_detector_list = self.model.get_active_detectors()
@@ -507,8 +544,10 @@ class App(Gtk.Application):
         """Set the LED states according to the active detectors and contents of the LCD."""
         if len(self.model.get_active_detectors()) > 0:
             self.led_fat.turn_on("alarm")
+            self.led_fbf.turn_on("alarm")
         else:
             self.led_fat.turn_off("alarm")
+            self.led_fbf.turn_off("alarm")
 
         if self.lcd.first_message_shown():
             self.led_fat.stop_blink("previous_alarm")

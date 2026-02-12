@@ -38,7 +38,7 @@ class DefineObjectWindow(Gtk.Window):
         self.confirmation_box = Gtk.CenterBox()
         self.main_box.append(self.confirmation_box)
 
-        self.cancel_button = Gtk.Button(label="Schließen")
+        self.cancel_button = Gtk.Button(label="Abbrechen")
         self.cancel_button.connect("clicked", lambda button, *args: self.destroy())
         self.confirmation_box.set_start_widget(self.cancel_button)
 
@@ -63,8 +63,8 @@ class DefineObjectWindow(Gtk.Window):
 class DefineCircuitWindow(DefineObjectWindow):
     """Window that lets the user create a circuit with a chosen number."""
     def __init__(self, create_circuit_callback, parent):
-        super().__init__(handle_create_method=lambda button: self.handle_create_circuit(create_circuit_callback), entry_label="Nummer der Melderlinie:", parent=parent)
-        self.set_title("Melderlinie hinzufügen")
+        super().__init__(handle_create_method=lambda button: self.handle_create_circuit(create_circuit_callback), entry_label="Nummer der Meldergruppe:", parent=parent)
+        self.set_title("Meldergruppe hinzufügen")
 
     def handle_create_circuit(self, create_circuit_callback):
         try:
@@ -84,7 +84,7 @@ class DefineDetectorWindow(DefineObjectWindow):
     """Window that lets the user create a detector with a chosen number and description."""
     def __init__(self, circuit_number, create_detector_callback, parent):
         super().__init__(handle_create_method=lambda button: self.handle_create_detector(create_detector_callback), entry_label="Nummer des Melders:", parent=parent)
-        self.set_title(f"Melder zu Melderlinie {circuit_number} hinzufügen")
+        self.set_title(f"Melder zu Meldergruppe {circuit_number} hinzufügen")
 
         self.circuit_number = circuit_number
 

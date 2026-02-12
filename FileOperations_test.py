@@ -122,7 +122,7 @@ class TestApplyScenario(unittest.TestCase):
         self.model.raise_key_error = True
         with self.assertRaises(KeyError) as cm:
             FileOperations.apply_scenario(load_dict, self.model)
-        self.assertIn("Melder 6 in Melderlinie 5 ist im Szenario aktiv, aber nicht in der Gebäudekonfiguration "
+        self.assertIn("Melder 6 in Meldergruppe 5 ist im Szenario aktiv, aber nicht in der Gebäudekonfiguration "
                       "enthalten, die im selben Verzeichnis liegt.", str(cm.exception))
 
     def test_multiple_entries_mixed(self):

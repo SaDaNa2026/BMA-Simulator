@@ -31,7 +31,7 @@ class EditWindow(Gtk.Window):
         self.confirmation_box = Gtk.CenterBox()
         self.main_box.append(self.confirmation_box)
 
-        self.cancel_button = Gtk.Button(label="Schließen")
+        self.cancel_button = Gtk.Button(label="Abbrechen")
         self.cancel_button.connect("clicked", lambda button, *args: self.destroy())
         self.confirmation_box.set_start_widget(self.cancel_button)
 

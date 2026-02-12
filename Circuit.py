@@ -20,7 +20,7 @@ class Circuit(Gtk.Frame):
         self.set_child(self.main_box)
 
         self.circuit_label = Gtk.Label()
-        self.circuit_label.set_markup(f"<span size='large'>Melderlinie {circuit_number}</span>")
+        self.circuit_label.set_markup(f"<span size='large'>Meldergruppe {circuit_number}</span>")
         self.main_box.append(self.circuit_label)
 
         # A tool to register the label of the circuit box being clicked

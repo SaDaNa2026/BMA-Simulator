@@ -21,7 +21,7 @@ class AddMenu(Gio.Menu):
     """Menu model for the "+" MenuButton in the header bar."""
     def __init__(self):
         super().__init__()
-        create_circuit_item = Gio.MenuItem.new("Melderlinie hinzufügen", "edit.create_circuit")
+        create_circuit_item = Gio.MenuItem.new("Meldergruppe hinzufügen", "edit.create_circuit")
         self.append_item(create_circuit_item)
         edit_building_item = Gio.MenuItem.new("Gebäudebeschreibung bearbeiten", "edit.edit_building")
         self.append_item(edit_building_item)
@@ -34,7 +34,7 @@ class CircuitContextMenu(Gio.Menu):
         create_detector_item = Gio.MenuItem.new("Melder hinzufügen", "edit.create_detector")
         create_detector_item.set_attribute_value("target", GLib.Variant("i", circuit_number))
         self.append_item(create_detector_item)
-        delete_circuit_item = Gio.MenuItem.new("Melderlinie löschen", "edit.delete_circuit")
+        delete_circuit_item = Gio.MenuItem.new("Meldergruppe löschen", "edit.delete_circuit")
         delete_circuit_item.set_attribute_value("target", GLib.Variant("i", circuit_number))
         self.append_item(delete_circuit_item)
 

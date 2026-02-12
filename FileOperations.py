@@ -132,7 +132,7 @@ class FileOperations:
                 detector.detector_switch.set_active(True)
 
             except KeyError:
-                raise KeyError(f"Melder {detector_number} in Melderlinie {circuit_number} ist im Szenario aktiv, "
+                raise KeyError(f"Melder {detector_number} in Meldergruppe {circuit_number} ist im Szenario aktiv, "
                                f"aber nicht in der Gebäudekonfiguration enthalten, die im selben Verzeichnis "
                                f"liegt.")
 
@@ -160,7 +160,7 @@ class FileOperations:
                 print(enable_action.get_state())
 
             except KeyError:
-                raise KeyError(f"Melder {detector_number} in Melderlinie {circuit_number} ist im Szenario abgeschaltet, "
+                raise KeyError(f"Melder {detector_number} in Meldergruppe {circuit_number} ist im Szenario abgeschaltet, "
                                f"aber nicht in der Gebäudekonfiguration enthalten, die im selben Verzeichnis "
                                f"liegt.")
 
