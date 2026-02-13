@@ -48,7 +48,8 @@ class App(Gtk.Application):
                                ("create_detector", self.on_add_detector_clicked, "i"),
                                ("delete_detector", self.on_delete_detector_clicked, "s"),
                                ("edit_detector", self.on_edit_detector_clicked, "s"),
-                               ("edit_building", self.on_edit_building_clicked, None)]
+                               ("edit_building", self.on_edit_building_clicked, None),
+                               ("edit_settings", self.on_edit_settings_clicked, None)]
 
         hidden_action_entries = [("previous_alarm", self.on_previous_message_clicked, None),
                                  ("next_alarm", self.on_next_message_clicked, None),
@@ -107,14 +108,14 @@ class App(Gtk.Application):
         self.fbf_led_dict = {"working": GPA0,
                              "extinguisher_triggered": GPA1,
                              "acoustic_signals_off": GPA2,
-                             "UE_off": GPA3,
-                             "UE_triggered": GPB5,
+                             "ue_off": GPA3,
+                             "ue_triggered": GPB5,
                              "fire_controls_off": GPB4,
                              "alarm": GPB3}
 
         self.mcp_fbf = MCPController(0x26,
                                      [(GPA4, self.on_acoustic_signals_off_clicked, 0),
-                                      (GPA5, self.on_UE_off_clicked, 0),
+                                      (GPA5, self.on_ue_off_clicked, 0),
                                       (GPB2, self.on_fire_controls_off_clicked, 1),
                                       (GPB1, self.on_clear_alarms_clicked, 0),
                                       (GPB0, self.on_UE_test_clicked, 0)],
@@ -332,7 +333,7 @@ class App(Gtk.Application):
             return
 
         try:
-            FileOperations.apply_scenario(scenario_load_dict, self.window.circuit_dict, self.edit_action_group)
+            FileOperations.apply_scenario(scenario_load_dict, self.window.circuit_dict, self.edit_action_group, self.model)
             self.clear_redo()
             self.clear_undo()
 
@@ -370,6 +371,9 @@ class App(Gtk.Application):
             return
 
         self.window.show_commit_list(directory, commit_list, FileOperations.rollback)
+
+    def on_edit_settings_clicked(self, *args):
+        self.window.show_settings_window(self.model, self.update_leds)
 
     def on_detector_switch_toggled(self, action, parameter, circuit_number: int, detector_number: int):
         """Callback function for detector_switch. Set the alarm_status of the detector according to the position of
@@ -454,7 +458,11 @@ class App(Gtk.Application):
         self.update_leds()
 
     def on_clear_alarms_clicked(self, *args):
-        """Clear all alarms."""
+        """Schedule alarms to be cleared after a short delay"""
+        GLib.timeout_add_seconds(3, self.clear_alarms)
+
+    def clear_alarms(self):
+        """Clear all alarms"""
         # Convert list to tuple to make it immutable for iteration
         active_detectors = tuple(self.model.get_active_detectors())
 
@@ -488,7 +496,7 @@ class App(Gtk.Application):
         """Turn off acoustic signals. Currently a placeholder."""
         pass
 
-    def on_UE_off_clicked(self, *args):
+    def on_ue_off_clicked(self, *args):
         """Turn off the transmission unit (UE). Currently a placeholder."""
         pass
 
@@ -545,9 +553,31 @@ class App(Gtk.Application):
         if len(self.model.get_active_detectors()) > 0:
             self.led_fat.turn_on("alarm")
             self.led_fbf.turn_on("alarm")
+            self.led_fbf.turn_on("ue_triggered")
+
+            if self.model.get_extinguisher_triggered():
+                self.led_fbf.turn_on("extinguisher_triggered")
+            else:
+                self.led_fbf.turn_off("extinguisher_triggered")
+
+            if self.model.get_acoustic_signals_off():
+                self.led_fbf.turn_on("acoustic_signals_off")
+            else:
+                self.led_fbf.turn_off("acoustic_signals_off")
+
+            if self.model.get_fire_controls_off():
+                self.led_fbf.turn_on("fire_controls_off")
+            else:
+                self.led_fbf.turn_off("fire_controls_off")
+
         else:
             self.led_fat.turn_off("alarm")
             self.led_fbf.turn_off("alarm")
+            self.led_fbf.turn_off("ue_triggered")
+            self.led_fbf.turn_off("extinguisher_triggered")
+            self.led_fbf.turn_off("acoustic_signals_off")
+            self.led_fbf.turn_off("fire_controls_off")
+
 
         if self.lcd.first_message_shown():
             self.led_fat.stop_blink("previous_alarm")
@@ -569,6 +599,11 @@ class App(Gtk.Application):
             self.led_fat.start_blink("turn_off")
         else:
             self.led_fat.stop_blink("turn_off")
+
+        if self.model.get_ue_off():
+            self.led_fbf.turn_on("ue_off")
+        else:
+            self.led_fbf.turn_off("ue_off")
 
     def beeper_off(self):
         """Turns off the beeper. Currently a placeholder."""

@@ -1,16 +1,16 @@
 import gi
-
 gi.require_version('Gtk', '4.0')
 from gi.repository import Gtk
 from functools import partial
 
-from Menus import DataMenu, AddMenu
+from Menus import DataMenu, EditMenu
 from FileOpenDialog import FileOpenDialog
 from FileSaveDialog import FileSaveDialog
 from DefineObjectWindows import DefineCircuitWindow, DefineDetectorWindow
 from EditWindows import EditBuildingWindow, EditDetectorWindow, EditCommitMessageWindow
 from CommitListWindow import CommitListWindow
 from Console import Console
+from SettingsWindow import SettingsWindow
 
 
 class MainWindow(Gtk.ApplicationWindow):
@@ -64,16 +64,16 @@ class MainWindow(Gtk.ApplicationWindow):
         self.header.pack_start(self.data_menubutton)
 
         # MenuButton to add a circuit or edit the building description
-        self.add_menu = AddMenu()
-        self.add_menubutton = Gtk.MenuButton(label="+", direction=Gtk.ArrowType.DOWN)
+        self.add_menu = EditMenu()
+        self.add_menubutton = Gtk.MenuButton(label="Bearbeiten", direction=Gtk.ArrowType.DOWN)
         self.add_menubutton.set_menu_model(self.add_menu)
         self.add_menubutton.set_visible(False)
         self.header.pack_start(self.add_menubutton)
 
         # Buttons for undo/redo
-        self.undo_button = Gtk.Button(icon_name="edit-undo", action_name="app.undo")
+        self.undo_button = Gtk.Button(icon_name="edit-undo", action_name="app.undo", tooltip_text="Undo")
         self.header.pack_start(self.undo_button)
-        self.redo_button = Gtk.Button(icon_name="edit-redo", action_name="app.redo")
+        self.redo_button = Gtk.Button(icon_name="edit-redo", action_name="app.redo", tooltip_text="Redo")
         self.header.pack_start(self.redo_button)
 
         # Button to clear alarms
@@ -83,6 +83,11 @@ class MainWindow(Gtk.ApplicationWindow):
         # Bind the action groups to the window
         self.insert_action_group("edit", edit_action_group)
         self.insert_action_group("hidden_actions", hidden_action_group)
+
+    def show_settings_window(self, model, update_led_func):
+        """Show the settings window"""
+        settings_window = SettingsWindow(self, model, update_led_func)
+        settings_window.present()
 
     def show_open_dialog(self, open_response_callback, last_dir):
         """Show a FileOpenDialog."""

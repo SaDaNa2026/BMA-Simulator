@@ -35,7 +35,7 @@ class MCPController(MCP23017):
                 self.last_state[pin_number] = True
                 # Execute registered callback
                 button_tuple[1]()
-            elif not self.digital_read(pin_number):
+            elif not state:
                 self.last_state[pin_number] = False
         return True
 

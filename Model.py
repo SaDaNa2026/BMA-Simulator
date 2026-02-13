@@ -57,6 +57,10 @@ class BuildingModel:
     circuit_dict: Dict[int, Circuit] = field(default_factory=dict)
     active_detector_list: List[tuple] = field(default_factory=list)
     disabled_detector_list: List[tuple] = field(default_factory=list)
+    extinguisher_triggered: bool = field(default=False)
+    acoustic_signals_off: bool = field(default=False)
+    ue_off: bool = field(default=False)
+    fire_controls_off: bool = field(default=False)
 
     def __post_init__(self):
         if not isinstance(self.building_description, str):
@@ -76,6 +80,10 @@ class BuildingModel:
         self.circuit_dict.clear()
         self.active_detector_list.clear()
         self.disabled_detector_list.clear()
+        self.extinguisher_triggered = False
+        self.acoustic_signals_off = False
+        self.ue_off = False
+        self.fire_controls_off = False
 
     def set_building_description(self, description: str) -> None:
         if not isinstance(description, str):
@@ -217,3 +225,35 @@ class BuildingModel:
     def clear_alarms(self) -> None:
         """Clear active_detector_list."""
         self.active_detector_list.clear()
+
+    def set_extinguisher_triggered(self, state: bool) -> None:
+        if not isinstance(state, bool):
+            raise TypeError("state must be bool")
+        self.extinguisher_triggered = state
+
+    def get_extinguisher_triggered(self) -> bool:
+        return self.extinguisher_triggered
+
+    def set_acoustic_signals_off(self, state: bool) -> None:
+        if not isinstance(state, bool):
+            raise TypeError("state must be bool")
+        self.acoustic_signals_off = state
+
+    def get_acoustic_signals_off(self) -> bool:
+        return self.acoustic_signals_off
+
+    def set_ue_off(self, state: bool) -> None:
+        if not isinstance(state, bool):
+            raise TypeError("state must be bool")
+        self.ue_off = state
+
+    def get_ue_off(self) -> bool:
+        return self.ue_off
+
+    def set_fire_controls_off(self, state: bool) -> None:
+        if not isinstance(state, bool):
+            raise TypeError("state must be bool")
+        self.fire_controls_off = state
+
+    def get_fire_controls_off(self) -> bool:
+        return self.fire_controls_off

@@ -106,7 +106,7 @@ class FileOperations:
         print("File loaded successfully")
 
     @staticmethod
-    def apply_scenario(load_dict, circuit_dict, edit_action_group):
+    def apply_scenario(load_dict, circuit_dict, edit_action_group, model):
         """Set all detectors listed in load_dict to active"""
         for number_list in load_dict["active_detector_list"]:
             # Check for correct Syntax
@@ -163,6 +163,11 @@ class FileOperations:
                 raise KeyError(f"Melder {detector_number} in Meldergruppe {circuit_number} ist im Szenario abgeschaltet, "
                                f"aber nicht in der Gebäudekonfiguration enthalten, die im selben Verzeichnis "
                                f"liegt.")
+
+        model.set_extinguisher_triggered(load_dict["settings"]["extinguisher_triggered"])
+        model.set_acoustic_signals_off(load_dict["settings"]["acoustic_signals_off"])
+        model.set_ue_off(load_dict["settings"]["ue_off"])
+        model.set_fire_controls_off(load_dict["settings"]["fire_controls_off"])
 
     @staticmethod
     def retrieve_save_file(dialog, result):
@@ -257,5 +262,9 @@ class FileOperations:
         """Create a dictionary that contains a list of active detectors and a description."""
         save_dict = {"active_detector_list": model.get_active_detectors(),
                      "disabled_detector_list": model.get_disabled_detectors(),
+                     "settings": {"extinguisher_triggered": model.get_extinguisher_triggered(),
+                                  "acoustic_signals_off": model.get_acoustic_signals_off(),
+                                  "ue_off": model.get_ue_off(),
+                                  "fire_controls_off": model.get_fire_controls_off()},
                      "scenario_description": "Beschreibung"}
         return save_dict
