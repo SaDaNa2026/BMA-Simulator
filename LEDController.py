@@ -5,9 +5,11 @@ from mcp23017 import *
 
 
 class LEDController:
-    def __init__(self, mcp_object, led_pins):
+    def __init__(self, mcp_object, led_dict):
+        """- mcp_object: The MCPController instance that represents the port expander the LEDs are connected to
+            - led_dict: {led_name : led_pin}"""
         self.mcp = mcp_object
-        self.led_pins = led_pins
+        self.led_pins = led_dict
 
         self.led_status = {}
         for key in self.led_pins.keys():

@@ -85,6 +85,12 @@ class App(Gtk.Application):
         self.set_accels_for_action("app.undo", ["<Ctrl>Z"])
         self.set_accels_for_action("app.redo", ["<Ctrl><Shift>Z", "<Ctrl>Y"])
 
+
+        # Variables mirroring the state of the switches on the FBF
+        self.acoustic_signals_off_switch: bool = False
+        self.ue_off_switch: bool = False
+        self.fire_controls_off_switch: bool = False
+
         # Set up the port expander on the FAT
         self.fat_led_dict = {"previous_alarm": GPB4,
                              "next_alarm": GPB0,
@@ -96,10 +102,10 @@ class App(Gtk.Application):
                              "turn_off": GPA0}
 
         self.mcp_fat = MCPController(0x27,
-                                     [(GPB1, self.on_next_message_clicked, 0),
-                                      (GPB3, self.beeper_off, 0),
-                                      (GPB5, self.on_previous_message_clicked, 0),
-                                      (GPB7, self.on_view_level_clicked, 0)],
+                                     [(GPB1, self.on_next_message_clicked, False, False),
+                                      (GPB3, self.beeper_off, False, False),
+                                      (GPB5, self.on_previous_message_clicked, False, False),
+                                      (GPB7, self.on_view_level_clicked, False, False)],
                                      self.fat_led_dict)
 
         self.led_fat = LEDController(self.mcp_fat, self.fat_led_dict)
@@ -114,11 +120,11 @@ class App(Gtk.Application):
                              "alarm": GPB3}
 
         self.mcp_fbf = MCPController(0x26,
-                                     [(GPA4, self.on_acoustic_signals_off_clicked, 0),
-                                      (GPA5, self.on_ue_off_clicked, 0),
-                                      (GPB2, self.on_fire_controls_off_clicked, 1),
-                                      (GPB1, self.on_clear_alarms_clicked, 0),
-                                      (GPB0, self.on_UE_test_clicked, 0)],
+                                     [(GPA4, self.on_acoustic_signals_off_toggled, True, False),
+                                      (GPA5, self.on_ue_off_toggled, True, False),
+                                      (GPB2, self.on_fire_controls_off_toggled, True, True),
+                                      (GPB1, self.on_clear_alarms_clicked, False, False),
+                                      (GPB0, self.on_UE_test_clicked, False, False)],
                                      self.fbf_led_dict)
 
         self.led_fbf = LEDController(self.mcp_fbf, self.fbf_led_dict)
@@ -492,17 +498,20 @@ class App(Gtk.Application):
             if isinstance(redo_action, Gio.SimpleAction):
                 redo_action.set_enabled(False)
 
-    def on_acoustic_signals_off_clicked(self, *args):
-        """Turn off acoustic signals. Currently a placeholder."""
-        pass
+    def on_acoustic_signals_off_toggled(self, state):
+        """Update acoustic_signals_off"""
+        self.acoustic_signals_off_switch = state
+        self.update_leds()
 
-    def on_ue_off_clicked(self, *args):
-        """Turn off the transmission unit (UE). Currently a placeholder."""
-        pass
+    def on_ue_off_toggled(self, state):
+        """Update ue_off"""
+        self.ue_off_switch = state
+        self.update_leds()
 
-    def on_fire_controls_off_clicked(self, *args):
-        """Turn off special functions activated in case of an alarm. Currently a placeholder."""
-        pass
+    def on_fire_controls_off_toggled(self, state):
+        """Update fire_controls_off"""
+        self.fire_controls_off_switch = state
+        self.update_leds()
 
     def on_UE_test_clicked(self, *args):
         """Test the transmission unit (UE). Currently a placeholder."""
@@ -553,19 +562,22 @@ class App(Gtk.Application):
         if len(self.model.get_active_detectors()) > 0:
             self.led_fat.turn_on("alarm")
             self.led_fbf.turn_on("alarm")
-            self.led_fbf.turn_on("ue_triggered")
+            if not (self.model.get_ue_off() or self.ue_off_switch):
+                self.led_fbf.turn_on("ue_triggered")
+            else:
+                self.led_fbf.turn_off("ue_triggered")
 
             if self.model.get_extinguisher_triggered():
                 self.led_fbf.turn_on("extinguisher_triggered")
             else:
                 self.led_fbf.turn_off("extinguisher_triggered")
 
-            if self.model.get_acoustic_signals_off():
+            if self.model.get_acoustic_signals_off() or self.acoustic_signals_off_switch:
                 self.led_fbf.turn_on("acoustic_signals_off")
             else:
                 self.led_fbf.turn_off("acoustic_signals_off")
 
-            if self.model.get_fire_controls_off():
+            if self.model.get_fire_controls_off() or self.fire_controls_off_switch:
                 self.led_fbf.turn_on("fire_controls_off")
             else:
                 self.led_fbf.turn_off("fire_controls_off")
@@ -600,7 +612,7 @@ class App(Gtk.Application):
         else:
             self.led_fat.stop_blink("turn_off")
 
-        if self.model.get_ue_off():
+        if self.model.get_ue_off() or self.ue_off_switch:
             self.led_fbf.turn_on("ue_off")
         else:
             self.led_fbf.turn_off("ue_off")
