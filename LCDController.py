@@ -61,12 +61,26 @@ class LCDController(CharLCD):
 
         self.refresh()
 
+    def write_disabled_detectors(self):
+        """Set visible_dict according to the disabled detectors and refresh"""
+        disabled_detectors = self.model.get_disabled_detectors()
+        if self.current_screen == 2 and len(disabled_detectors) > 0:
+            self.current_screen = 2
+            self.visible_dict.clear()
+            self.visible_dict["bottom"] = disabled_detectors[-1]
+
+            if len(disabled_detectors) > 1:
+                self.visible_dict["top"] = disabled_detectors[0]
+
+        self.refresh()
+
     def reset(self):
         """Resets the LCD to display the first and last alarm, if available. Displays the building description otherwise."""
         self.visible_dict.clear()
         self.clear()
         active_detector_list = self.model.get_active_detectors()
         if len(active_detector_list) > 0:
+            self.current_screen = 1
             self.add_alarm(active_detector_list[0])
             if len(active_detector_list) > 1:
                 self.add_alarm(active_detector_list[-1])
@@ -144,21 +158,25 @@ class LCDController(CharLCD):
 
     def toggle_view_level(self):
         """Switch between alarms and disabled detectors"""
-        if self.current_screen == (0 or 2):
-            if len(self.model.get_active_detectors()) > 0:
-                self.current_screen = 1
-                self.reset()
-        else:
-            disabled_detectors = self.model.get_disabled_detectors()
-            if len(disabled_detectors) > 0:
-                self.current_screen=2
-                self.visible_dict.clear()
-                self.visible_dict["bottom"] = disabled_detectors[-1]
+        match self.current_screen:
+            case 0:
+                if len(self.model.get_active_detectors()) > 0:
+                    self.current_screen = 1
+                    self.reset()
 
-                if len(disabled_detectors) > 1:
-                    self.visible_dict["top"] = disabled_detectors[0]
+                elif len(self.model.get_disabled_detectors()) > 0:
+                    self.current_screen = 2
+                    self.write_disabled_detectors()
 
-            self.refresh()
+            case 1:
+                if len(self.model.get_disabled_detectors()) > 0:
+                    self.current_screen = 2
+                    self.write_disabled_detectors()
+
+            case 2:
+                if len(self.model.get_active_detectors()) > 0:
+                    self.current_screen = 1
+                    self.reset()
 
     def refresh(self):
         """Refresh the LCD according to visible_alarm_dict."""
@@ -174,3 +192,9 @@ class LCDController(CharLCD):
             self.clear()
             for position in self.visible_dict:
                 self.write_message(self.visible_dict[position], position, "disabled")
+
+    def test(self):
+        """Fill the screen with blocks to test all pixels"""
+        for row in range(4):
+            self.cursor_pos = (row, 0)
+            self.write_string('\xff' * 20)

@@ -26,9 +26,11 @@ class LEDController:
 
     def turn_on(self, led: str):
         self.mcp.digital_write(self.led_pins[led], HIGH)
+        self.led_status[led] = HIGH
 
     def turn_off(self, led: str):
         self.mcp.digital_write(self.led_pins[led], LOW)
+        self.led_status[led] = LOW
 
     def blink(self):
         """Checks which LEDs need to blink and toggles their state."""
@@ -57,5 +59,10 @@ class LEDController:
         """Turn off all LEDs."""
         for led in self.led_pins:
             self.stop_blink(led)
-            self.led_status[led] = LOW
             self.turn_off(led)
+
+    def test(self):
+        """Turn on all LEDs"""
+        for led in self.led_pins:
+            self.stop_blink(led)
+            self.turn_on(led)

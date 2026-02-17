@@ -102,10 +102,10 @@ class App(Gtk.Application):
                              "turn_off": GPA0}
 
         self.mcp_fat = MCPController(0x27,
-                                     [(GPB1, self.on_next_message_clicked, False, False),
-                                      (GPB3, self.beeper_off, False, False),
-                                      (GPB5, self.on_previous_message_clicked, False, False),
-                                      (GPB7, self.on_view_level_clicked, False, False)],
+                                     [(GPB1, self.on_next_message_clicked, None, False, False),
+                                      (GPB3, self.beeper_off, self.on_self_test_pressed, False, False),
+                                      (GPB5, self.on_previous_message_clicked, None, False, False),
+                                      (GPB7, self.on_view_level_clicked, self.on_history_pressed, False, False)],
                                      self.fat_led_dict)
 
         self.led_fat = LEDController(self.mcp_fat, self.fat_led_dict)
@@ -120,11 +120,11 @@ class App(Gtk.Application):
                              "alarm": GPB3}
 
         self.mcp_fbf = MCPController(0x26,
-                                     [(GPA4, self.on_acoustic_signals_off_toggled, True, False),
-                                      (GPA5, self.on_ue_off_toggled, True, False),
-                                      (GPB2, self.on_fire_controls_off_toggled, True, True),
-                                      (GPB1, self.on_clear_alarms_clicked, False, False),
-                                      (GPB0, self.on_UE_test_clicked, False, False)],
+                                     [(GPA4, self.on_acoustic_signals_off_toggled, None, True, False),
+                                      (GPA5, self.on_ue_off_toggled, None, True, False),
+                                      (GPB2, self.on_fire_controls_off_toggled, None, True, True),
+                                      (GPB1, self.on_clear_alarms_clicked, None, False, False),
+                                      (GPB0, self.on_UE_test_clicked, None, False, False)],
                                      self.fbf_led_dict)
 
         self.led_fbf = LEDController(self.mcp_fbf, self.fbf_led_dict)
@@ -517,6 +517,23 @@ class App(Gtk.Application):
         """Test the transmission unit (UE). Currently a placeholder."""
         pass
 
+    def on_history_pressed(self):
+        """Display the history screen"""
+        print("history")
+
+    def on_self_test_pressed(self):
+        """Turn on all LEDs and all pixels on the LCD"""
+        self.lcd.test()
+        self.led_fat.test()
+        self.led_fbf.test()
+        GLib.timeout_add(5000, self.stop_test)
+
+    def stop_test(self):
+        self.lcd.reset()
+        self.led_fat.shutdown()
+        self.led_fbf.shutdown()
+        self.update_leds()
+
     def print_detector_state(self):
         """Print the active and disabled detectors to the console."""
         active_detector_list = self.model.get_active_detectors()
@@ -559,6 +576,9 @@ class App(Gtk.Application):
 
     def update_leds(self):
         """Set the LED states according to the active detectors and contents of the LCD."""
+        self.led_fat.turn_on("working")
+        self.led_fbf.turn_on("working")
+
         if len(self.model.get_active_detectors()) > 0:
             self.led_fat.turn_on("alarm")
             self.led_fbf.turn_on("alarm")
