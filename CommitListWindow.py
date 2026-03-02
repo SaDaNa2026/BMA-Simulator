@@ -55,7 +55,7 @@ class CommitBox(Gtk.Box):
 
 class CommitListWindow(Gtk.Window):
     def __init__(self, parent, directory: str, commit_list: list, rollback_callback):
-        super().__init__(modal=True, transient_for=parent, title=f"{directory} zurücksetzen...")
+        super().__init__(modal=True, transient_for=parent, title=f"{directory} wiederherstellen...")
         self.rollback_callback = rollback_callback
         self.directory = directory
 
@@ -85,19 +85,19 @@ class CommitListWindow(Gtk.Window):
             index += 1
 
         # Buttons to cancel or confirm
-        self.confirmation_box = Gtk.CenterBox()
+        self.confirmation_box = Gtk.Box(halign=Gtk.Align.END, spacing=10)
         self.main_box.append(self.confirmation_box)
 
-        self.cancel_button = Gtk.Button(label="Schließen")
+        self.cancel_button = Gtk.Button(label="Schließen", halign=Gtk.Align.END)
         self.cancel_button.connect("clicked", lambda button, *args: self.destroy())
-        self.confirmation_box.set_start_widget(self.cancel_button)
+        self.confirmation_box.append(self.cancel_button)
 
-        self.confirm_button = Gtk.Button(label="Zurücksetzen")
+        self.confirm_button = Gtk.Button(label="Wiederherstellen", halign=Gtk.Align.END)
         self.confirm_button.connect("clicked", self.on_rollback_clicked)
-        self.confirmation_box.set_end_widget(self.confirm_button)
+        self.confirmation_box.append(self.confirm_button)
 
     def on_rollback_clicked(self, *args):
-        confirmation_alert = Gtk.AlertDialog(message="Dateistand zurücksetzen",
+        confirmation_alert = Gtk.AlertDialog(message="Dateistand wiederherstellen",
                                              detail=f"Wenn Sie fortfahren, gehen alle Änderungen\n"
                                                     f"nach dem ausgewählten Dateistand verloren.",
                                              buttons=["Abbrechen", "OK"])

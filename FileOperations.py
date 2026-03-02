@@ -217,12 +217,14 @@ class FileOperations:
         except InvalidGitRepositoryError:
             return None
 
+        # Get a list of all commits of the current directory
         commit_list = list(repo.iter_commits())
         return_list = []
         for commit in commit_list:
             parent = commit.parents[0] if commit.parents else None
             if parent:
-                diffs = commit.diff(parent)
+                # Diff parent against commit. Other way around returns flipped values for adding/deleting files
+                diffs = parent.diff(commit)
             else:
                 # Initial commit (no parent): diff against empty tree
                 diffs = commit.diff(NULL_TREE)
