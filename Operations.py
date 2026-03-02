@@ -310,13 +310,13 @@ class BuildingOps(Operation):
             self.app.append_undo((self.undo_edit, (previous_description,)))
 
     def undo_edit(self, description: str) -> None:
-        previous_description = self.model.get_detector_description()
+        previous_description = self.model.get_building_description()
         self.model.set_building_description(description)
         self.app.lcd.reset()
         self.app.append_redo((self.redo_edit, (previous_description,)))
 
     def redo_edit(self, description: str) -> None:
-        previous_description = self.model.get_detector_description()
+        previous_description = self.model.get_building_description()
         self.model.set_building_description(description)
         self.app.lcd.reset()
         self.app.append_undo((self.undo_edit, (previous_description,)))
