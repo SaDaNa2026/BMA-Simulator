@@ -18,7 +18,7 @@ class MainWindow(Gtk.ApplicationWindow):
     application functionality."""
 
     def __init__(self, edit_action_group, hidden_action_group, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs, maximized=True)
         self.set_title("Steuerung Übungs-BMA")
 
         # A dictionary to keep track of the circuits in this window.
@@ -47,6 +47,7 @@ class MainWindow(Gtk.ApplicationWindow):
 
         # Consoles that display information about active and disabled detectors
         self.console_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+        self.console_box.set_size_request(600, -1)
         self.outer_box.insert_child_after(self.console_box, self.scrollable)
         self.active_console = Console("Ausgelöste Melder")
         self.console_box.append(self.active_console)
@@ -75,10 +76,6 @@ class MainWindow(Gtk.ApplicationWindow):
         self.header.pack_start(self.undo_button)
         self.redo_button = Gtk.Button(icon_name="edit-redo", action_name="app.redo", tooltip_text="Redo")
         self.header.pack_start(self.redo_button)
-
-        # Button to clear alarms
-        self.clear_alarms_button = Gtk.Button(label="Zurückstellen", action_name="hidden_actions.clear_alarms")
-        self.header.pack_end(self.clear_alarms_button)
 
         # Bind the action groups to the window
         self.insert_action_group("edit", edit_action_group)

@@ -27,7 +27,7 @@ class EditMenu(Gio.Menu):
         self.append_item(create_circuit_item)
         edit_building_item = Gio.MenuItem.new("Gebäudebeschreibung bearbeiten...", "edit.edit_building")
         self.append_item(edit_building_item)
-        edit_settings_item = Gio.MenuItem.new("Einstellungen...", "edit.edit_settings")
+        edit_settings_item = Gio.MenuItem.new("FBF...", "edit.edit_settings")
         self.append_item(edit_settings_item)
 
 
@@ -47,7 +47,7 @@ class DetectorContextMenu(Gio.Menu):
     """Menu model for the context menu that appears when right-clicking on a detector."""
     def __init__(self, circuit_number, detector_number):
         super().__init__()
-        edit_detector_item = Gio.MenuItem.new("Melder bearbeiten...", "edit.edit_detector")
+        edit_detector_item = Gio.MenuItem.new("Beschreibung bearbeiten...", "edit.edit_detector")
         edit_detector_item.set_attribute_value("target", GLib.Variant("s", f"{circuit_number}, {detector_number}"))
         self.append_item(edit_detector_item)
         disable_detector_item = Gio.MenuItem.new("Abschaltung", f"edit.enable_detector_{circuit_number}_{detector_number}")
