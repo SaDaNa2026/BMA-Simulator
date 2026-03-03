@@ -1,9 +1,13 @@
-import gi
+import os
+import subprocess
+import sys
 
+import gi
 gi.require_version('Gtk', '4.0')
 gi.require_version('GLib', '2.0')
 from gi.repository import Gtk, Gio, GLib, Gdk
 from json import JSONDecodeError
+
 from Operations import DetectorOps, CircuitOps, BuildingOps
 from Model import BuildingModel
 from FileOperations import FileOperations
@@ -41,7 +45,8 @@ class App(Gtk.Application):
                                ("rollback", self.on_rollback_clicked, None),
                                ("edit_mode", None, None, "false", self.on_edit_mode_clicked),
                                ("undo", self.on_undo_clicked, None),
-                               ("redo", self.on_redo_clicked, None)]
+                               ("redo", self.on_redo_clicked, None),
+                               ("help", self.on_help_clicked, None)]
 
         edit_action_entries = [("create_circuit", self.on_add_circuit_clicked, None),
                                ("delete_circuit", self.on_delete_circuit_clicked, "i"),
@@ -52,8 +57,7 @@ class App(Gtk.Application):
                                ("edit_settings", self.on_edit_settings_clicked, None)]
 
         hidden_action_entries = [("previous_alarm", self.on_previous_message_clicked, None),
-                                 ("next_alarm", self.on_next_message_clicked, None),
-                                 ("clear_alarms", self.on_clear_alarms_clicked, None)]
+                                 ("next_alarm", self.on_next_message_clicked, None)]
 
         # Add app actions to self
         self.add_action_entries(app_action_entries, None)
@@ -497,6 +501,14 @@ class App(Gtk.Application):
             redo_action = self.lookup_action("redo")
             if isinstance(redo_action, Gio.SimpleAction):
                 redo_action.set_enabled(False)
+
+    def on_help_clicked(self, *args):
+        """Open README.md in Okular"""
+        dir_path = os.path.abspath(os.path.dirname(sys.argv[0]))
+        readme_path = dir_path + "/README.md"
+        subprocess.Popen(['okular', readme_path],
+                         stdout=subprocess.DEVNULL,
+                         stderr=subprocess.DEVNULL)
 
     def on_acoustic_signals_off_toggled(self, state):
         """Update acoustic_signals_off"""

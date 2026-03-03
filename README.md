@@ -1,8 +1,6 @@
-# Deutsch
+# Übersicht
 
-## Übersicht
-
-Diese Anwendung dient zur Steuerung und Konfiguration der Übungs-BMA an der Landesfeuerwehrschule 
+Die BMA-Steuerung dient zur Steuerung und Konfiguration der Übungs-BMA an der Landesfeuerwehrschule 
 Baden-Württemberg. 
 Es können jederzeit dynamisch neue Meldergruppen und Melder erstellt oder gelöscht, 
 Melder ausgelöst oder abgeschaltet und LEDs am FBF gesteuert werden.
@@ -12,14 +10,32 @@ Die Gebäudekonfiguration speichert dabei, welche Meldergruppen und Melder exist
 welche Beschreibung diese haben. Das Szenario legt fest, welche Melder aktiviert oder abgeschaltet sind
 und welche LEDs am FBF aktiv sind.
 
-## Hardwareanforderungen
+# Inhaltsverzeichnis
+
+<!-- TOC -->
+* [Übersicht](#übersicht)
+* [Inhaltsverzeichnis](#inhaltsverzeichnis)
+* [Hardwareanforderungen](#hardwareanforderungen)
+* [Dateistruktur](#dateistruktur)
+* [Bedienung](#bedienung)
+  * [Laden von Dateien](#laden-von-dateien)
+  * [Speichern](#speichern)
+  * [Dateistand wiederherstellen](#dateistand-wiederherstellen)
+  * [Bearbeitungsmodus](#bearbeitungsmodus)
+    * [Button "Bearbeiten"](#button-bearbeiten)
+    * [Rechtsklick auf die Meldergruppen-Nummer](#rechtsklick-auf-die-meldergruppen-nummer)
+    * [Rechtsklick auf den Melder](#rechtsklick-auf-den-melder)
+  * [Undo / Redo](#undo--redo)
+<!-- TOC -->
+
+# Hardwareanforderungen
 
 Es ist vorgesehen, diese Anwendung auf einem Raspberry Pi zu installieren. 
 FAT und FBF werden über 5V, 3.3V und GND mit Strom versorgt und 
 per I2C über die serielle Schnittstelle angesteuert. 
 FAT und FBF sind anhand der beiliegenden KiCAD-Dateien anzufertigen.
 
-## Dateistruktur
+# Dateistruktur
 
 Für jedes Gebäude ist ein eigener Ordner anzulegen, in dem die Gebäudekonfiguration und alle 
 dazugehörigen Szenarien gespeichert werden. Gebäudekonfigurationen haben die Endung ".building", 
@@ -28,16 +44,16 @@ In jedem Ordner, in dem Szenarien gespeichert sind, muss genau eine Gebäudekonf
 Ansonsten ist die Zuordnung eines Szenarios zur Konfiguration beim Laden nicht eindeutig und 
 es wird eine Fehlermeldung angezeigt.
 
-## Bedienung
+# Bedienung
 
-### Laden von Dateien
+## Laden von Dateien
 
 Im normalen Lehrgangsbetrieb ist es in der Regel ausreichend, vorkonfigurierte Szenarien zu laden.
 Dazu kann die entsprechende Funktion unter dem Button "Datei" ausgewählt werden oder mit dem 
 Tastenkürzel Strg+O aktiviert werden. 
 Das Laden eines Szenarios lädt automatisch die entsprechende Gebäudekonfiguration.
 
-### Speichern
+## Speichern
 
 Beim Speichern ist zwischen Gebäudekonfiguration (Strg+Umschalt+S) und Szenario (Strg+S) zu unterscheiden. 
 Beide Optionen sind auch unter dem Button "Datei" verfügbar. 
@@ -51,7 +67,7 @@ dass eine gleichnamige Datei bereits existiert, zu ignorieren.
 Die Dateiendung ist bereits entsprechend der vorherigen Auswahl korrekt eingestellt; 
 diese darf nicht verändert werden, da die Datei sonst nicht mehr geladen werden kann.
 
-### Dateistand wiederherstellen
+## Dateistand wiederherstellen
 
 Diese Option findet sich unter dem Button "Datei". Falls ungewollte Änderungen 
 an Dateien gespeichert wurden oder es anderweitig notwendig ist, lässt sich somit ein Ordner auf einen 
@@ -70,7 +86,7 @@ Anmerkung: Wenn manuelle Änderungen am Inhalt des Ordners durchgeführt werden,
 mit den in dieser Anwendung vorgenommenen Änderungen beim nächsten Speichervorgang im betreffenden Ordner 
 als Commit aufgelistet.
 
-### Bearbeitungsmodus
+## Bearbeitungsmodus
 
 Um versehentliches Bearbeiten der Gebäudekonfiguration zu verhindern und die Benutzeroberfläche 
 aufgeräumt zu halten, ist der Bearbeitungsmodus standardmäßig deaktiviert. Wenn der Bearbeitungsmodus 
@@ -80,7 +96,7 @@ des FAT und FBF genutzt werden.
 Der Bearbeitungsmodus kann unter dem Button "Datei" oder mit dem Tastenkürzel Strg+E aktiviert werden. 
 Es stehen dann folgende Funktionen zur Verfügung:
 
-#### Button "Bearbeiten"
+### Button "Bearbeiten"
 
 1. Meldergruppe hinzufügen:  
     Fügt eine Meldergruppe mit der definierten Nummer hinzu. Diese muss zwischen 1 und 99999 liegen.
@@ -91,13 +107,13 @@ Es stehen dann folgende Funktionen zur Verfügung:
     Hier finden sich Schalter, um die LEDs auf dem FBF zu steuern. 
     Die Einstellung wird im Szenario gespeichert.
 
-#### Rechtsklick auf die Meldergruppen-Nummer
+### Rechtsklick auf die Meldergruppen-Nummer
 
 1. Melder hinzufügen:  
     Fügt einen Melder mit der angegebenen Nummer (1-99) und Beschreibung hinzu.
 2. Meldergruppe löschen
 
-#### Rechtsklick auf den Melder
+### Rechtsklick auf den Melder
 
 1. Beschreibung bearbeiten
 2. Abschaltung:  
@@ -105,7 +121,7 @@ Es stehen dann folgende Funktionen zur Verfügung:
     der Melder in der Anzeigeebene der Abschaltung angezeigt. Diese Einstellung wird im Szenario gespeichert.
 3. Melder löschen
 
-### Undo / Redo
+## Undo / Redo
 
 Jede Aktion lässt sich per Strg+Z oder dem Undo-Button rückgängig machen, 
 außer dem Auslösen von Meldern und den Einstellungen für das FBF
@@ -117,8 +133,3 @@ ist der entsprechende Button ausgegraut.
 Das Laden einer Datei löscht alle bisherigen Einträge im undo/redo-Stack. 
 Wenn die aktuelle Datei gespeichert wird, bleibt der Stack allerdings erhalten, sodass alle Änderungen 
 seit dem letzten Laden rückgängig gemacht werden können.
-
-# English
-
-This application has the purpose to control and configure the fire alarm system used for training at the 
-Landesfeuerwehrschule Baden-Württemberg.

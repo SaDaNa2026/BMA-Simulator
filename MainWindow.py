@@ -19,7 +19,7 @@ class MainWindow(Gtk.ApplicationWindow):
 
     def __init__(self, edit_action_group, hidden_action_group, *args, **kwargs):
         super().__init__(*args, **kwargs, maximized=True)
-        self.set_title("Steuerung Übungs-BMA")
+        self.set_title("BMA-Steuerung")
 
         # A dictionary to keep track of the circuits in this window.
         self.circuit_dict: dict = {}
@@ -76,6 +76,10 @@ class MainWindow(Gtk.ApplicationWindow):
         self.header.pack_start(self.undo_button)
         self.redo_button = Gtk.Button(icon_name="edit-redo", action_name="app.redo", tooltip_text="Redo")
         self.header.pack_start(self.redo_button)
+
+        # Help button
+        self.help_button = Gtk.Button(icon_name="help-contents", action_name="app.help", tooltip_text="Hilfe")
+        self.header.pack_end(self.help_button)
 
         # Bind the action groups to the window
         self.insert_action_group("edit", edit_action_group)
