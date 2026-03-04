@@ -6,7 +6,7 @@ from DescriptionBox import DescriptionBox
 
 class EditWindow(ModalWindow):
     """Base class for a window that lets the user edit a description."""
-    def __init__(self, edit_callback, parent, title, default_text = "", **kwargs):
+    def __init__(self, edit_callback, parent, title, default_text = "", max_length=None, **kwargs):
         super().__init__(parent, default_width=350, default_height= 100, title=title, **kwargs)
 
         self.main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,
@@ -17,7 +17,7 @@ class EditWindow(ModalWindow):
                                 spacing=10)
         self.set_child(self.main_box)
 
-        self.description_box = DescriptionBox(default_text)
+        self.description_box = DescriptionBox(default_text, max_length)
         self.main_box.append(self.description_box)
 
         # Buttons to cancel or confirm
@@ -31,6 +31,8 @@ class EditWindow(ModalWindow):
         self.confirm_button = Gtk.Button(label="Bestätigen")
         self.confirm_button.connect("clicked", edit_callback)
         self.confirmation_box.set_end_widget(self.confirm_button)
+        # Set the confirm button as default widget so it is activated when Enter is pressed inside the Entry
+        self.set_default_widget(self.confirm_button)
 
         # Label to display an error if the description is too long
         self.warning_label = Gtk.Label()
@@ -51,7 +53,12 @@ class EditDetectorWindow(EditWindow):
         self.circuit_number = circuit_number
         self.detector_number = detector_number
         title = f"Bearbeite Melder {detector_number} (Gruppe {circuit_number})"
-        super().__init__(lambda button, *args: self.handle_edit(edit_detector_callback), parent, title, current_description, **kwargs)
+        super().__init__(lambda button, *args: self.handle_edit(edit_detector_callback),
+                         parent,
+                         title,
+                         current_description,
+                         max_length=20,
+                         **kwargs)
 
     def handle_edit(self, edit_detector_callback):
         description = self.get_description()
@@ -67,7 +74,12 @@ class EditBuildingWindow(EditWindow):
     """Window for editing the building description."""
     def __init__(self, current_description, edit_building_callback, parent, **kwargs):
         title = f"Gebäudebeschreibung bearbeiten"
-        super().__init__(lambda button, *args: self.handle_edit(edit_building_callback), parent, title, current_description, **kwargs)
+        super().__init__(lambda button, *args: self.handle_edit(edit_building_callback),
+                         parent,
+                         title,
+                         current_description,
+                         max_length=20,
+                         **kwargs)
 
     def handle_edit(self, edit_building_callback):
         description = self.get_description()

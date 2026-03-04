@@ -7,7 +7,7 @@ from DescriptionBox import DescriptionBox
 
 class DefineObjectWindow(ModalWindow):
     """Base class for a Window that lets the use create an object with a chosen number."""
-    def __init__(self, handle_create_method, entry_label, parent, **kwargs):
+    def __init__(self, handle_create_method, entry_label, parent, max_length=None, **kwargs):
         super().__init__(parent, default_width=350, default_height=100, **kwargs)
 
         self.main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,
@@ -25,7 +25,10 @@ class DefineObjectWindow(ModalWindow):
         self.choose_number_label = Gtk.Label(label=entry_label)
         self.choose_number_box.append(self.choose_number_label)
 
-        self.choose_number_entry = Gtk.Entry(has_frame=True)
+        # Entry field to define the number of the circuit/detector. Set a max length if provided
+        self.choose_number_entry = Gtk.Entry(has_frame=True, activates_default=True)
+        if max_length is not None:
+            self.choose_number_entry.set_max_length(max_length)
         self.choose_number_box.append(self.choose_number_entry)
 
         # Buttons to cancel or add the object
@@ -39,6 +42,8 @@ class DefineObjectWindow(ModalWindow):
         self.confirm_button = Gtk.Button(label="Hinzufügen")
         self.confirm_button.connect("clicked", handle_create_method)
         self.confirmation_box.set_end_widget(self.confirm_button)
+        # Set confirm button as default widget so it is activated when enter is pressed inside the Entry
+        self.set_default_widget(self.confirm_button)
 
         # Prepare a label to display an error if the input is wrong
         self.warning_label = Gtk.Label()
@@ -57,7 +62,10 @@ class DefineObjectWindow(ModalWindow):
 class DefineCircuitWindow(DefineObjectWindow):
     """Window that lets the user create a circuit with a chosen number."""
     def __init__(self, create_circuit_callback, parent):
-        super().__init__(handle_create_method=lambda button: self.handle_create_circuit(create_circuit_callback), entry_label="Nummer der Meldergruppe:", parent=parent)
+        super().__init__(handle_create_method=lambda button: self.handle_create_circuit(create_circuit_callback),
+                         entry_label="Nummer der Meldergruppe:",
+                         parent=parent,
+                         max_length=5)
         self.set_title("Meldergruppe hinzufügen")
 
     def handle_create_circuit(self, create_circuit_callback):
@@ -77,12 +85,15 @@ class DefineCircuitWindow(DefineObjectWindow):
 class DefineDetectorWindow(DefineObjectWindow):
     """Window that lets the user create a detector with a chosen number and description."""
     def __init__(self, circuit_number, create_detector_callback, parent):
-        super().__init__(handle_create_method=lambda button: self.handle_create_detector(create_detector_callback), entry_label="Nummer des Melders:", parent=parent)
+        super().__init__(handle_create_method=lambda button: self.handle_create_detector(create_detector_callback),
+                         entry_label="Nummer des Melders:",
+                         parent=parent,
+                         max_length=2)
         self.set_title(f"Melder zu Meldergruppe {circuit_number} hinzufügen")
 
         self.circuit_number = circuit_number
 
-        self.description_box = DescriptionBox()
+        self.description_box = DescriptionBox(max_length=20)
         self.main_box.insert_child_after(self.description_box, self.choose_number_box)
 
     def handle_create_detector(self, create_detector_callback):
