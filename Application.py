@@ -17,6 +17,8 @@ from MCPController import MCPController
 from mcp23017 import *
 from LEDController import LEDController
 
+markdown_viewer = "okular"
+
 
 class App(Gtk.Application):
     def __init__(self, **kwargs):
@@ -513,7 +515,7 @@ class App(Gtk.Application):
         """Open Help.md in Okular"""
         dir_path = os.path.abspath(os.path.dirname(sys.argv[0]))
         readme_path = dir_path + "/Help.md"
-        subprocess.Popen(['okular', readme_path],
+        subprocess.Popen([markdown_viewer, readme_path],
                          stdout=subprocess.DEVNULL,
                          stderr=subprocess.DEVNULL)
 
