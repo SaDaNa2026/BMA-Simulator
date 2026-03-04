@@ -2,6 +2,7 @@ import gi
 gi.require_version('Gtk', '4.0')
 from gi.repository import Gtk
 from datetime import datetime
+from ModalWindow import ModalWindow
 
 
 class ConfirmationAlert(Gtk.AlertDialog):
@@ -53,9 +54,9 @@ class CommitBox(Gtk.Box):
         self.append(self.message_label)
 
 
-class CommitListWindow(Gtk.Window):
+class CommitListWindow(ModalWindow):
     def __init__(self, parent, directory: str, commit_list: list, rollback_callback):
-        super().__init__(modal=True, transient_for=parent, title=f"{directory} wiederherstellen...")
+        super().__init__(parent, title=f"{directory} wiederherstellen...")
         self.rollback_callback = rollback_callback
         self.directory = directory
 

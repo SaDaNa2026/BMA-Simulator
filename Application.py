@@ -46,7 +46,9 @@ class App(Gtk.Application):
                                ("edit_mode", None, None, "false", self.on_edit_mode_clicked),
                                ("undo", self.on_undo_clicked, None),
                                ("redo", self.on_redo_clicked, None),
-                               ("help", self.on_help_clicked, None)]
+                               ("help", self.on_help_clicked, None),
+                               ("shortcuts", self.on_shortcuts_clicked, None),
+                               ("about", self.on_about_clicked, None)]
 
         edit_action_entries = [("create_circuit", self.on_add_circuit_clicked, None),
                                ("delete_circuit", self.on_delete_circuit_clicked, "i"),
@@ -82,13 +84,18 @@ class App(Gtk.Application):
                 action.set_enabled(False)
 
         # Add shortcuts to the actions
-        self.set_accels_for_action("app.save_building", ["<Ctrl><Shift>S"])
-        self.set_accels_for_action("app.save_scenario", ["<Ctrl>S"])
-        self.set_accels_for_action("app.open", ["<Ctrl>O"])
-        self.set_accels_for_action("app.edit_mode", ["<Ctrl>E"])
-        self.set_accels_for_action("app.undo", ["<Ctrl>Z"])
-        self.set_accels_for_action("app.redo", ["<Ctrl><Shift>Z", "<Ctrl>Y"])
-
+        self.accels_list = [
+            ("app.help", ["F1"]),
+            ("app.shortcuts", ["<Ctrl>question"]),
+            ("app.save_building", ["<Ctrl>G"]),
+            ("app.save_scenario", ["<Ctrl>S"]),
+            ("app.open", ["<Ctrl>O"]),
+            ("app.edit_mode", ["<Ctrl>E"]),
+            ("app.undo", ["<Ctrl>Z"]),
+            ("app.redo", ["<Ctrl><Shift>Z", "<Ctrl>Y"])
+        ]
+        for accel in self.accels_list:
+            self.set_accels_for_action(*accel)
 
         # Variables mirroring the state of the switches on the FBF
         self.acoustic_signals_off_switch: bool = False
@@ -229,7 +236,7 @@ class App(Gtk.Application):
             if isinstance(action, Gio.SimpleAction):
                 action.set_enabled(new_state)
 
-        self.window.add_menubutton.set_visible(new_state)
+        self.window.edit_menubutton.set_visible(new_state)
 
         # Print debug info
         if new_state:
@@ -503,12 +510,20 @@ class App(Gtk.Application):
                 redo_action.set_enabled(False)
 
     def on_help_clicked(self, *args):
-        """Open README.md in Okular"""
+        """Open Help.md in Okular"""
         dir_path = os.path.abspath(os.path.dirname(sys.argv[0]))
-        readme_path = dir_path + "/README.md"
+        readme_path = dir_path + "/Help.md"
         subprocess.Popen(['okular', readme_path],
                          stdout=subprocess.DEVNULL,
                          stderr=subprocess.DEVNULL)
+
+    def on_shortcuts_clicked(self, *args):
+        """Open a window displaying all keyboard shortcuts and their function"""
+        pass
+
+    def on_about_clicked(self, *args):
+        """Open an about-window"""
+        self.window.show_about_window()
 
     def on_acoustic_signals_off_toggled(self, state):
         """Update acoustic_signals_off"""

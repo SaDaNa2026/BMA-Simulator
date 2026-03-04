@@ -2,6 +2,16 @@ import gi
 gi.require_version('GLib', '2.0')
 from gi.repository import Gio, GLib
 
+class PrimaryMenu(Gio.Menu):
+    """Menu model for the primary menu"""
+    def __init__(self):
+        super().__init__()
+        help_item = Gio.MenuItem.new("Hilfe", "app.help")
+        self.append_item(help_item)
+        shortcuts_item = Gio.MenuItem.new("Tastaturkürzel", "app.shortcuts")
+        self.append_item(shortcuts_item)
+        about_item = Gio.MenuItem.new("Über diese App", "app.about")
+        self.append_item(about_item)
 
 class DataMenu(Gio.Menu):
     """Menu model for the "Data" MenuButton in the header bar."""

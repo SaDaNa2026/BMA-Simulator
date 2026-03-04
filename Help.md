@@ -15,7 +15,6 @@ und welche LEDs am FBF aktiv sind.
 <!-- TOC -->
 * [Übersicht](#übersicht)
 * [Inhaltsverzeichnis](#inhaltsverzeichnis)
-* [Hardwareanforderungen](#hardwareanforderungen)
 * [Dateistruktur](#dateistruktur)
 * [Bedienung](#bedienung)
   * [Laden von Dateien](#laden-von-dateien)
@@ -27,13 +26,6 @@ und welche LEDs am FBF aktiv sind.
     * [Rechtsklick auf den Melder](#rechtsklick-auf-den-melder)
   * [Undo / Redo](#undo--redo)
 <!-- TOC -->
-
-# Hardwareanforderungen
-
-Es ist vorgesehen, diese Anwendung auf einem Raspberry Pi zu installieren. 
-FAT und FBF werden über 5V, 3.3V und GND mit Strom versorgt und 
-per I2C über die serielle Schnittstelle angesteuert. 
-FAT und FBF sind anhand der beiliegenden KiCAD-Dateien anzufertigen.
 
 # Dateistruktur
 

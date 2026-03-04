@@ -1,20 +1,14 @@
 import gi
 gi.require_version('Gtk', '4.0')
 from gi.repository import Gtk
-
+from ModalWindow import ModalWindow
 from DescriptionBox import DescriptionBox
 
 
-class DefineObjectWindow(Gtk.Window):
+class DefineObjectWindow(ModalWindow):
     """Base class for a Window that lets the use create an object with a chosen number."""
-    def __init__(self, handle_create_method, entry_label, parent, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        self.set_default_size(350, 100)
-
-        # Make the window modal and transient for the parent (parent window won't take focus until this window is closed)
-        self.set_modal(True)
-        self.set_transient_for(parent)
+    def __init__(self, handle_create_method, entry_label, parent, **kwargs):
+        super().__init__(parent, default_width=350, default_height=100, **kwargs)
 
         self.main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,
                                 margin_top=5,

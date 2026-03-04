@@ -1,6 +1,7 @@
 import gi
 gi.require_version('Gtk', '4.0')
 from gi.repository import Gtk, Gio
+from ModalWindow import ModalWindow
 
 
 class SettingsItem(Gtk.Frame):
@@ -30,9 +31,9 @@ class SettingsItem(Gtk.Frame):
         self.main_box.append(self.switch)
 
 
-class SettingsWindow(Gtk.Window):
+class SettingsWindow(ModalWindow):
     def __init__(self, parent, model, update_led_func):
-        super().__init__(modal=True, transient_for=parent, title="Einstellungen")
+        super().__init__(parent, title="Einstellungen")
         self.model = model
         self.update_leds = update_led_func
 

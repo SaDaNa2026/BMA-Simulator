@@ -1,20 +1,13 @@
 import gi
 gi.require_version('Gtk', '4.0')
 from gi.repository import Gtk
-
+from ModalWindow import ModalWindow
 from DescriptionBox import DescriptionBox
 
-class EditWindow(Gtk.Window):
+class EditWindow(ModalWindow):
     """Base class for a window that lets the user edit a description."""
-    def __init__(self, edit_callback, parent, title, default_text = "", *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        self.set_default_size(350, 100)
-        self.set_title(title)
-
-        # Make the window modal and transient for the parent
-        self.set_modal(True)
-        self.set_transient_for(parent)
+    def __init__(self, edit_callback, parent, title, default_text = "", **kwargs):
+        super().__init__(parent, default_width=350, default_height= 100, title=title, **kwargs)
 
         self.main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,
                                 margin_top=5,
@@ -54,11 +47,11 @@ class EditWindow(Gtk.Window):
 
 class EditDetectorWindow(EditWindow):
     """Window for editing the description of a detector."""
-    def __init__(self, circuit_number, detector_number, current_description, edit_detector_callback, parent, *args, **kwargs):
+    def __init__(self, circuit_number, detector_number, current_description, edit_detector_callback, parent, **kwargs):
         self.circuit_number = circuit_number
         self.detector_number = detector_number
         title = f"Bearbeite Melder {detector_number} (Gruppe {circuit_number})"
-        super().__init__(lambda button, *args: self.handle_edit(edit_detector_callback), parent, title, current_description, *args, **kwargs)
+        super().__init__(lambda button, *args: self.handle_edit(edit_detector_callback), parent, title, current_description, **kwargs)
 
     def handle_edit(self, edit_detector_callback):
         description = self.get_description()
@@ -72,9 +65,9 @@ class EditDetectorWindow(EditWindow):
 
 class EditBuildingWindow(EditWindow):
     """Window for editing the building description."""
-    def __init__(self, current_description, edit_building_callback, parent, *args, **kwargs):
+    def __init__(self, current_description, edit_building_callback, parent, **kwargs):
         title = f"Gebäudebeschreibung bearbeiten"
-        super().__init__(lambda button, *args: self.handle_edit(edit_building_callback), parent, title, current_description, *args, **kwargs)
+        super().__init__(lambda button, *args: self.handle_edit(edit_building_callback), parent, title, current_description, **kwargs)
 
     def handle_edit(self, edit_building_callback):
         description = self.get_description()
@@ -88,9 +81,9 @@ class EditBuildingWindow(EditWindow):
 
 class EditCommitMessageWindow(EditWindow):
     """Window for entering a commit message."""
-    def __init__(self, finish_callback, file_type, parent, *args, **kwargs):
+    def __init__(self, finish_callback, file_type, parent, **kwargs):
         title = "Änderungen beschreiben..."
-        super().__init__(lambda button, *args: self.handle_edit(finish_callback, file_type), parent, title, *args, **kwargs)
+        super().__init__(lambda button, *args: self.handle_edit(finish_callback, file_type), parent, title, **kwargs)
 
     def handle_edit(self, commit_callback, file_type):
         message = self.get_description()

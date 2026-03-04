@@ -3,7 +3,7 @@ gi.require_version('Gtk', '4.0')
 from gi.repository import Gtk
 from functools import partial
 
-from Menus import DataMenu, EditMenu
+from Menus import PrimaryMenu, DataMenu, EditMenu
 from FileOpenDialog import FileOpenDialog
 from FileSaveDialog import FileSaveDialog
 from DefineObjectWindows import DefineCircuitWindow, DefineDetectorWindow
@@ -11,6 +11,7 @@ from EditWindows import EditBuildingWindow, EditDetectorWindow, EditCommitMessag
 from CommitListWindow import CommitListWindow
 from Console import Console
 from SettingsWindow import SettingsWindow
+from AboutWindow import AboutWindow
 
 
 class MainWindow(Gtk.ApplicationWindow):
@@ -18,7 +19,7 @@ class MainWindow(Gtk.ApplicationWindow):
     application functionality."""
 
     def __init__(self, edit_action_group, hidden_action_group, *args, **kwargs):
-        super().__init__(*args, **kwargs, maximized=True)
+        super().__init__(*args, **kwargs, maximized=False)
         self.set_title("BMA-Steuerung")
 
         # A dictionary to keep track of the circuits in this window.
@@ -58,28 +59,26 @@ class MainWindow(Gtk.ApplicationWindow):
         self.header = Gtk.HeaderBar()
         self.set_titlebar(self.header)
 
+        # Primary menu
+        self.primary_menu = PrimaryMenu()
+        self.primary_menubutton = Gtk.MenuButton(icon_name="open-menu-symbolic", menu_model=self.primary_menu)
+        self.header.pack_start(self.primary_menubutton)
+
         # MenuButton to handle data operations
         self.data_menu = DataMenu()
-        self.data_menubutton = Gtk.MenuButton(label="Datei", direction=Gtk.ArrowType.DOWN)
-        self.data_menubutton.set_menu_model(self.data_menu)
+        self.data_menubutton = Gtk.MenuButton(label="Datei", menu_model=self.data_menu)
         self.header.pack_start(self.data_menubutton)
 
-        # MenuButton to add a circuit or edit the building description
-        self.add_menu = EditMenu()
-        self.add_menubutton = Gtk.MenuButton(label="Bearbeiten", direction=Gtk.ArrowType.DOWN)
-        self.add_menubutton.set_menu_model(self.add_menu)
-        self.add_menubutton.set_visible(False)
-        self.header.pack_start(self.add_menubutton)
+        # MenuButton for the edit menu
+        self.edit_menu = EditMenu()
+        self.edit_menubutton = Gtk.MenuButton(label="Bearbeiten", menu_model=self.edit_menu, visible=False)
+        self.header.pack_start(self.edit_menubutton)
 
         # Buttons for undo/redo
         self.undo_button = Gtk.Button(icon_name="edit-undo", action_name="app.undo", tooltip_text="Undo")
         self.header.pack_start(self.undo_button)
         self.redo_button = Gtk.Button(icon_name="edit-redo", action_name="app.redo", tooltip_text="Redo")
         self.header.pack_start(self.redo_button)
-
-        # Help button
-        self.help_button = Gtk.Button(icon_name="help-contents", action_name="app.help", tooltip_text="Hilfe")
-        self.header.pack_end(self.help_button)
 
         # Bind the action groups to the window
         self.insert_action_group("edit", edit_action_group)
@@ -128,6 +127,10 @@ class MainWindow(Gtk.ApplicationWindow):
     def show_edit_detector_window(self, circuit_number, detector_number, edit_detector_callback, current_description):
         self.edit_detector_window = EditDetectorWindow(circuit_number, detector_number, current_description, edit_detector_callback, self)
         self.edit_detector_window.present()
+
+    def show_about_window(self):
+        self.about_window = AboutWindow(self)
+        self.about_window.show()
 
     def sort_circuits(self, child1, child2, user_data) -> int:
         """Sorting function for the circuits inside main_box."""
