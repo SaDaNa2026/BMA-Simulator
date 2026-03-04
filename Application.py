@@ -88,13 +88,15 @@ class App(Gtk.Application):
         # Add shortcuts to the actions
         self.accels_list = [
             ("app.help", ["F1"]),
-            ("app.shortcuts", ["<Ctrl>question"]),
             ("app.save_building", ["<Ctrl>G"]),
             ("app.save_scenario", ["<Ctrl>S"]),
             ("app.open", ["<Ctrl>O"]),
             ("app.edit_mode", ["<Ctrl>E"]),
             ("app.undo", ["<Ctrl>Z"]),
-            ("app.redo", ["<Ctrl><Shift>Z", "<Ctrl>Y"])
+            ("app.redo", ["<Ctrl><Shift>Z", "<Ctrl>Y"]),
+            ("edit.create_circuit", ["<Ctrl>I"]),
+            ("edit.edit_building", ["<Ctrl>B"]),
+            ("edit.edit_settings", ["<Ctrl>L"])
         ]
         for accel in self.accels_list:
             self.set_accels_for_action(*accel)
@@ -521,7 +523,7 @@ class App(Gtk.Application):
 
     def on_shortcuts_clicked(self, *args):
         """Open a window displaying all keyboard shortcuts and their function"""
-        pass
+        self.window.show_shortcuts_window()
 
     def on_about_clicked(self, *args):
         """Open an about-window"""
