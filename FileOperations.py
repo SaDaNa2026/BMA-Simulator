@@ -157,7 +157,6 @@ class FileOperations:
             try:
                 enable_action = edit_action_group.lookup_action(f"enable_detector_{circuit_number}_{detector_number}")
                 enable_action.change_state(GLib.Variant.new_boolean(True))
-                print(enable_action.get_state())
 
             except KeyError:
                 raise KeyError(f"Melder {detector_number} in Meldergruppe {circuit_number} ist im Szenario abgeschaltet, "

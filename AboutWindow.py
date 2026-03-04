@@ -6,8 +6,7 @@ from ModalWindow import ModalWindow
 class AboutWindow(ModalWindow):
     def __init__(self, parent):
         super().__init__(parent,
-                         title="Über BMA-Steuerung",
-                         resizable=False)
+                         title="Über BMA-Steuerung")
         self.main_box = Gtk.Box(spacing=10,
                                 orientation=Gtk.Orientation.VERTICAL,
                                 margin_top=5,

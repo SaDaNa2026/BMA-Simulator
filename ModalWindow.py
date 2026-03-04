@@ -6,6 +6,7 @@ class ModalWindow(Gtk.Window):
     def __init__(self, parent, **kwargs):
         super().__init__(modal=True,
                          transient_for=parent,
+                         resizable=False,
                          **kwargs)
         self.close_shortcut = Gtk.Shortcut(
                     action=Gtk.CallbackAction.new(self.close_callback),
