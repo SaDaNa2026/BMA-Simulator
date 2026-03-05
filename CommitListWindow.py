@@ -94,20 +94,25 @@ class CommitListWindow(ModalWindow):
         self.confirmation_box.append(self.cancel_button)
 
         self.confirm_button = Gtk.Button(label="Wiederherstellen", halign=Gtk.Align.END)
-        self.confirm_button.connect("clicked", self.on_rollback_clicked)
+        self.confirm_button.connect("clicked", self._on_rollback_clicked)
         self.confirmation_box.append(self.confirm_button)
 
-    def on_rollback_clicked(self, *args):
-        confirmation_alert = Gtk.AlertDialog(message="Dateistand wiederherstellen",
+    def _on_rollback_clicked(self, *args):
+        # Show an alert to inform the user that they are about to irreversibly roll back
+        self.confirmation_alert = Gtk.AlertDialog(message="Dateistand wiederherstellen",
                                              detail=f"Wenn Sie fortfahren, gehen alle Änderungen\n"
                                                     f"nach dem ausgewählten Dateistand verloren.",
                                              buttons=["Abbrechen", "OK"])
-        confirmation_alert.choose(self, None, self.on_confirm_clicked, None)
+        self.confirmation_alert.choose(self, None, self._on_button_clicked, None)
 
-    def on_confirm_clicked(self, *args):
-        selected_row = self.list_box.get_selected_row().get_child()
-        if isinstance(selected_row, CommitBox):
-            self.rollback_callback(self.directory, selected_row.commit_index)
-            self.destroy()
-        else:
-            raise AttributeError
+    def _on_button_clicked(self, dialog, result, *args):
+        # Check if user has confirmed
+        button = dialog.choose_finish(result)
+        if button == 1:
+            # Get the selected commit
+            selected_row = self.list_box.get_selected_row().get_child()
+            if isinstance(selected_row, CommitBox):
+                self.rollback_callback(self.directory, selected_row.commit_index)
+                self.destroy()
+            else:
+                raise AttributeError
