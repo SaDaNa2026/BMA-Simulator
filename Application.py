@@ -78,6 +78,10 @@ class App(Gtk.Application):
         self.hidden_action_group = Gio.SimpleActionGroup()
         self.hidden_action_group.add_action_entries(hidden_action_entries, None)
 
+        # Create an empty action group.
+        # Detector enable and history actions will be added dynamically as detectors are created
+        self.detector_action_group = Gio.SimpleActionGroup.new()
+
         # Set edit actions disabled
         for name in self.edit_action_group.list_actions():
             action = self.edit_action_group.lookup_action(name)
@@ -148,7 +152,8 @@ class App(Gtk.Application):
         self.led_fbf.turn_on("working")
 
         self.window = MainWindow(edit_action_group=self.edit_action_group,
-                                 hidden_action_group=self.hidden_action_group)
+                                 hidden_action_group=self.hidden_action_group,
+                                 detector_action_group=self.detector_action_group)
 
     def on_activate(self, app):
         self.window.set_application(app)
@@ -208,11 +213,7 @@ class App(Gtk.Application):
         circuit.context_menu_popover.popup()
 
     def on_detector_pressed(self, gesture, n_press, x, y, circuit_number: int, detector_number: int) -> None:
-        """Present a context menu on a detector if edit mode is enabled."""
-        # Don't respond if edit mode is disabled
-        if not self.get_action_state("edit_mode").get_boolean():
-            return
-
+        """Present a context menu on a detector"""
         # Get the detector that was clicked
         detector = self.window.circuit_dict[circuit_number].detector_dict[detector_number]
 
@@ -223,6 +224,7 @@ class App(Gtk.Application):
         rect.width = 1
         rect.height = 1
 
+        # Show the popover menu
         detector.context_menu_popover.set_pointing_to(rect)
         detector.context_menu_popover.popup()
 
@@ -353,7 +355,7 @@ class App(Gtk.Application):
             return
 
         try:
-            FileOperations.apply_scenario(scenario_load_dict, self.window.circuit_dict, self.edit_action_group, self.model)
+            FileOperations.apply_scenario(scenario_load_dict, self.window.circuit_dict, self.detector_action_group, self.model)
             self.clear_redo()
             self.clear_undo()
 

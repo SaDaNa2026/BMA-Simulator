@@ -32,19 +32,18 @@ class DetectorOps(Operation):
                               self.app.on_detector_switch_toggled,
                               circuit_number,
                               detector_number)
-        self.app.hidden_action_group.add_action(switch_action)
+        self.app.detector_action_group.add_action(switch_action)
 
         # Set the detector switch according to the alarm_status and connect it to its callback function
-        detector.detector_switch.set_action_name(f"hidden_actions.{switch_action_name}")
+        detector.detector_switch.set_action_name(f"detector.{switch_action_name}")
 
         # Create a new stateful action for the enabled state of the detector
         enabled_action_name = f"enable_detector_{circuit_number}_{detector_number}"
         enabled_action = Gio.SimpleAction.new_stateful(enabled_action_name,
                                                        None,
                                                        GLib.Variant.new_boolean(not enabled))
-        enabled_action.set_enabled(self.app.get_action_state("edit_mode").get_boolean())
         enabled_action.connect("change-state", self.app.on_enable_detector_clicked)
-        self.app.edit_action_group.add_action(enabled_action)
+        self.app.detector_action_group.add_action(enabled_action)
 
         # Connect the event handler that detects if the circuit is right-clicked
         detector.click_controller.connect("pressed", partial(self.app.on_detector_pressed,
@@ -125,7 +124,7 @@ class DetectorOps(Operation):
         if alarm_status:
             detector.detector_switch.set_active(True)
 
-        enable_action = self.app.edit_action_group.lookup_action(f"enable_detector_{circuit_number}_{detector_number}")
+        enable_action = self.app.detector_action_group.lookup_action(f"enable_detector_{circuit_number}_{detector_number}")
         enable_action.set_state(GLib.Variant.new_boolean(not enabled))
 
         self.app.append_redo((self.redo_set_enabled, (circuit_number, detector_number, not enabled, previous_alarm_status)))
@@ -138,7 +137,7 @@ class DetectorOps(Operation):
         if alarm_status:
             detector.detector_switch.set_active(True)
 
-        enable_action = self.app.edit_action_group.lookup_action(f"enable_detector_{circuit_number}_{detector_number}")
+        enable_action = self.app.detector_action_group.lookup_action(f"enable_detector_{circuit_number}_{detector_number}")
         enable_action.set_state(GLib.Variant.new_boolean(not enabled))
 
         self.app.append_undo((self.undo_set_enabled, (circuit_number, detector_number, not enabled, previous_alarm_status)))
@@ -148,7 +147,7 @@ class DetectorOps(Operation):
         if not enabled:
             detector.detector_switch.set_active(False)
 
-        detector_switch_action = self.app.hidden_action_group.lookup_action(
+        detector_switch_action = self.app.detector_action_group.lookup_action(
             f"detector_toggle_{circuit_number}_{detector_number}")
         if isinstance(detector_switch_action, Gio.SimpleAction):
             detector_switch_action.set_enabled(enabled)
@@ -178,16 +177,15 @@ class DetectorOps(Operation):
                               self.app.on_detector_switch_toggled,
                               circuit_number,
                               detector_number)
-        self.app.hidden_action_group.add_action(switch_action)
+        self.app.detector_action_group.add_action(switch_action)
 
         # Create a new stateful action for the enabled state of the detector
         enabled_action_name = f"enable_detector_{circuit_number}_{detector_number}"
         enabled_action = Gio.SimpleAction.new_stateful(enabled_action_name,
                                                        None,
                                                        GLib.Variant.new_boolean(not enabled))
-        enabled_action.set_enabled(self.app.get_action_state("edit_mode").get_boolean())
         enabled_action.connect("change-state", self.app.on_enable_detector_clicked)
-        self.app.edit_action_group.add_action(enabled_action)
+        self.app.detector_action_group.add_action(enabled_action)
 
         # Get the previous detector to add this one in the correct position (default None => top position)
         previous_detector = None
@@ -222,9 +220,9 @@ class DetectorOps(Operation):
 
         # Remove the detector's actions
         switch_action_name = f"detector_toggle_{circuit_number}_{detector_number}"
-        self.app.hidden_action_group.remove_action(switch_action_name)
+        self.app.detector_action_group.remove_action(switch_action_name)
         enable_action_name = f"enable_detector_{circuit_number}_{detector_number}"
-        self.app.edit_action_group.remove_action(enable_action_name)
+        self.app.detector_action_group.remove_action(enable_action_name)
 
         # Update state
         self.app.print_detector_state()

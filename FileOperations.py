@@ -106,7 +106,7 @@ class FileOperations:
         print("File loaded successfully")
 
     @staticmethod
-    def apply_scenario(load_dict, circuit_dict, edit_action_group, model):
+    def apply_scenario(load_dict, circuit_dict, detector_action_group, model):
         """Set all detectors listed in load_dict to active"""
         for number_list in load_dict["active_detector_list"]:
             # Check for correct Syntax
@@ -155,7 +155,7 @@ class FileOperations:
             detector_number = int(number_list[1])
 
             try:
-                enable_action = edit_action_group.lookup_action(f"enable_detector_{circuit_number}_{detector_number}")
+                enable_action = detector_action_group.lookup_action(f"enable_detector_{circuit_number}_{detector_number}")
                 enable_action.change_state(GLib.Variant.new_boolean(True))
 
             except KeyError:
