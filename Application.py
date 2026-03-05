@@ -49,7 +49,6 @@ class App(Gtk.Application):
                                ("undo", self.on_undo_clicked, None),
                                ("redo", self.on_redo_clicked, None),
                                ("help", self.on_help_clicked, None),
-                               ("shortcuts", self.on_shortcuts_clicked, None),
                                ("about", self.on_about_clicked, None)]
 
         edit_action_entries = [("create_circuit", self.on_add_circuit_clicked, None),
@@ -520,10 +519,6 @@ class App(Gtk.Application):
         subprocess.Popen([markdown_viewer, readme_path],
                          stdout=subprocess.DEVNULL,
                          stderr=subprocess.DEVNULL)
-
-    def on_shortcuts_clicked(self, *args):
-        """Open a window displaying all keyboard shortcuts and their function"""
-        self.window.show_shortcuts_window()
 
     def on_about_clicked(self, *args):
         """Open an about-window"""

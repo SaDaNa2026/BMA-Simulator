@@ -57,6 +57,7 @@ class BuildingModel:
     circuit_dict: Dict[int, Circuit] = field(default_factory=dict)
     active_detector_list: List[tuple] = field(default_factory=list)
     disabled_detector_list: List[tuple] = field(default_factory=list)
+    history_detector_list: List[tuple] = field(default_factory=list)
     extinguisher_triggered: bool = field(default=False)
     acoustic_signals_off: bool = field(default=False)
     ue_off: bool = field(default=False)
@@ -70,9 +71,9 @@ class BuildingModel:
         if self.active_detector_list:
             raise ValueError("active_detector_list must be empty upon initialization. Activate detectors later using "
                              "set_detector_alarm_status.")
-        if self.disabled_detector_list:
-            raise ValueError("disabled_detector_list must be empty upon initialization. Activate detectors later using "
-                             "set_detector_alarm_status.")
+        if self.history_detector_list:
+            raise ValueError("history_detector_list must be empty upon initialization. Add detectors to history later using "
+                             "set_detector_in_history.")
 
     def clear_data(self):
         """Resets to init values."""
@@ -188,6 +189,39 @@ class BuildingModel:
 
     def get_disabled_detectors(self) -> list:
         return self.disabled_detector_list
+
+    def set_detector_in_history(self, circuit_number: int, detector_number: int, in_history: bool) -> None:
+        if not isinstance(in_history, bool):
+            raise TypeError("in_history must be bool")
+        if not circuit_number in self.circuit_dict:
+            raise KeyError("circuit does not exist")
+        if not detector_number in self.circuit_dict[circuit_number].detector_dict:
+            raise KeyError("detector does not exist")
+
+        detector_tuple = (circuit_number, detector_number)
+
+        if in_history:
+            if detector_tuple not in self.history_detector_list:
+                self.history_detector_list.append(detector_tuple)
+        else:
+            if detector_tuple in self.history_detector_list:
+                self.history_detector_list.remove(detector_tuple)
+
+    def get_detector_in_history(self, circuit_number: int, detector_number: int) -> bool:
+        if not circuit_number in self.circuit_dict:
+            raise KeyError("circuit does not exist")
+        if not detector_number in self.circuit_dict[circuit_number].detector_dict:
+            raise KeyError("detector does not exist")
+
+        detector_tuple = (circuit_number, detector_number)
+
+        if detector_tuple in self.history_detector_list:
+            return True
+        else:
+            return False
+
+    def get_history_detectors(self) -> list:
+        return self.history_detector_list
 
     def set_detector_alarm_status(self, circuit_number: int, detector_number: int, alarm_status: bool) -> None:
         if not isinstance(alarm_status, bool):

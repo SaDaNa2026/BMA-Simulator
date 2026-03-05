@@ -245,6 +245,33 @@ class TestBuildingModel(unittest.TestCase):
         with self.assertRaises(TypeError):
             self.model.add_detector(1, 2, enabled="test")
 
+    def test_detector_history(self):
+        self.model.add_circuit(1)
+        self.model.add_detector(1, 1)
+
+        self.model.set_detector_in_history(1, 1, True)
+        self.assertEqual(self.model.get_detector_in_history(1, 1), True)
+
+        self.model.add_detector(1, 2)
+        self.assertEqual(self.model.get_detector_in_history(1, 2), False)
+
+        self.assertEqual(self.model.get_history_detectors(), [(1, 1)])
+
+        with self.assertRaises(KeyError):
+            self.model.set_detector_in_history(2, 1, True)
+
+        with self.assertRaises(KeyError):
+            self.model.set_detector_in_history(1, 3, True)
+
+        with self.assertRaises(KeyError):
+            self.model.get_detector_in_history(45, 1)
+
+        with self.assertRaises(KeyError):
+            self.model.get_detector_in_history(1, 4)
+
+        with self.assertRaises(TypeError):
+            self.model.set_detector_in_history(1, 1, "string")
+
     def test_error_scenarios(self):
         """Ensure error cases are properly raised."""
         # Setting circuit_dict or active_detector_list when instantiating
