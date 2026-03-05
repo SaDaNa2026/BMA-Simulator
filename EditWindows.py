@@ -91,13 +91,50 @@ class EditBuildingWindow(EditWindow):
             self.main_box.insert_child_after(self.warning_label, self.description_box)
 
 
-class EditCommitMessageWindow(EditWindow):
+class EditCommitMessageWindow(ModalWindow):
     """Window for entering a commit message."""
     def __init__(self, finish_callback, file_type, parent, **kwargs):
         title = "Änderungen beschreiben..."
-        super().__init__(lambda button, *args: self.handle_edit(finish_callback, file_type), parent, title, **kwargs)
+        super().__init__(parent, title=title, resizable=True, **kwargs)
+
+        self.main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,
+                                margin_top=5,
+                                margin_bottom=5,
+                                margin_start=5,
+                                margin_end=5,
+                                spacing=10)
+        self.set_child(self.main_box)
+
+        self.description_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
+        self.main_box.append(self.description_box)
+
+        self.description_label = Gtk.Label(label="Änderungen beschreiben:")
+
+        # Use a TextView to allow multiline commit messages
+        self.description_textview = Gtk.TextView(hexpand=True, vexpand=True)
+        self.description_box.append(self.description_textview)
+        self.textbuffer = self.description_textview.get_buffer()
+
+        # Buttons to cancel or confirm
+        self.confirmation_box = Gtk.CenterBox()
+        self.main_box.append(self.confirmation_box)
+
+        self.cancel_button = Gtk.Button(label="Abbrechen")
+        self.cancel_button.connect("clicked", lambda button, *args: self.destroy())
+        self.confirmation_box.set_start_widget(self.cancel_button)
+
+        self.confirm_button = Gtk.Button(label="Bestätigen")
+        self.confirm_button.connect("clicked", lambda button, *args: self.handle_edit(finish_callback, file_type))
+        self.confirmation_box.set_end_widget(self.confirm_button)
+
+    def get_description(self):
+        """Get the content of the TextView"""
+        start = self.textbuffer.get_start_iter()
+        end = self.textbuffer.get_end_iter()
+        description = self.textbuffer.get_text(start, end, True)
+        return description
 
     def handle_edit(self, commit_callback, file_type):
         message = self.get_description()
         commit_callback(message, file_type)
-        self.close()
+        self.destroy()

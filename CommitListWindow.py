@@ -74,7 +74,7 @@ class CommitListWindow(ModalWindow):
                                              vscrollbar_policy=Gtk.PolicyType.AUTOMATIC,
                                              hscrollbar_policy=Gtk.PolicyType.NEVER,
                                              vexpand=True,
-                                             height_request=300)
+                                             height_request=500)
         self.main_box.append(self.scrollable)
 
         # Add every commit to a new row in the ListBox
@@ -89,7 +89,7 @@ class CommitListWindow(ModalWindow):
         self.confirmation_box = Gtk.Box(halign=Gtk.Align.END, spacing=10)
         self.main_box.append(self.confirmation_box)
 
-        self.cancel_button = Gtk.Button(label="Schließen", halign=Gtk.Align.END)
+        self.cancel_button = Gtk.Button(label="Abbrechen", halign=Gtk.Align.END)
         self.cancel_button.connect("clicked", lambda button, *args: self.destroy())
         self.confirmation_box.append(self.cancel_button)
 
