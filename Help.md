@@ -17,13 +17,14 @@ und welche LEDs am FBF aktiv sind.
 * [Inhaltsverzeichnis](#inhaltsverzeichnis)
 * [Dateistruktur](#dateistruktur)
 * [Bedienung](#bedienung)
+  * [Auslösen von Meldern](#auslösen-von-meldern)
   * [Laden von Dateien](#laden-von-dateien)
   * [Speichern](#speichern)
   * [Dateistand wiederherstellen](#dateistand-wiederherstellen)
   * [Bearbeitungsmodus](#bearbeitungsmodus)
     * [Button "Bearbeiten"](#button-bearbeiten)
-    * [Rechtsklick auf die Meldergruppen-Nummer](#rechtsklick-auf-die-meldergruppen-nummer)
-    * [Rechtsklick auf den Melder](#rechtsklick-auf-den-melder)
+    * [Rechtsklick auf Meldergruppen-Nummer](#rechtsklick-auf-meldergruppen-nummer)
+    * [Rechtsklick den Melder](#rechtsklick-den-melder)
   * [Undo / Redo](#undo--redo)
 <!-- TOC -->
 
@@ -38,24 +39,35 @@ es wird eine Fehlermeldung angezeigt.
 
 # Bedienung
 
+## Auslösen von Meldern
+
+Um einen Melder auszulösen, muss der Schalter neben der Meldernummer aktiviert (angeklickt) werden. 
+Das versetzt die BMA in den Alarmzustand. Um mehrere Melder auszulösen, können diese 
+in der gewünschten Reihenfolge angeklickt werden. Der Zustand der Melder wird im Szenario gespeichert.
+
+Ausgelöste Melder können jederzeit über den Schalter wieder deaktiviert werden (hier: nicht abgeschaltet, 
+sondern in einen nicht-ausgelösten Zustand versetzt). Im Gegensatz zur echten BMA verschwindet damit sofort 
+die entsprechende Meldung vom FAT. Sobald keine Melder mehr aktiv sind, wechselt die BMA wieder in den Ruhezustand.
+
+Informationen zur Abschaltung von Meldern finden sich im Abschnitt Bearbeitungsmodus - Rechtsklick auf Melder.
+
 ## Laden von Dateien
 
-Im normalen Lehrgangsbetrieb ist es in der Regel ausreichend, vorkonfigurierte Szenarien zu laden.
-Dazu kann die entsprechende Funktion unter dem Button "Datei" ausgewählt werden oder mit dem 
-Tastenkürzel Strg+O aktiviert werden. 
+Zum Laden von vorkonfigurierten Gebäuden oder Szenarien kann die entsprechende Funktion 
+unter dem Button "Datei" ausgewählt werden oder mit dem Tastenkürzel Strg+O aktiviert werden. 
 Das Laden eines Szenarios lädt automatisch die entsprechende Gebäudekonfiguration.
 
 ## Speichern
 
-Beim Speichern ist zwischen Gebäudekonfiguration (Strg+Umschalt+S) und Szenario (Strg+S) zu unterscheiden. 
+Beim Speichern ist zwischen Gebäudekonfiguration (Strg+G) und Szenario (Strg+S) zu unterscheiden. 
 Beide Optionen sind auch unter dem Button "Datei" verfügbar. 
 Unabhängig davon müssen dann zuerst die Änderungen seit dem letzten Speichern beschrieben werden. 
 Dies ist für ein eventuelles Zurücksetzen des Dateistands sehr wichtig, um Veränderungen nachvollziehen 
 zu können, und sollte daher gewissenhaft betrieben werden.
 
-Anschließend ist der Speicherort auszuwählen. Die Voreinstellung entspricht der letzten geöffneten Datei. 
+Anschließend ist der Speicherort und Dateiname auszuwählen. Die Voreinstellung entspricht der letzten geöffneten Datei. 
 Bei Veränderungen an einer Datei ist derselbe Dateiname wie zuvor zu wählen und die Warnung, 
-dass eine gleichnamige Datei bereits existiert, zu ignorieren. 
+dass eine gleichnamige Datei bereits existiert, mit "Ersetzen" zu bestätigen. 
 Die Dateiendung ist bereits entsprechend der vorherigen Auswahl korrekt eingestellt; 
 diese darf nicht verändert werden, da die Datei sonst nicht mehr geladen werden kann.
 
@@ -99,13 +111,13 @@ Es stehen dann folgende Funktionen zur Verfügung:
     Hier finden sich Schalter, um die LEDs auf dem FBF zu steuern. 
     Die Einstellung wird im Szenario gespeichert.
 
-### Rechtsklick auf die Meldergruppen-Nummer
+### Rechtsklick auf Meldergruppen-Nummer
 
 1. Melder hinzufügen:  
     Fügt einen Melder mit der angegebenen Nummer (1-99) und Beschreibung hinzu.
 2. Meldergruppe löschen
 
-### Rechtsklick auf den Melder
+### Rechtsklick den Melder
 
 1. Beschreibung bearbeiten
 2. Abschaltung:  
