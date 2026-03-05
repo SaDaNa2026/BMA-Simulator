@@ -81,6 +81,7 @@ class BuildingModel:
         self.circuit_dict.clear()
         self.active_detector_list.clear()
         self.disabled_detector_list.clear()
+        self.history_detector_list.clear()
         self.extinguisher_triggered = False
         self.acoustic_signals_off = False
         self.ue_off = False

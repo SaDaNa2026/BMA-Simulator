@@ -60,6 +60,8 @@ class DetectorContextMenu(Gio.Menu):
         self.append_item(edit_detector_item)
         disable_detector_item = Gio.MenuItem.new("Abschaltung", f"detector.enable_detector_{circuit_number}_{detector_number}")
         self.append_item(disable_detector_item)
+        history_detector_item = Gio.MenuItem.new("In Historie", f"detector.in_history_{circuit_number}_{detector_number}")
+        self.append_item(history_detector_item)
         delete_detector_item = Gio.MenuItem.new("Melder löschen", "edit.delete_detector")
         delete_detector_item.set_attribute_value("target", GLib.Variant("s", f"{circuit_number}, {detector_number}"))
         self.append_item(delete_detector_item)

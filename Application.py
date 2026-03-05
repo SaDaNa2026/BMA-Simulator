@@ -414,7 +414,7 @@ class App(Gtk.Application):
         self.update_leds()
 
     def on_enable_detector_clicked(self, action, parameter):
-        """Toggle the enabled state of the detector switch."""
+        """Toggle the enabled state of the detector switch"""
         action.set_state(parameter)
         enabled = not parameter.get_boolean()
         _, _, circuit_string, detector_string = action.get_name().split("_")
@@ -422,6 +422,14 @@ class App(Gtk.Application):
         detector_number = int(detector_string)
         self.detector_ops.set_enabled(circuit_number, detector_number, enabled)
 
+    def on_detector_in_history_clicked(self, action, parameter):
+        """Toggle the history state of the detector"""
+        action.set_state(parameter)
+        in_history = parameter.get_boolean()
+        _, _, circuit_string, detector_string = action.get_name().split("_")
+        circuit_number = int(circuit_string)
+        detector_number = int(detector_string)
+        self.detector_ops.set_in_history(circuit_number, detector_number, in_history)
 
     def on_edit_mode_clicked(self, action, *args):
         self.toggle_edit_mode(action, *args)
