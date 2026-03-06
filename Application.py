@@ -575,11 +575,15 @@ class App(Gtk.Application):
         """Print the active and disabled detectors to the console."""
         active_detector_list = self.model.get_active_detectors()
         disabled_detector_list = self.model.get_disabled_detectors()
+        history_detector_list = self.model.get_history_detectors()
 
         active_detector_text = self.generate_text(active_detector_list)
         disabled_detector_text = self.generate_text(disabled_detector_list)
+        history_detector_text = self.generate_text(history_detector_list)
 
-        self.write_to_console(active_detector_text, disabled_detector_text)
+        self.window.active_console.buffer.set_text(active_detector_text)
+        self.window.disabled_console.buffer.set_text(disabled_detector_text)
+        self.window.history_console.buffer.set_text(history_detector_text)
 
     def generate_text(self, detector_list: list) -> str:
         detector_text = ""
@@ -595,14 +599,6 @@ class App(Gtk.Application):
             detector_text += f"        {detector_description}\n"
 
         return detector_text
-
-    def write_to_console(self, active_text: str, disabled_text: str):
-        if not isinstance(active_text, str):
-            raise TypeError("active_text must be str")
-        if not isinstance(disabled_text, str):
-            raise TypeError("disabled_text must be str")
-        self.window.active_console.buffer.set_text(active_text)
-        self.window.disabled_console.buffer.set_text(disabled_text)
 
     def delete_all(self):
         """Removes all circuits and detectors"""

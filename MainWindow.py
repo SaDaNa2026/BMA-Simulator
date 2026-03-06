@@ -47,13 +47,15 @@ class MainWindow(Gtk.ApplicationWindow):
 
 
         # Consoles that display information about active and disabled detectors
-        self.console_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+        self.console_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, homogeneous=True)
         self.console_box.set_size_request(600, -1)
         self.outer_box.insert_child_after(self.console_box, self.scrollable)
         self.active_console = Console("Ausgelöste Melder")
         self.console_box.append(self.active_console)
         self.disabled_console = Console("Abgeschaltete Melder")
         self.console_box.append(self.disabled_console)
+        self.history_console = Console("Historie")
+        self.console_box.append(self.history_console)
 
         # Definition of the window header
         self.header = Gtk.HeaderBar()
