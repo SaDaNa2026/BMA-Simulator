@@ -247,7 +247,7 @@ class BuildingModel:
 
         detector_tuple: tuple = (circuit_number, detector_number)
 
-        if detector_tuple in self.disabled_detector_list:
+        if alarm_status and (detector_tuple in self.disabled_detector_list):
             raise ValueError("cannot activate disabled detector")
 
         if alarm_status:
