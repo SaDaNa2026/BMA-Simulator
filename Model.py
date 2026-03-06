@@ -155,13 +155,15 @@ class BuildingModel:
     def get_detector_description(self, circuit_number: int, detector_number: int) -> str:
         return self.circuit_dict[circuit_number].detector_dict[detector_number].description
 
-    def set_detector_enabled(self, circuit_number: int, detector_number: int, enabled: bool) -> None:
+    def set_detector_enabled(self, circuit_number: int, detector_number: int, enabled: bool, list_index: int|None = None) -> None:
         if not isinstance(enabled, bool):
             raise TypeError("enabled must be bool")
         if not circuit_number in self.circuit_dict:
             raise KeyError("circuit does not exist")
         if not detector_number in self.circuit_dict[circuit_number].detector_dict:
             raise KeyError("detector does not exist")
+        if not (isinstance(list_index, int) or list_index is None):
+            raise TypeError("list_index must be int or None")
 
         detector_tuple = (circuit_number, detector_number)
 
@@ -171,7 +173,10 @@ class BuildingModel:
 
         else:
             if detector_tuple not in self.disabled_detector_list:
-                self.disabled_detector_list.append(detector_tuple)
+                if list_index is not None:
+                    self.disabled_detector_list.insert(list_index, detector_tuple)
+                else:
+                    self.disabled_detector_list.append(detector_tuple)
             if detector_tuple in self.active_detector_list:
                 self.active_detector_list.remove(detector_tuple)
 
@@ -191,19 +196,24 @@ class BuildingModel:
     def get_disabled_detectors(self) -> list:
         return self.disabled_detector_list
 
-    def set_detector_in_history(self, circuit_number: int, detector_number: int, in_history: bool) -> None:
+    def set_detector_in_history(self, circuit_number: int, detector_number: int, in_history: bool, list_index: int|None = None) -> None:
         if not isinstance(in_history, bool):
             raise TypeError("in_history must be bool")
         if not circuit_number in self.circuit_dict:
             raise KeyError("circuit does not exist")
         if not detector_number in self.circuit_dict[circuit_number].detector_dict:
             raise KeyError("detector does not exist")
+        if not (isinstance(list_index, int) or list_index is None):
+            raise TypeError("list_index must be int or None")
 
         detector_tuple = (circuit_number, detector_number)
 
         if in_history:
             if detector_tuple not in self.history_detector_list:
-                self.history_detector_list.append(detector_tuple)
+                if list_index is not None:
+                    self.history_detector_list.insert(list_index, detector_tuple)
+                else:
+                    self.history_detector_list.append(detector_tuple)
         else:
             if detector_tuple in self.history_detector_list:
                 self.history_detector_list.remove(detector_tuple)
@@ -224,13 +234,16 @@ class BuildingModel:
     def get_history_detectors(self) -> list:
         return self.history_detector_list
 
-    def set_detector_alarm_status(self, circuit_number: int, detector_number: int, alarm_status: bool) -> None:
+    def set_detector_alarm_status(self, circuit_number: int, detector_number: int, alarm_status: bool, list_index: int|None = None) -> None:
+        """Add or remove a detector from active_detector_list. Insert at list_index if specified, otherwise append"""
         if not isinstance(alarm_status, bool):
             raise TypeError("alarm_status must be bool")
         if not circuit_number in self.circuit_dict:
             raise KeyError("circuit does not exist")
         if not detector_number in self.circuit_dict[circuit_number].detector_dict:
             raise KeyError("detector does not exist")
+        if not (isinstance(list_index, int) or list_index is None):
+            raise TypeError("list_index must be int or None")
 
         detector_tuple: tuple = (circuit_number, detector_number)
 
@@ -239,7 +252,10 @@ class BuildingModel:
 
         if alarm_status:
             if detector_tuple not in self.active_detector_list:
-                self.active_detector_list.append(detector_tuple)
+                if list_index is not None:
+                    self.active_detector_list.insert(list_index, detector_tuple)
+                else:
+                    self.active_detector_list.append(detector_tuple)
         else:
             if detector_tuple in self.active_detector_list:
                 self.active_detector_list.remove(detector_tuple)

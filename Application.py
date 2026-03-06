@@ -323,6 +323,7 @@ class App(Gtk.Application):
             try:
                 self.delete_all()
                 FileOperations.load_building_config(self.model, load_dict, self.circuit_ops.add, self.detector_ops.add)
+                self.print_detector_state()
                 self.lcd.reset()
                 self.update_leds()
                 self.clear_undo()

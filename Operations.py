@@ -23,7 +23,15 @@ class DetectorOps(Operation):
             alarm_status: bool = False,
             enabled: bool = True,
             in_history: bool = False) -> None:
-        self.create_detector(circuit_number, detector_number, description, alarm_status, enabled, in_history)
+        self.create_detector(circuit_number,
+                             detector_number,
+                             description,
+                             alarm_status,
+                             None,
+                             enabled,
+                             None,
+                             in_history,
+                             None)
 
         self.app.clear_redo()
         self.app.append_undo((self.undo_add, (circuit_number, detector_number)))
@@ -43,9 +51,21 @@ class DetectorOps(Operation):
                  detector_number: int,
                  description: str,
                  alarm_status: bool,
+                 alarm_index: int|None,
                  enabled: bool,
-                 in_history: bool) -> None:
-        self._readd_detector(circuit_number, detector_number, description, alarm_status, enabled, in_history)
+                 disabled_index: int|None,
+                 in_history: bool,
+                 history_index: int|None
+                 ) -> None:
+        self._readd_detector(circuit_number,
+                             detector_number,
+                             description,
+                             alarm_status,
+                             alarm_index,
+                             enabled,
+                             disabled_index,
+                             in_history,
+                             history_index)
 
         self.app.append_undo((self.undo_add, (circuit_number, detector_number)))
 
@@ -66,9 +86,21 @@ class DetectorOps(Operation):
                     detector_number: int,
                     description: str,
                     alarm_status: bool,
+                    alarm_index: int|None,
                     enabled: bool,
-                    in_history: bool) -> None:
-        self._readd_detector(circuit_number, detector_number, description, alarm_status, enabled, in_history)
+                    disabled_index: int|None,
+                    in_history: bool,
+                    history_index: int|None
+                    ) -> None:
+        self._readd_detector(circuit_number,
+                             detector_number,
+                             description,
+                             alarm_status,
+                             alarm_index,
+                             enabled,
+                             disabled_index,
+                             in_history,
+                             history_index)
         self.app.append_redo((self.redo_delete, (circuit_number, detector_number)))
 
     def redo_delete(self, circuit_number: int, detector_number: int) -> None:
@@ -199,14 +231,17 @@ class DetectorOps(Operation):
                         detector_number: int,
                         description: str,
                         alarm_status: bool = False,
+                        alarm_index: int|None = None,
                         enabled: bool = True,
-                        in_history: bool = False
+                        enabled_index: int|None = None,
+                        in_history: bool = False,
+                        history_index: int|None = None
                         ) -> None:
         """Create a new Detector instance and add it to the window."""
         self.model.add_detector(circuit_number, detector_number, description)
-        self.model.set_detector_alarm_status(circuit_number, detector_number, alarm_status)
-        self.model.set_detector_enabled(circuit_number, detector_number, enabled)
-        self.model.set_detector_in_history(circuit_number, detector_number, in_history)
+        self.model.set_detector_alarm_status(circuit_number, detector_number, alarm_status, alarm_index)
+        self.model.set_detector_enabled(circuit_number, detector_number, enabled, enabled_index)
+        self.model.set_detector_in_history(circuit_number, detector_number, in_history, history_index)
 
         circuit = self.app.window.circuit_dict[circuit_number]
         detector = Detector(circuit_number, detector_number, description)
@@ -262,23 +297,46 @@ class DetectorOps(Operation):
                         detector_number: int,
                         description: str,
                         alarm_status: bool,
+                        alarm_index: int|None,
                         enabled: bool,
-                        in_history: bool) -> None:
-        self.create_detector(circuit_number, detector_number, description, alarm_status, enabled, in_history)
+                        disabled_index: int|None,
+                        in_history: bool,
+                        history_index: int|None) -> None:
+        self.create_detector(circuit_number,
+                             detector_number,
+                             description,
+                             alarm_status,
+                             alarm_index,
+                             enabled,
+                             disabled_index,
+                             in_history,
+                             history_index)
 
         # Update state
         self.app.print_detector_state()
         self.app.lcd.reset()
         self.app.update_leds()
 
-    def remove_detector(self, circuit_number: int, detector_number: int) -> tuple[int, int, str, bool, bool, bool]:
+    def remove_detector(self, circuit_number: int, detector_number: int) -> tuple[int, int, str, bool, int|None, bool, int|None, bool, int|None]:
         # Get the corresponding objects
         circuit = self.app.window.circuit_dict[circuit_number]
         detector = self.app.window.circuit_dict[circuit_number].detector_dict[detector_number]
         description = self.model.get_detector_description(circuit_number, detector_number)
         alarm_status = self.model.get_detector_alarm_status(circuit_number, detector_number)
+        if alarm_status:
+            alarm_index = self.model.active_detector_list.index((circuit_number, detector_number))
+        else:
+            alarm_index = None
         enabled = self.model.get_detector_enabled(circuit_number, detector_number)
+        if not enabled:
+            disabled_index = self.model.disabled_detector_list.index((circuit_number, detector_number))
+        else:
+            disabled_index = None
         in_history = self.model.get_detector_in_history(circuit_number, detector_number)
+        if in_history:
+            history_index = self.model.history_detector_list.index((circuit_number, detector_number))
+        else:
+            history_index = None
 
         # Remove the detector object and the reference to it
         circuit.button_box.remove(detector)
@@ -293,7 +351,7 @@ class DetectorOps(Operation):
         history_action_name = f"in_history_{circuit_number}_{detector_number}"
         self.app.detector_action_group.remove_action(history_action_name)
 
-        return circuit_number, detector_number, description, alarm_status, enabled, in_history
+        return circuit_number, detector_number, description, alarm_status, alarm_index, enabled, disabled_index, in_history, history_index
 
 
 class CircuitOps(Operation):
@@ -340,11 +398,15 @@ class CircuitOps(Operation):
     def _remove_circuit(self, circuit_number: int) -> list:
         circuit = self.app.window.circuit_dict[circuit_number]
 
+        # Remove detectors and save their properties for readding
         detector_list = [detector_number for detector_number in circuit.detector_dict]
         detectors = []
         for detector_number in detector_list:
             detector_props = self.detector_ops.remove_detector(circuit_number, detector_number)
             detectors.append(detector_props)
+
+        # Reverse detectors so they are added correctly
+        detectors.reverse()
 
         self.model.delete_circuit(circuit_number)
         self.app.window.main_box.remove(circuit)
