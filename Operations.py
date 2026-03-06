@@ -23,63 +23,18 @@ class DetectorOps(Operation):
             alarm_status: bool = False,
             enabled: bool = True,
             in_history: bool = False) -> None:
-        """Create a new Detector instance and add it to the window."""
-        self.model.add_detector(circuit_number, detector_number, description)
-        circuit = self.app.window.circuit_dict[circuit_number]
-
-        detector = Detector(circuit_number, detector_number, description)
-
-        # Create a new stateful action for the detector switch
-        switch_action_name = f"detector_toggle_{circuit_number}_{detector_number}"
-        switch_action = Gio.SimpleAction.new_stateful(switch_action_name,
-                                                      None,
-                                                      GLib.Variant.new_boolean(alarm_status))
-        switch_action.set_enabled(enabled)
-        switch_action.connect("change-state",
-                              self.app.on_detector_switch_toggled,
-                              circuit_number,
-                              detector_number)
-        self.app.detector_action_group.add_action(switch_action)
-
-        # Connect the detector switch to its callback function
-        detector.detector_switch.set_action_name(f"detector.{switch_action_name}")
-
-        # Create a new stateful action for the enabled state of the detector
-        enabled_action_name = f"enable_detector_{circuit_number}_{detector_number}"
-        enabled_action = Gio.SimpleAction.new_stateful(enabled_action_name,
-                                                       None,
-                                                       GLib.Variant.new_boolean(not enabled))
-        enabled_action.connect("change-state", self.app.on_enable_detector_clicked)
-        self.app.detector_action_group.add_action(enabled_action)
-
-        # Create a new stateful action for the history state of the detector
-        history_action_name = f"in_history_{circuit_number}_{detector_number}"
-        history_action = Gio.SimpleAction.new_stateful(history_action_name,
-                                                       None,
-                                                       GLib.Variant.new_boolean(in_history))
-        history_action.connect("change-state", self.app.on_detector_in_history_clicked)
-        self.app.detector_action_group.add_action(history_action)
-
-        # Connect the event handler that detects if the circuit is right-clicked
-        detector.click_controller.connect("pressed", partial(self.app.on_detector_pressed,
-                                                             circuit_number=circuit_number,
-                                                             detector_number=detector_number))
-
-        # Get the previous detector to add this one in the correct position (default None => top position)
-        previous_detector = None
-        for other_detector_number in self.model.get_detectors_for_circuit(circuit_number):
-            if detector_number > other_detector_number:
-                previous_detector = circuit.detector_dict[other_detector_number]
-
-        # Add the detector to its circuit
-        circuit.detector_dict[detector_number] = detector
-        circuit.button_box.insert_child_after(detector, previous_detector)
+        self.create_detector(circuit_number, detector_number, description, alarm_status, enabled, in_history)
 
         self.app.clear_redo()
         self.app.append_undo((self.undo_add, (circuit_number, detector_number)))
 
     def undo_add(self, circuit_number: int, detector_number: int) -> None:
         readd_args = self.remove_detector(circuit_number, detector_number)
+
+        # Update state
+        self.app.print_detector_state()
+        self.app.lcd.reset()
+        self.app.update_leds()
 
         self.app.append_redo((self.redo_add, readd_args))
 
@@ -89,15 +44,20 @@ class DetectorOps(Operation):
                  description: str,
                  alarm_status: bool,
                  enabled: bool,
-                 in_history: bool,
-                 detector: Any) -> None:
-        self.readd_detector(circuit_number, detector_number, description, alarm_status, enabled, in_history, detector)
+                 in_history: bool) -> None:
+        self._readd_detector(circuit_number, detector_number, description, alarm_status, enabled, in_history)
 
         self.app.append_undo((self.undo_add, (circuit_number, detector_number)))
 
     def delete(self, circuit_number: int, detector_number: int) -> None:
         """Remove a detector from the view and model and keep a reference to it"""
         readd_args = self.remove_detector(circuit_number, detector_number)
+
+        # Update state
+        self.app.print_detector_state()
+        self.app.lcd.reset()
+        self.app.update_leds()
+
         self.app.clear_redo()
         self.app.append_undo((self.undo_delete, readd_args))
 
@@ -107,13 +67,18 @@ class DetectorOps(Operation):
                     description: str,
                     alarm_status: bool,
                     enabled: bool,
-                    in_history: bool,
-                    detector: Any) -> None:
-        self.readd_detector(circuit_number, detector_number, description, alarm_status, enabled, in_history, detector)
+                    in_history: bool) -> None:
+        self._readd_detector(circuit_number, detector_number, description, alarm_status, enabled, in_history)
         self.app.append_redo((self.redo_delete, (circuit_number, detector_number)))
 
     def redo_delete(self, circuit_number: int, detector_number: int) -> None:
         readd_args = self.remove_detector(circuit_number, detector_number)
+
+        # Update state
+        self.app.print_detector_state()
+        self.app.lcd.reset()
+        self.app.update_leds()
+
         self.app.append_undo((self.undo_delete, readd_args))
 
     def edit(self, circuit_number: int, detector_number: int, description: str) -> None:
@@ -229,15 +194,22 @@ class DetectorOps(Operation):
         self.app.print_detector_state()
         self.app.lcd.reset()
 
-    def readd_detector(self,
-                       circuit_number: int,
-                       detector_number: int,
-                       description: str,
-                       alarm_status: bool,
-                       enabled: bool,
-                       in_history: bool,
-                       detector: Any) -> None:
+    def create_detector(self,
+                        circuit_number: int,
+                        detector_number: int,
+                        description: str,
+                        alarm_status: bool = False,
+                        enabled: bool = True,
+                        in_history: bool = False
+                        ) -> None:
+        """Create a new Detector instance and add it to the window."""
+        self.model.add_detector(circuit_number, detector_number, description)
+        self.model.set_detector_alarm_status(circuit_number, detector_number, alarm_status)
+        self.model.set_detector_enabled(circuit_number, detector_number, enabled)
+        self.model.set_detector_in_history(circuit_number, detector_number, in_history)
+
         circuit = self.app.window.circuit_dict[circuit_number]
+        detector = Detector(circuit_number, detector_number, description)
 
         # Create a new stateful action for the detector switch
         switch_action_name = f"detector_toggle_{circuit_number}_{detector_number}"
@@ -250,6 +222,9 @@ class DetectorOps(Operation):
                               circuit_number,
                               detector_number)
         self.app.detector_action_group.add_action(switch_action)
+
+        # Connect the detector switch to its callback function
+        detector.detector_switch.set_action_name(f"detector.{switch_action_name}")
 
         # Create a new stateful action for the enabled state of the detector
         enabled_action_name = f"enable_detector_{circuit_number}_{detector_number}"
@@ -267,25 +242,36 @@ class DetectorOps(Operation):
         history_action.connect("change-state", self.app.on_detector_in_history_clicked)
         self.app.detector_action_group.add_action(history_action)
 
+        # Connect the event handler that detects if the circuit is right-clicked
+        detector.click_controller.connect("pressed", partial(self.app.on_detector_pressed,
+                                                             circuit_number=circuit_number,
+                                                             detector_number=detector_number))
+
         # Get the previous detector to add this one in the correct position (default None => top position)
         previous_detector = None
         for other_detector_number in self.model.get_detectors_for_circuit(circuit_number):
             if detector_number > other_detector_number:
                 previous_detector = circuit.detector_dict[other_detector_number]
 
-        # Add the detector object and the reference to it
+        # Add the detector to its circuit
         circuit.detector_dict[detector_number] = detector
-        self.model.add_detector(circuit_number, detector_number, description)
-        self.model.set_detector_alarm_status(circuit_number, detector_number, alarm_status)
-        self.model.set_detector_enabled(circuit_number, detector_number, enabled)
         circuit.button_box.insert_child_after(detector, previous_detector)
+
+    def _readd_detector(self,
+                        circuit_number: int,
+                        detector_number: int,
+                        description: str,
+                        alarm_status: bool,
+                        enabled: bool,
+                        in_history: bool) -> None:
+        self.create_detector(circuit_number, detector_number, description, alarm_status, enabled, in_history)
 
         # Update state
         self.app.print_detector_state()
         self.app.lcd.reset()
         self.app.update_leds()
 
-    def remove_detector(self, circuit_number: int, detector_number: int) -> tuple[str, bool, bool, bool, Any]:
+    def remove_detector(self, circuit_number: int, detector_number: int) -> tuple[int, int, str, bool, bool, bool]:
         # Get the corresponding objects
         circuit = self.app.window.circuit_dict[circuit_number]
         detector = self.app.window.circuit_dict[circuit_number].detector_dict[detector_number]
@@ -307,12 +293,7 @@ class DetectorOps(Operation):
         history_action_name = f"in_history_{circuit_number}_{detector_number}"
         self.app.detector_action_group.remove_action(history_action_name)
 
-        # Update state
-        self.app.print_detector_state()
-        self.app.lcd.reset()
-        self.app.update_leds()
-
-        return description, alarm_status, enabled, in_history, detector
+        return circuit_number, detector_number, description, alarm_status, enabled, in_history
 
 
 class CircuitOps(Operation):
@@ -322,62 +303,70 @@ class CircuitOps(Operation):
 
     def add(self, circuit_number: int) -> None:
         """Create a new Circuit instance and add it to the window."""
-        self.model.add_circuit(circuit_number)
+        self._create_circuit(circuit_number)
 
+        self.app.clear_redo()
+        self.app.append_undo((self.undo_add, (circuit_number,)))
+
+    def undo_add(self, circuit_number: int) -> None:
+        detectors = self._remove_circuit(circuit_number)
+        self.app.append_redo((self.redo_add, (circuit_number, detectors)))
+
+    def redo_add(self, circuit_number: int, detectors: Any) -> None:
+        self._readd_circuit(circuit_number, detectors)
+        self.app.append_undo((self.undo_add, (circuit_number,)))
+
+    def delete(self, circuit_number: int) -> None:
+        detectors = self._remove_circuit(circuit_number)
+        self.app.clear_redo()
+        self.app.append_undo((self.undo_delete, (circuit_number, detectors)))
+
+    def undo_delete(self, circuit_number: int, detectors: list) -> None:
+        self._readd_circuit(circuit_number, detectors)
+        self.app.append_redo((self.redo_delete, (circuit_number,)))
+
+    def redo_delete(self, circuit_number: int) -> None:
+        detectors = self._remove_circuit(circuit_number)
+        self.app.append_undo((self.undo_delete, (circuit_number, detectors)))
+
+    def _create_circuit(self, circuit_number: int) -> None:
+        self.model.add_circuit(circuit_number)
         circuit = Circuit(circuit_number)
         self.app.window.circuit_dict[circuit_number] = circuit
         # Connect the event handler that detects if the circuit is right-clicked
         circuit.click_controller.connect("pressed", partial(self.app.on_circuit_pressed, circuit_number=circuit_number))
         self.app.window.main_box.append(circuit)
 
-        self.app.clear_redo()
-        self.app.append_undo((self.undo_add, (circuit_number,)))
-
-    def undo_add(self, circuit_number: int) -> None:
-        circuit, detectors = self._remove_circuit(circuit_number)
-        self.app.append_redo((self.redo_add, (circuit_number, circuit, detectors)))
-
-    def redo_add(self, circuit_number: int, circuit: Any, detectors: Any) -> None:
-        self._readd_circuit(circuit_number, circuit, detectors)
-        self.app.append_undo((self.undo_add, (circuit_number,)))
-
-    def delete(self, circuit_number: int) -> None:
-        circuit, detectors = self._remove_circuit(circuit_number)
-        self.app.clear_redo()
-        self.app.append_undo((self.undo_delete, (circuit_number, circuit, detectors)))
-
-    def undo_delete(self, circuit_number: int, circuit: Any, detectors: list) -> None:
-        self._readd_circuit(circuit_number, circuit, detectors)
-        self.app.append_redo((self.redo_delete, (circuit_number,)))
-
-    def redo_delete(self, circuit_number: int) -> None:
-        circuit, detectors = self._remove_circuit(circuit_number)
-        self.app.append_undo((self.undo_delete, (circuit_number, circuit, detectors)))
-
-    def _remove_circuit(self, circuit_number: int) -> tuple[Any, list]:
+    def _remove_circuit(self, circuit_number: int) -> list:
         circuit = self.app.window.circuit_dict[circuit_number]
 
         detector_list = [detector_number for detector_number in circuit.detector_dict]
         detectors = []
         for detector_number in detector_list:
-            detector_props = [circuit_number, detector_number]
-            for value in self.detector_ops.remove_detector(circuit_number, detector_number):
-                detector_props.append(value)
+            detector_props = self.detector_ops.remove_detector(circuit_number, detector_number)
             detectors.append(detector_props)
 
         self.model.delete_circuit(circuit_number)
         self.app.window.main_box.remove(circuit)
         del self.app.window.circuit_dict[circuit_number]
 
-        return circuit, detectors
+        # Update state
+        self.app.print_detector_state()
+        self.app.lcd.reset()
+        self.app.update_leds()
 
-    def _readd_circuit(self, circuit_number: int, circuit: Any, detectors: list) -> None:
-        self.model.add_circuit(circuit_number)
-        self.app.window.circuit_dict[circuit_number] = circuit
-        self.app.window.main_box.append(circuit)
+        return detectors
+
+    def _readd_circuit(self, circuit_number: int, detectors: list) -> None:
+        self._create_circuit(circuit_number)
 
         for detector in detectors:
-            self.detector_ops.readd_detector(*detector)
+            self.detector_ops.create_detector(*detector)
+
+        # Update state
+        self.app.print_detector_state()
+        self.app.lcd.reset()
+        self.app.update_leds()
 
 
 class BuildingOps(Operation):
