@@ -261,6 +261,7 @@ class DetectorOps(Operation):
         self.model.set_detector_in_history(circuit_number, detector_number, in_history, history_index)
         self.app.print_detector_state()
         self.app.lcd.reset()
+        self.app.update_leds()
 
         return previous_in_history, previous_history_index
 

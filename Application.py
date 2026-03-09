@@ -32,6 +32,10 @@ class App(Gtk.Application):
         # Create a placeholder to memorize opened files
         self.last_file = Gio.File.new_for_path("/home/lfs-bma/git_test1")
 
+        # Keep track if the reset button has been pressed. This is necessary to check if the alarm LED needs to light up
+        # if there are detectors in the history. Resets when a new file is loaded
+        self.is_reset: bool = False
+
         self.undo_stack: list = []
         self.redo_stack: list = []
 
@@ -328,6 +332,7 @@ class App(Gtk.Application):
                 self.update_leds()
                 self.clear_undo()
                 self.clear_redo()
+                self.is_reset = False
 
             except KeyError as e:
                 print(f"KeyError: {e}")
@@ -494,12 +499,17 @@ class App(Gtk.Application):
 
     def clear_alarms(self):
         """Clear all alarms"""
+        self.is_reset = True
+
         # Convert list to tuple to make it immutable for iteration
         active_detectors = tuple(self.model.get_active_detectors())
 
         for detector_tuple in active_detectors:
             detector = self.window.circuit_dict[detector_tuple[0]].detector_dict[detector_tuple[1]]
             detector.detector_switch.set_active(False)
+
+        self.lcd.reset()
+        self.update_leds()
 
     def on_undo_clicked(self, *args):
         """Pop the top entry of undo_stack and execute it"""
@@ -556,7 +566,8 @@ class App(Gtk.Application):
 
     def on_history_pressed(self):
         """Display the history screen"""
-        print("history")
+        self.lcd.show_history()
+        self.update_leds()
 
     def on_self_test_pressed(self):
         """Turn on all LEDs and all pixels on the LCD"""
@@ -643,6 +654,8 @@ class App(Gtk.Application):
             self.led_fbf.turn_off("acoustic_signals_off")
             self.led_fbf.turn_off("fire_controls_off")
 
+        if len(self.model.get_history_detectors()) > 0 and not self.is_reset:
+            self.led_fbf.turn_on("alarm")
 
         if self.lcd.first_message_shown():
             self.led_fat.stop_blink("previous_alarm")

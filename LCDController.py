@@ -6,15 +6,15 @@ class LCDController(CharLCD):
         self.model = model
         self.current_screen: int = 0
         self.visible_dict: dict = {}
-        self.write_building_description()
+        self._write_building_description()
 
-    def write_building_description(self):
+    def _write_building_description(self):
         """Write the building description to the LCD."""
         self.clear()
         self.cursor_pos = (0, 0)
         self.write_string(self.model.get_building_description())
 
-    def write_message(self, detector: tuple, position, message_type: str) ->None:
+    def _write_message(self, detector: tuple, position, message_type: str) ->None:
         """Write an alarm to the LCD at the specified position."""
         circuit_number = detector[0]
         detector_number = detector[1]
@@ -39,6 +39,8 @@ class LCDController(CharLCD):
             self.write_string("      Feuer")
         elif message_type == "disabled":
             self.write_string("Abschaltung")
+        elif message_type == "history":
+            self.write_string("   Historie")
         self.write_string(f"\r\n{detector_description}")
 
     def add_alarm(self, detector: tuple):
@@ -61,16 +63,27 @@ class LCDController(CharLCD):
 
         self.refresh()
 
-    def write_disabled_detectors(self):
+    def _write_disabled_detectors(self):
         """Set visible_dict according to the disabled detectors and refresh"""
         disabled_detectors = self.model.get_disabled_detectors()
         if self.current_screen == 2 and len(disabled_detectors) > 0:
-            self.current_screen = 2
             self.visible_dict.clear()
             self.visible_dict["bottom"] = disabled_detectors[-1]
 
             if len(disabled_detectors) > 1:
                 self.visible_dict["top"] = disabled_detectors[0]
+
+        self.refresh()
+
+    def _write_history_detectors(self):
+        """Set visible_dict according to the history detectors and refresh"""
+        history_detectors = self.model.get_history_detectors()
+        if self.current_screen == 3 and len(history_detectors) > 0:
+            self.visible_dict.clear()
+            self.visible_dict["bottom"] = history_detectors[-1]
+
+            if len(history_detectors) > 1:
+                self.visible_dict["top"] = history_detectors[0]
 
         self.refresh()
 
@@ -87,16 +100,13 @@ class LCDController(CharLCD):
 
         else:
             self.current_screen = 0
-            self.write_building_description()
+            self._write_building_description()
 
 
     def previous_message(self) -> bool:
         """Set the top alarm to the previous alarm. Returns true if the operation was successful, otherwise false"""
-        if self.current_screen == 1:
-            message_list = self.model.get_active_detectors()
-        elif self.current_screen == 2:
-            message_list = self.model.get_disabled_detectors()
-        else:
+        message_list = self._get_message_list()
+        if not message_list:
             return False
 
         # Check if there are enough alarms to scroll
@@ -113,11 +123,8 @@ class LCDController(CharLCD):
 
     def next_message(self) -> bool:
         """Set the top alarm to the next alarm. Returns true if the operation was successful, otherwise false"""
-        if self.current_screen == 1:
-            message_list = self.model.get_active_detectors()
-        elif self.current_screen == 2:
-            message_list = self.model.get_disabled_detectors()
-        else:
+        message_list = self._get_message_list()
+        if not message_list:
             return False
 
         # Check if there are enough alarms to scroll
@@ -132,29 +139,43 @@ class LCDController(CharLCD):
         self.refresh()
         return True
 
+    def _get_message_list(self) -> list|bool:
+        if self.current_screen == 1:
+            return self.model.get_active_detectors()
+        elif self.current_screen == 2:
+            return self.model.get_disabled_detectors()
+        elif self.current_screen == 3:
+            return self.model.get_history_detectors()
+        else:
+            return False
+
     def first_message_shown(self) -> bool:
         """Checks if the first message is shown in the top position of the LCD. Return True if there are less than or
         equal to two messages or current_screen == 0 (home screen)"""
-        if self.current_screen == 0:
-            return True
-        elif len(self.visible_dict) < 2:
+        if len(self.visible_dict) < 2:
             return True
         elif self.current_screen == 1:
             return self.visible_dict["top"] == self.model.get_active_detectors()[0]
-        else:
+        elif self.current_screen == 2:
             return self.visible_dict["top"] == self.model.get_disabled_detectors()[0]
+        elif self.current_screen == 3:
+            return self.visible_dict["top"] == self.model.get_history_detectors()[0]
+        else:
+            return True
 
     def last_message_shown(self) -> bool:
         """Checks if the last scrollable (second to last) message is shown in the top position of the LCD. Returns
         True if there are less than or equal to 2 messages or current_screen == 0 (home screen)"""
-        if self.current_screen == 0:
-            return True
-        elif len(self.visible_dict) < 2:
+        if len(self.visible_dict) < 2:
             return True
         elif self.current_screen == 1:
             return self.visible_dict["top"] == self.model.get_active_detectors()[-2]
-        else:
+        elif self.current_screen == 2:
             return self.visible_dict["top"] == self.model.get_disabled_detectors()[-2]
+        elif self.current_screen == 3:
+            return self.visible_dict["top"] == self.model.get_history_detectors()[-2]
+        else:
+            return True
 
     def toggle_view_level(self):
         """Switch between alarms and disabled detectors"""
@@ -166,17 +187,28 @@ class LCDController(CharLCD):
 
                 elif len(self.model.get_disabled_detectors()) > 0:
                     self.current_screen = 2
-                    self.write_disabled_detectors()
+                    self._write_disabled_detectors()
 
             case 1:
                 if len(self.model.get_disabled_detectors()) > 0:
                     self.current_screen = 2
-                    self.write_disabled_detectors()
+                    self._write_disabled_detectors()
 
             case 2:
                 if len(self.model.get_active_detectors()) > 0:
                     self.current_screen = 1
                     self.reset()
+
+            case 3:
+                if len(self.model.get_active_detectors()) > 0:
+                    self.current_screen = 1
+                    self.reset()
+
+    def show_history(self):
+        """Switch to the history screen if there are detectors in the history"""
+        if len(self.model.get_history_detectors()) > 0:
+            self.current_screen = 3
+            self._write_history_detectors()
 
     def refresh(self):
         """Refresh the LCD according to visible_alarm_dict."""
@@ -186,12 +218,17 @@ class LCDController(CharLCD):
         if self.current_screen == 1:
             self.clear()
             for position in self.visible_dict:
-                self.write_message(self.visible_dict[position], position, "alarm")
+                self._write_message(self.visible_dict[position], position, "alarm")
 
         elif self.current_screen == 2:
             self.clear()
             for position in self.visible_dict:
-                self.write_message(self.visible_dict[position], position, "disabled")
+                self._write_message(self.visible_dict[position], position, "disabled")
+
+        elif self.current_screen == 3:
+            self.clear()
+            for position in self.visible_dict:
+                self._write_message(self.visible_dict[position], position, "history")
 
     def test(self):
         """Fill the screen with blocks to test all pixels"""

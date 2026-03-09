@@ -154,14 +154,39 @@ class FileOperations:
             circuit_number = int(number_list[0])
             detector_number = int(number_list[1])
 
-            try:
-                enable_action = detector_action_group.lookup_action(f"enable_detector_{circuit_number}_{detector_number}")
-                enable_action.change_state(GLib.Variant.new_boolean(True))
+            enable_action = detector_action_group.lookup_action(f"enable_detector_{circuit_number}_{detector_number}")
+            if not isinstance(enable_action, Gio.SimpleAction):
+                raise KeyError(
+                    f"Melder {detector_number} in Meldergruppe {circuit_number} ist im Szenario abgeschaltet, "
+                    f"aber nicht in der Gebäudekonfiguration enthalten, die im selben Verzeichnis liegt.")
 
-            except KeyError:
-                raise KeyError(f"Melder {detector_number} in Meldergruppe {circuit_number} ist im Szenario abgeschaltet, "
-                               f"aber nicht in der Gebäudekonfiguration enthalten, die im selben Verzeichnis "
-                               f"liegt.")
+            enable_action.change_state(GLib.Variant.new_boolean(True))
+
+        for number_list in load_dict["history_detector_list"]:
+            # Check for correct Syntax
+            if not type(number_list) == list:
+                raise TypeError("Inkorrektes Format der Meldernummer.")
+
+            if not len(number_list) == 2:
+                raise SyntaxError("Inkorrektes Format der Meldernummer.")
+
+            if not type(number_list[0]) == int:
+                raise TypeError("Mindestens eine Meldergruppen-Nummer ist keine natürliche Zahl.")
+
+            if not type(number_list[1]) == int:
+                raise TypeError("Mindestens eine Melder-Nummer ist keine natürliche Zahl.")
+
+            # Retrieve numbers from strings
+            circuit_number = int(number_list[0])
+            detector_number = int(number_list[1])
+
+            history_action = detector_action_group.lookup_action(f"in_history_{circuit_number}_{detector_number}")
+            if not isinstance(history_action, Gio.SimpleAction):
+                raise KeyError(
+                    f"Melder {detector_number} in Meldergruppe {circuit_number} ist im Szenario in der Historie, "
+                    f"aber nicht in der Gebäudekonfiguration enthalten, die im selben Verzeichnis liegt.")
+
+            history_action.change_state(GLib.Variant.new_boolean(True))
 
         model.set_extinguisher_triggered(load_dict["settings"]["extinguisher_triggered"])
         model.set_acoustic_signals_off(load_dict["settings"]["acoustic_signals_off"])
@@ -263,6 +288,7 @@ class FileOperations:
         """Create a dictionary that contains a list of active detectors and a description."""
         save_dict = {"active_detector_list": model.get_active_detectors(),
                      "disabled_detector_list": model.get_disabled_detectors(),
+                     "history_detector_list": model.get_history_detectors(),
                      "settings": {"extinguisher_triggered": model.get_extinguisher_triggered(),
                                   "acoustic_signals_off": model.get_acoustic_signals_off(),
                                   "ue_off": model.get_ue_off(),
