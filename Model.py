@@ -148,6 +148,8 @@ class BuildingModel:
             self.active_detector_list.remove(detector_tuple)
         if detector_tuple in self.disabled_detector_list:
             self.disabled_detector_list.remove(detector_tuple)
+        if detector_tuple in self.history_detector_list:
+            self.history_detector_list.remove(detector_tuple)
 
     def set_detector_description(self, circuit_number: int, detector_number: int, description: str) ->None:
         self.circuit_dict[circuit_number].detector_dict[detector_number].set_description(description)

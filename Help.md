@@ -24,7 +24,7 @@ und welche LEDs am FBF aktiv sind.
   * [Bearbeitungsmodus](#bearbeitungsmodus)
     * [Button "Bearbeiten"](#button-bearbeiten)
     * [Rechtsklick auf Meldergruppen-Nummer](#rechtsklick-auf-meldergruppen-nummer)
-    * [Rechtsklick den Melder](#rechtsklick-den-melder)
+    * [Rechtsklick auf Melder](#rechtsklick-auf-melder)
   * [Undo / Redo](#undo--redo)
 <!-- TOC -->
 
@@ -86,9 +86,11 @@ Wenn nun auf "Wiederherstellen" geklickt wird, wird der Inhalt aller Dateien im 
 auf den ausgewählten Stand zurückgesetzt.  
 **Diese Aktion lässt sich nicht rückgängig machen.** 
 
-Anmerkung: Wenn manuelle Änderungen am Inhalt des Ordners durchgeführt werden, so werden diese gruppiert 
-mit den in dieser Anwendung vorgenommenen Änderungen beim nächsten Speichervorgang im betreffenden Ordner 
-als Commit aufgelistet.
+Nach dem Zurücksetzen muss die Datei neu geladen werden, damit die Konfiguration die Änderungen reflektiert.
+
+Anmerkung: Wenn manuelle Änderungen am Inhalt des Ordners durchgeführt werden 
+(z.B. Umbenennen von Dateien), so werden diese gruppiert mit den in dieser Anwendung 
+vorgenommenen Änderungen beim nächsten Speichervorgang im betreffenden Ordner als Commit aufgelistet.
 
 ## Bearbeitungsmodus
 
@@ -110,6 +112,8 @@ Es stehen dann folgende Funktionen zur Verfügung:
 3. FBF:  
     Hier finden sich Schalter, um die LEDs auf dem FBF zu steuern. 
     Die Einstellung wird im Szenario gespeichert.
+4. Historie leeren:  
+    Löscht alle Einträge aus der Historie.
 
 ### Rechtsklick auf Meldergruppen-Nummer
 
@@ -117,19 +121,23 @@ Es stehen dann folgende Funktionen zur Verfügung:
     Fügt einen Melder mit der angegebenen Nummer (1-99) und Beschreibung hinzu.
 2. Meldergruppe löschen
 
-### Rechtsklick den Melder
+### Rechtsklick auf Melder
 
 1. Beschreibung bearbeiten
 2. Abschaltung:  
     Schaltet den Melder ab. Dadurch wird ein eventuell am Melder anliegender Alarm abgeschaltet und 
     der Melder in der Anzeigeebene der Abschaltung angezeigt. Diese Einstellung wird im Szenario gespeichert.
-3. Melder löschen
+3. In Historie:  
+    Legt fest, ob der Melder in der Historie erscheint. Diese Einstellung wird im Szenario gespeichert.
+4. Melder löschen
+
+Abschaltung und Historie sind auch bei ausgeschaltetem Bearbeitungsmodus verfügbar.
 
 ## Undo / Redo
 
 Jede Aktion lässt sich per Strg+Z oder dem Undo-Button rückgängig machen, 
 außer dem Auslösen von Meldern und den Einstellungen für das FBF
-(da man hier ganz einfach den Schalter wieder umlegen kann).  
+(hier kann man den Schalter einfach wieder umlegen).  
 Per Strg+Y, Strg+Shift+Z oder dem Redo-Button kann man die rückgängig gemachte Aktion wiederherstellen.  
 Falls keine Aktion mehr rückgängig gemacht oder wiederhergestellt werden kann, 
 ist der entsprechende Button ausgegraut.

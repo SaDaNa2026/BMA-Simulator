@@ -61,7 +61,8 @@ class App(Gtk.Application):
                                ("delete_detector", self.on_delete_detector_clicked, "s"),
                                ("edit_detector", self.on_edit_detector_clicked, "s"),
                                ("edit_building", self.on_edit_building_clicked, None),
-                               ("edit_settings", self.on_edit_settings_clicked, None)]
+                               ("edit_fbf", self.on_edit_fbf_clicked, None),
+                               ("clear_history", self.on_clear_history_clicked, None)]
 
         hidden_action_entries = [("previous_alarm", self.on_previous_message_clicked, None),
                                  ("next_alarm", self.on_next_message_clicked, None)]
@@ -103,7 +104,7 @@ class App(Gtk.Application):
             ("app.redo", ["<Ctrl><Shift>Z", "<Ctrl>Y"]),
             ("edit.create_circuit", ["<Ctrl>I"]),
             ("edit.edit_building", ["<Ctrl>B"]),
-            ("edit.edit_settings", ["<Ctrl>L"])
+            ("edit.edit_fbf", ["<Ctrl>L"])
         ]
         for accel in self.accels_list:
             self.set_accels_for_action(*accel)
@@ -400,7 +401,7 @@ class App(Gtk.Application):
 
         self.window.show_commit_list(directory, commit_list, FileOperations.rollback)
 
-    def on_edit_settings_clicked(self, *args):
+    def on_edit_fbf_clicked(self, *args):
         self.window.show_settings_window(self.model, self.update_leds)
 
     def on_detector_switch_toggled(self, action, parameter, circuit_number: int, detector_number: int):
@@ -511,11 +512,17 @@ class App(Gtk.Application):
         self.lcd.reset()
         self.update_leds()
 
+    def on_clear_history_clicked(self, *args):
+        self.detector_ops.clear_history()
+
     def on_undo_clicked(self, *args):
         """Pop the top entry of undo_stack and execute it"""
         if len(self.undo_stack) > 0:
             operation_tuple = self.undo_stack.pop(-1)
-            operation_tuple[0](*operation_tuple[1])
+            if len(operation_tuple) == 2:
+                operation_tuple[0](*operation_tuple[1])
+            else:
+                operation_tuple[0]()
 
         if len(self.undo_stack) == 0:
             undo_action = self.lookup_action("undo")
@@ -526,7 +533,10 @@ class App(Gtk.Application):
         """Pop the top entry of redo_stack and execute it"""
         if len(self.redo_stack) > 0:
             operation_tuple = self.redo_stack.pop(-1)
-            operation_tuple[0](*operation_tuple[1])
+            if len(operation_tuple) == 2:
+                operation_tuple[0](*operation_tuple[1])
+            else:
+                operation_tuple[0]()
 
         if len(self.redo_stack) == 0:
             redo_action = self.lookup_action("redo")

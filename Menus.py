@@ -35,8 +35,10 @@ class EditMenu(Gio.Menu):
         self.append_item(create_circuit_item)
         edit_building_item = Gio.MenuItem.new("Gebäudebeschreibung bearbeiten...", "edit.edit_building")
         self.append_item(edit_building_item)
-        edit_settings_item = Gio.MenuItem.new("FBF...", "edit.edit_settings")
-        self.append_item(edit_settings_item)
+        edit_fbf_item = Gio.MenuItem.new("FBF...", "edit.edit_fbf")
+        self.append_item(edit_fbf_item)
+        clear_history_item = Gio.MenuItem.new("Historie leeren", "edit.clear_history")
+        self.append_item(clear_history_item)
 
 
 class CircuitContextMenu(Gio.Menu):
