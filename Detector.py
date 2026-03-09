@@ -16,10 +16,11 @@ class Detector(Gtk.Box):
         self.append(self.detector_switch)
         self.append(self.detector_label)
 
-        # A tool to register the detector_label being right-clicked
-        self.click_controller = Gtk.GestureClick()
-        self.click_controller.set_button(Gdk.BUTTON_SECONDARY)
-        self.add_controller(self.click_controller)
+        self.right_click_controller = Gtk.GestureClick(button=Gdk.BUTTON_SECONDARY)
+        self.add_controller(self.right_click_controller)
+
+        self.left_click_controller = Gtk.GestureClick(button=Gdk.BUTTON_PRIMARY)
+        self.add_controller(self.left_click_controller)
 
         # Context menu
         self.menu_model = DetectorContextMenu(circuit_number, detector_number)

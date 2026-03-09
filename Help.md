@@ -110,7 +110,8 @@ Es stehen dann folgende Funktionen zur Verfügung:
     Die Gebäudebeschreibung wird im Ruhezustand im LCD des FAT angezeigt. 
     Mit dieser Funktion lässt sie sich ändern.
 3. FBF:  
-    Hier finden sich Schalter, um die LEDs auf dem FBF zu steuern. 
+    Hier finden sich Schalter, um die LEDs auf dem FBF zu steuern. Die LEDs werden nur aktiviert, 
+    falls ein Alarm anliegt.
     Die Einstellung wird im Szenario gespeichert.
 4. Historie leeren:  
     Löscht alle Einträge aus der Historie.
@@ -145,3 +146,39 @@ ist der entsprechende Button ausgegraut.
 Das Laden einer Datei löscht alle bisherigen Einträge im undo/redo-Stack. 
 Wenn die aktuelle Datei gespeichert wird, bleibt der Stack allerdings erhalten, sodass alle Änderungen 
 seit dem letzten Laden rückgängig gemacht werden können.
+
+## Schnellere Bedienung
+
+### Tastenkürzel
+
+*Falls die Übungs-BMA ferngesteuert wird, funktionieren nicht alle Tastenkürzel, da diese nur zum Teil 
+an die Übungs-BMA weitergeleitet wird. In dem Fall sollte eher mit der Maus gearbeitet werden, 
+um unerwartetes Verhalten zu vermeiden.*
+
+Alle Tastenkürzel sind neben dem entsprechenden Button mit der gleichen Funktion aufgeführt. 
+Hier eine Übersicht aller Tastenkürzel:
+
+- F1: Öffnet diese Hilfe-Datei
+- Strg+G: Gebäudekonfiguration speichern
+- Strg+S: Szenario speichern
+- Strg+O: Datei öffnen (Gebäudekonfiguration / Szenario)
+- Strg+E: Bearbeitungsmodus aktivieren
+- Strg+Z: Letzte Änderung rückgängig machen
+- Strg+Umschalt+Z / Strg+Y: Letzte rückgängig gemachte Änderung wiederherstellen
+- Strg+I: Meldegruppe hinzufügen
+- Strg+B: Gebäudebeschreibung bearbeiten
+- Strg+L: FBF-Einstellungen bearbeiten
+
+### Linksklick-Kombinationen
+
+Um melderspezifische Funktionen schneller als über das Kontextmenü zu erreichen, 
+existieren einige Kombinationen aus Tastendruck und Linksklick auf den gewünschten Melder. 
+In der folgenden Liste ist die Taste aufgeführt, die mit dem Linksklick kombiniert wird, 
+und die jeweils ausgelöste Funktion im Kontextmenü.
+
+- Strg: Abschaltung
+- Umschalt: In Historie
+- Alt: Melder bearbeiten (Funktioniert nur, wenn der Bearbeitungsmodus eingeschaltet ist)
+
+*Tipp: Nicht auf den Schalter, sondern die Meldernummer oder Beschreibung klicken, um den Melder nicht 
+ungewollt auszulösen.*

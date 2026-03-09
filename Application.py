@@ -217,7 +217,7 @@ class App(Gtk.Application):
         circuit.context_menu_popover.set_pointing_to(rect)
         circuit.context_menu_popover.popup()
 
-    def on_detector_pressed(self, gesture, n_press, x, y, circuit_number: int, detector_number: int) -> None:
+    def on_detector_right_pressed(self, gesture, n_press, x, y, circuit_number: int, detector_number: int) -> None:
         """Present a context menu on a detector"""
         # Get the detector that was clicked
         detector = self.window.circuit_dict[circuit_number].detector_dict[detector_number]
@@ -232,6 +232,23 @@ class App(Gtk.Application):
         # Show the popover menu
         detector.context_menu_popover.set_pointing_to(rect)
         detector.context_menu_popover.popup()
+
+    def on_detector_left_pressed(self, gesture, n_press, *args, circuit_number: int, detector_number: int) -> None:
+        """Shortcuts for activating actions without the context menu"""
+        modifier_state = gesture.get_current_event_state()
+
+        if modifier_state == Gdk.ModifierType.CONTROL_MASK:
+            enable_action = self.detector_action_group.lookup_action(f"enable_detector_{circuit_number}_{detector_number}")
+            enable_action.activate()
+
+        if modifier_state == Gdk.ModifierType.SHIFT_MASK:
+            history_action = self.detector_action_group.lookup_action(f"in_history_{circuit_number}_{detector_number}")
+            history_action.activate()
+
+        if modifier_state == Gdk.ModifierType.ALT_MASK:
+            # Activating this action only works if edit mode is active
+            edit_action = self.edit_action_group.lookup_action("edit_detector")
+            edit_action.activate(GLib.Variant.new_string(f"{circuit_number}, {detector_number}"))
 
     def toggle_edit_mode(self, action, *args) -> None:
         """Toggle between normal mode and edit mode."""

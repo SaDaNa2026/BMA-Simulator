@@ -164,10 +164,13 @@ class DetectorOps(Operation):
         history_action.connect("change-state", self.app.on_detector_in_history_clicked)
         self.app.detector_action_group.add_action(history_action)
 
-        # Connect the event handler that detects if the circuit is right-clicked
-        detector.click_controller.connect("pressed", partial(self.app.on_detector_pressed,
-                                                             circuit_number=circuit_number,
-                                                             detector_number=detector_number))
+        # Connect the click event handlers
+        detector.right_click_controller.connect("pressed", partial(self.app.on_detector_right_pressed,
+                                                                   circuit_number=circuit_number,
+                                                                   detector_number=detector_number))
+        detector.left_click_controller.connect("pressed", partial(self.app.on_detector_left_pressed,
+                                                                  circuit_number=circuit_number,
+                                                                  detector_number=detector_number))
 
         # Get the previous detector to add this one in the correct position (default None => top position)
         previous_detector = None
@@ -250,12 +253,14 @@ class DetectorOps(Operation):
             self.app.append_undo((self.undo_edit, (circuit_number, detector_number, previous_description)))
 
     def undo_edit(self, circuit_number: int, detector_number: int, description: str) -> None:
+        previous_description = self.model.get_detector_description(circuit_number, detector_number)
         self._set_description(circuit_number, detector_number, description)
-        self.app.append_redo((self.redo_edit, (circuit_number, detector_number, description)))
+        self.app.append_redo((self.redo_edit, (circuit_number, detector_number, previous_description)))
 
     def redo_edit(self, circuit_number: int, detector_number: int, description: str) -> None:
+        previous_description = self.model.get_detector_description(circuit_number, detector_number)
         self._set_description(circuit_number, detector_number, description)
-        self.app.append_undo((self.undo_edit, (circuit_number, detector_number, description)))
+        self.app.append_undo((self.undo_edit, (circuit_number, detector_number, previous_description)))
 
     def _set_description(self, circuit_number: int, detector_number: int, description: str) -> None:
         self.model.set_detector_description(circuit_number, detector_number, description)
