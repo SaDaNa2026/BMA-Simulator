@@ -24,11 +24,11 @@ class LEDController:
         self.blink_on = False
         GLib.timeout_add(500, self.blink)
 
-    def turn_on(self, led: str):
+    def on(self, led: str):
         self.mcp.digital_write(self.led_pins[led], HIGH)
         self.led_status[led] = HIGH
 
-    def turn_off(self, led: str):
+    def off(self, led: str):
         self.mcp.digital_write(self.led_pins[led], LOW)
         self.led_status[led] = LOW
 
@@ -38,10 +38,10 @@ class LEDController:
             if self.led_blinking[led]:
                 if self.blink_on:
                     self.led_status[led] = LOW
-                    self.turn_off(led)
+                    self.off(led)
                 else:
                     self.led_status[led] = HIGH
-                    self.turn_on(led)
+                    self.on(led)
         self.blink_on = not self.blink_on
         return True
 
@@ -53,16 +53,16 @@ class LEDController:
     def stop_blink(self, led: str):
         """Turn off blinking for the specified LED."""
         self.led_blinking[led] = False
-        self.turn_off(led)
+        self.off(led)
 
     def shutdown(self):
         """Turn off all LEDs."""
         for led in self.led_pins:
             self.stop_blink(led)
-            self.turn_off(led)
+            self.off(led)
 
     def test(self):
         """Turn on all LEDs"""
         for led in self.led_pins:
             self.stop_blink(led)
-            self.turn_on(led)
+            self.on(led)

@@ -6,9 +6,13 @@
 #
 --extra-index-url https://www.piwheels.org/simple
 
+colorzero==2.0
+    # via gpiozero
 gitdb==4.0.12
     # via gitpython
 gitpython==3.1.46
+    # via -r requirements.in
+gpiozero==2.0.1
     # via -r requirements.in
 mcp23017==1.1.0
     # via -r requirements.in
@@ -23,5 +27,5 @@ smbus3==0.5.5
 smmap==5.0.2
     # via gitdb
 
-# Additionally, Okular including the okular-extra-backends package is required to display
-# HELP.md when the user clicks on the help button. This dependency needs to be installed manually.
+# The following packages are considered to be unsafe in a requirements file:
+# setuptools

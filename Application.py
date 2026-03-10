@@ -1,6 +1,7 @@
 import os
 import subprocess
 import sys
+import gpiozero
 
 import gi
 gi.require_version('Gtk', '4.0')
@@ -17,9 +18,16 @@ from MCPController import MCPController
 from mcp23017 import *
 from LEDController import LEDController
 
-markdown_viewer = "okular"
+
+# -----------------------------------------------CONSTANTS--------------------------------------------------------------
+# Set this to the application used to view HELP.md
+MARKDOWN_VIEWER: str = "okular"
+# Set this to the GPIO pin that the relay for the flashing light (Blitzleuchte) is connected to.
+# Setting it to None will disable all functionality regarding the flashing light.
+FLASH_RELAY_PIN: int|None = 26
 
 
+# ----------------------------------------------APPLICATION-------------------------------------------------------------
 class App(Gtk.Application):
     def __init__(self, **kwargs):
         super().__init__(application_id="org.example.BMA-control", **kwargs)
@@ -153,8 +161,12 @@ class App(Gtk.Application):
         self.led_fbf = LEDController(self.mcp_fbf, self.fbf_led_dict)
 
         # Turn on the green LEDs
-        self.led_fat.turn_on("working")
-        self.led_fbf.turn_on("working")
+        self.led_fat.on("working")
+        self.led_fbf.on("working")
+
+        # Set up the relay for the flashing light
+        if FLASH_RELAY_PIN is not None:
+            self.flash_relay = gpiozero.OutputDevice(pin=FLASH_RELAY_PIN, active_high=False)
 
         self.window = MainWindow(edit_action_group=self.edit_action_group,
                                  hidden_action_group=self.hidden_action_group,
@@ -169,6 +181,8 @@ class App(Gtk.Application):
         self.lcd.clear()
         self.led_fat.shutdown()
         self.led_fbf.shutdown()
+        if FLASH_RELAY_PIN is not None:
+            self.flash_relay.off()
 
     def append_undo(self, entry: tuple) -> None:
         """Append the given entry to the undo stack and enable the undo action"""
@@ -564,7 +578,7 @@ class App(Gtk.Application):
         """Open HELP.md in Okular"""
         dir_path = os.path.abspath(os.path.dirname(sys.argv[0]))
         readme_path = dir_path + "/HELP.md"
-        subprocess.Popen([markdown_viewer, readme_path],
+        subprocess.Popen([MARKDOWN_VIEWER, readme_path],
                          stdout=subprocess.DEVNULL,
                          stderr=subprocess.DEVNULL)
 
@@ -647,42 +661,48 @@ class App(Gtk.Application):
 
     def update_leds(self):
         """Set the LED states according to the active detectors and contents of the LCD."""
-        self.led_fat.turn_on("working")
-        self.led_fbf.turn_on("working")
+        self.led_fat.on("working")
+        self.led_fbf.on("working")
 
         if len(self.model.get_active_detectors()) > 0:
-            self.led_fat.turn_on("alarm")
-            self.led_fbf.turn_on("alarm")
+            self.led_fat.on("alarm")
+            self.led_fbf.on("alarm")
+            if FLASH_RELAY_PIN is not None:
+                self.flash_relay.on()
+
             if not (self.model.get_ue_off() or self.ue_off_switch):
-                self.led_fbf.turn_on("ue_triggered")
+                self.led_fbf.on("ue_triggered")
             else:
-                self.led_fbf.turn_off("ue_triggered")
+                self.led_fbf.off("ue_triggered")
 
             if self.model.get_extinguisher_triggered():
-                self.led_fbf.turn_on("extinguisher_triggered")
+                self.led_fbf.on("extinguisher_triggered")
             else:
-                self.led_fbf.turn_off("extinguisher_triggered")
+                self.led_fbf.off("extinguisher_triggered")
 
             if self.model.get_acoustic_signals_off() or self.acoustic_signals_off_switch:
-                self.led_fbf.turn_on("acoustic_signals_off")
+                self.led_fbf.on("acoustic_signals_off")
             else:
-                self.led_fbf.turn_off("acoustic_signals_off")
+                self.led_fbf.off("acoustic_signals_off")
 
             if self.model.get_fire_controls_off() or self.fire_controls_off_switch:
-                self.led_fbf.turn_on("fire_controls_off")
+                self.led_fbf.on("fire_controls_off")
             else:
-                self.led_fbf.turn_off("fire_controls_off")
+                self.led_fbf.off("fire_controls_off")
 
         else:
-            self.led_fat.turn_off("alarm")
-            self.led_fbf.turn_off("alarm")
-            self.led_fbf.turn_off("ue_triggered")
-            self.led_fbf.turn_off("extinguisher_triggered")
-            self.led_fbf.turn_off("acoustic_signals_off")
-            self.led_fbf.turn_off("fire_controls_off")
+            self.led_fat.off("alarm")
+            self.led_fbf.off("alarm")
+            if FLASH_RELAY_PIN is not None:
+                self.flash_relay.off()
+
+            self.led_fbf.off("ue_triggered")
+            self.led_fbf.off("extinguisher_triggered")
+            self.led_fbf.off("acoustic_signals_off")
+            self.led_fbf.off("fire_controls_off")
 
         if len(self.model.get_history_detectors()) > 0 and not self.is_reset:
-            self.led_fbf.turn_on("alarm")
+            self.led_fbf.on("alarm")
 
         if self.lcd.first_message_shown():
             self.led_fat.stop_blink("previous_alarm")
@@ -706,9 +726,9 @@ class App(Gtk.Application):
             self.led_fat.stop_blink("turn_off")
 
         if self.model.get_ue_off() or self.ue_off_switch:
-            self.led_fbf.turn_on("ue_off")
+            self.led_fbf.on("ue_off")
         else:
-            self.led_fbf.turn_off("ue_off")
+            self.led_fbf.off("ue_off")
 
     def beeper_off(self):
         """Turns off the beeper. Currently a placeholder."""

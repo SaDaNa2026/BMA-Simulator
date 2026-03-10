@@ -1,5 +1,9 @@
 PyGObject
 RPLCD
 smbus3
+gpiozero
 mcp23017
 gitpython
+
+# Additionally, Okular including the okular-extra-backends package is required to display
+# HELP.md when the user clicks on the help button. This dependency needs to be installed manually.
