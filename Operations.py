@@ -172,6 +172,9 @@ class DetectorOps(Operation):
                                                                   circuit_number=circuit_number,
                                                                   detector_number=detector_number))
 
+        # Highlight detector if it's in the history
+        detector.set_highlight(in_history)
+
         # Get the previous detector to add this one in the correct position (default None => top position)
         previous_detector = None
         for other_detector_number in self.model.get_detectors_for_circuit(circuit_number):
@@ -392,6 +395,8 @@ class DetectorOps(Operation):
             previous_history_index = None
 
         self.model.set_detector_in_history(circuit_number, detector_number, in_history, history_index)
+        detector = self.app.window.circuit_dict[circuit_number].detector_dict[detector_number]
+        detector.set_highlight(in_history)
         self.app.print_detector_state()
         self.app.lcd.reset()
         self.app.update_leds()
@@ -404,10 +409,7 @@ class DetectorOps(Operation):
             return
 
         history_tuple: tuple = tuple(detector_tuple for detector_tuple in self.model.get_history_detectors())
-        for detector_tuple in history_tuple:
-            action = self.app.detector_action_group.lookup_action(f"in_history_{detector_tuple[0]}_{detector_tuple[1]}")
-            if isinstance(action, Gio.SimpleAction):
-                action.set_state(GLib.Variant.new_boolean(False))
+        self._history_action_setter(history_tuple, False)
 
         self.model.history_detector_list.clear()
         self.app.print_detector_state()
@@ -417,12 +419,9 @@ class DetectorOps(Operation):
         self.app.clear_redo()
         self.app.append_undo((self.undo_clear_history, (history_tuple,)))
 
-    def undo_clear_history(self, history_tuple):
+    def undo_clear_history(self, history_tuple: tuple):
         self.model.history_detector_list = list(history_tuple)
-        for detector_tuple in history_tuple:
-            action = self.app.detector_action_group.lookup_action(f"in_history_{detector_tuple[0]}_{detector_tuple[1]}")
-            if isinstance(action, Gio.SimpleAction):
-                action.set_state(GLib.Variant.new_boolean(True))
+        self._history_action_setter(history_tuple, True)
 
         self.app.print_detector_state()
         self.app.lcd.reset()
@@ -432,10 +431,7 @@ class DetectorOps(Operation):
 
     def redo_clear_history(self):
         history_tuple: tuple = tuple(detector_tuple for detector_tuple in self.model.get_history_detectors())
-        for detector_tuple in history_tuple:
-            action = self.app.detector_action_group.lookup_action(f"in_history_{detector_tuple[0]}_{detector_tuple[1]}")
-            if isinstance(action, Gio.SimpleAction):
-                action.set_state(GLib.Variant.new_boolean(False))
+        self._history_action_setter(history_tuple, False)
 
         self.model.history_detector_list.clear()
         self.app.print_detector_state()
@@ -443,6 +439,15 @@ class DetectorOps(Operation):
         self.app.update_leds()
 
         self.app.append_undo((self.undo_clear_history, (history_tuple,)))
+
+    def _history_action_setter(self, history_tuple: tuple, is_undo: bool) -> None:
+        for detector_tuple in history_tuple:
+            action = self.app.detector_action_group.lookup_action(f"in_history_{detector_tuple[0]}_{detector_tuple[1]}")
+            if isinstance(action, Gio.SimpleAction):
+                action.set_state(GLib.Variant.new_boolean(is_undo))
+
+            detector = self.app.window.circuit_dict[detector_tuple[0]].detector_dict[detector_tuple[1]]
+            detector.set_highlight(is_undo)
 
 
 class CircuitOps(Operation):

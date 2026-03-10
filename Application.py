@@ -561,9 +561,9 @@ class App(Gtk.Application):
                 redo_action.set_enabled(False)
 
     def on_help_clicked(self, *args):
-        """Open Help.md in Okular"""
+        """Open HELP.md in Okular"""
         dir_path = os.path.abspath(os.path.dirname(sys.argv[0]))
-        readme_path = dir_path + "/Help.md"
+        readme_path = dir_path + "/HELP.md"
         subprocess.Popen([markdown_viewer, readme_path],
                          stdout=subprocess.DEVNULL,
                          stderr=subprocess.DEVNULL)

@@ -26,6 +26,9 @@ und welche LEDs am FBF aktiv sind.
     * [Rechtsklick auf Meldergruppen-Nummer](#rechtsklick-auf-meldergruppen-nummer)
     * [Rechtsklick auf Melder](#rechtsklick-auf-melder)
   * [Undo / Redo](#undo--redo)
+  * [Schnellere Bedienung](#schnellere-bedienung)
+    * [Tastenkürzel](#tastenkürzel)
+    * [Linksklick-Kombinationen](#linksklick-kombinationen)
 <!-- TOC -->
 
 # Dateistruktur
@@ -129,7 +132,8 @@ Es stehen dann folgende Funktionen zur Verfügung:
     Schaltet den Melder ab. Dadurch wird ein eventuell am Melder anliegender Alarm abgeschaltet und 
     der Melder in der Anzeigeebene der Abschaltung angezeigt. Diese Einstellung wird im Szenario gespeichert.
 3. In Historie:  
-    Legt fest, ob der Melder in der Historie erscheint. Diese Einstellung wird im Szenario gespeichert.
+    Legt fest, ob der Melder in der Historie erscheint. Diese Einstellung wird im Szenario gespeichert. 
+    Zur besseren Übersicht werden Nummer und Beschreibung von Meldern in der Historie farblich abgehoben. 
 4. Melder löschen
 
 Abschaltung und Historie sind auch bei ausgeschaltetem Bearbeitungsmodus verfügbar.

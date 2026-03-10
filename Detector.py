@@ -11,7 +11,8 @@ class Detector(Gtk.Box):
         super().__init__(*args, orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
 
         self.detector_switch = Gtk.Switch()
-        self.detector_label = Gtk.Label(label=f"{detector_number}: {description}")
+        self.label_text = f"{detector_number}: {description}"
+        self.detector_label = Gtk.Label(label=self.label_text)
 
         self.append(self.detector_switch)
         self.append(self.detector_label)
@@ -27,3 +28,10 @@ class Detector(Gtk.Box):
         self.context_menu_popover = Gtk.PopoverMenu.new_from_model(self.menu_model)
         self.context_menu_popover.set_parent(self)
         self.context_menu_popover.set_has_arrow(False)
+
+    def set_highlight(self, highlight: bool) -> None:
+        """Highlight the detector by changing the label color"""
+        if highlight:
+            self.detector_label.set_markup(f"<span foreground='blue'>{self.label_text}</span>")
+        else:
+            self.detector_label.set_markup(f"<span foreground='black'>{self.label_text}</span>")
