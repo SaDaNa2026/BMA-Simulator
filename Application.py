@@ -603,7 +603,9 @@ class App(Gtk.Application):
 
     def on_UE_test_clicked(self, *args):
         """Test the transmission unit (UE). Currently a placeholder."""
-        pass
+        if not (self.model.get_ue_off() or self.ue_off_switch):
+            self.led_fbf.on("ue_triggered")
+            GLib.timeout_add_seconds(10, self.update_leds)
 
     def on_history_pressed(self):
         """Display the history screen"""
@@ -672,23 +674,11 @@ class App(Gtk.Application):
 
             if not (self.model.get_ue_off() or self.ue_off_switch):
                 self.led_fbf.on("ue_triggered")
-            else:
-                self.led_fbf.off("ue_triggered")
 
             if self.model.get_extinguisher_triggered():
                 self.led_fbf.on("extinguisher_triggered")
             else:
                 self.led_fbf.off("extinguisher_triggered")
-
-            if self.model.get_acoustic_signals_off() or self.acoustic_signals_off_switch:
-                self.led_fbf.on("acoustic_signals_off")
-            else:
-                self.led_fbf.off("acoustic_signals_off")
-
-            if self.model.get_fire_controls_off() or self.fire_controls_off_switch:
-                self.led_fbf.on("fire_controls_off")
-            else:
-                self.led_fbf.off("fire_controls_off")
 
         else:
             self.led_fat.off("alarm")
@@ -698,8 +688,6 @@ class App(Gtk.Application):
 
             self.led_fbf.off("ue_triggered")
             self.led_fbf.off("extinguisher_triggered")
-            self.led_fbf.off("acoustic_signals_off")
-            self.led_fbf.off("fire_controls_off")
 
         if len(self.model.get_history_detectors()) > 0 and not self.is_reset:
             self.led_fbf.on("alarm")
@@ -729,6 +717,16 @@ class App(Gtk.Application):
             self.led_fbf.on("ue_off")
         else:
             self.led_fbf.off("ue_off")
+
+        if self.model.get_acoustic_signals_off() or self.acoustic_signals_off_switch:
+            self.led_fbf.on("acoustic_signals_off")
+        else:
+            self.led_fbf.off("acoustic_signals_off")
+
+        if self.model.get_fire_controls_off() or self.fire_controls_off_switch:
+            self.led_fbf.on("fire_controls_off")
+        else:
+            self.led_fbf.off("fire_controls_off")
 
     def beeper_off(self):
         """Turns off the beeper. Currently a placeholder."""
