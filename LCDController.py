@@ -198,10 +198,16 @@ class LCDController(CharLCD):
                 if len(self.model.get_active_detectors()) > 0:
                     self.current_screen = 1
                     self.reset()
+                else:
+                    self.current_screen = 0
+                    self.reset()
 
             case 3:
                 if len(self.model.get_active_detectors()) > 0:
                     self.current_screen = 1
+                    self.reset()
+                else:
+                    self.current_screen = 0
                     self.reset()
 
     def show_history(self):

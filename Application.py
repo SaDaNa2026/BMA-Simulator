@@ -667,8 +667,13 @@ class App(Gtk.Application):
         self.led_fbf.on("working")
 
         if len(self.model.get_active_detectors()) > 0:
-            self.led_fat.on("alarm")
             self.led_fbf.on("alarm")
+            if self.lcd.current_screen == 1:
+                self.led_fat.stop_blink("alarm")
+                self.led_fat.on("alarm")
+            else:
+                self.led_fat.start_blink("alarm")
+
             if FLASH_RELAY_PIN is not None:
                 self.flash_relay.on()
 
@@ -682,6 +687,7 @@ class App(Gtk.Application):
 
         else:
             self.led_fat.off("alarm")
+            self.led_fat.stop_blink("alarm")
             self.led_fbf.off("alarm")
             if FLASH_RELAY_PIN is not None:
                 self.flash_relay.off()
