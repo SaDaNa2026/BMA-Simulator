@@ -37,6 +37,8 @@ class EditMenu(Gio.Menu):
         self.append_item(edit_building_item)
         edit_fbf_item = Gio.MenuItem.new("FBF...", "edit.edit_fbf")
         self.append_item(edit_fbf_item)
+        clear_disabled_item = Gio.MenuItem.new("Abschaltung leeren", "edit.clear_disabled")
+        self.append_item(clear_disabled_item)
         clear_history_item = Gio.MenuItem.new("Historie leeren", "edit.clear_history")
         self.append_item(clear_history_item)
 

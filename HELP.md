@@ -116,7 +116,9 @@ Es stehen dann folgende Funktionen zur Verfügung:
     Hier finden sich Schalter, um die LEDs auf dem FBF zu steuern. Die LEDs werden nur aktiviert, 
     falls ein Alarm anliegt.
     Die Einstellung wird im Szenario gespeichert.
-4. Historie leeren:  
+4. Abschaltung leeren:  
+    Löscht alle Einträge aus der Abschaltung.
+5. Historie leeren:  
     Löscht alle Einträge aus der Historie.
 
 ### Rechtsklick auf Meldergruppen-Nummer

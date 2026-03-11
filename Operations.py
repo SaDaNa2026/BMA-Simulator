@@ -361,6 +361,58 @@ class DetectorOps(Operation):
 
         return previous_alarm_status, alarm_index, previous_disabled_index
 
+    def clear_disabled(self) -> None:
+        # Return if no detectors are disabled
+        if len(self.model.get_disabled_detectors()) == 0:
+            return
+
+        previous_disabled_detector_list = self._disabled_clearer(False)
+
+        self.app.clear_redo()
+        self.app.append_undo((self.undo_clear_disabled, (previous_disabled_detector_list,)))
+
+    def undo_clear_disabled(self, disabled_detector_list: list) -> None:
+        for detector_tuple in disabled_detector_list:
+            circuit_number = detector_tuple[0]
+            detector_number = detector_tuple[1]
+            self.enable_detector_switch(circuit_number, detector_number, False, None)
+
+            enable_action = self.app.detector_action_group.lookup_action(
+                f"enable_detector_{circuit_number}_{detector_number}"
+            )
+            enable_action.set_state(GLib.Variant.new_boolean(True))
+
+        self.app.append_redo((self.redo_clear_disabled,))
+
+    def redo_clear_disabled(self) -> None:
+        previous_disabled_detector_list = self._disabled_clearer(False)
+
+        self.app.append_undo((self.undo_clear_disabled, (previous_disabled_detector_list,)))
+
+    def _disabled_clearer(self, is_undo: bool) -> list:
+        disabled_tuple = tuple(self.model.get_disabled_detectors())
+        previous_disabled_detector_list: list = []
+        for detector_tuple in disabled_tuple:
+            circuit_number = detector_tuple[0]
+            detector_number = detector_tuple[1]
+            self.enable_detector_switch(circuit_number, detector_number, True, None)
+            previous_disabled_detector_list.append((circuit_number, detector_number))
+
+            enable_action = self.app.detector_action_group.lookup_action(
+                f"enable_detector_{circuit_number}_{detector_number}"
+            )
+            enable_action.set_state(GLib.Variant.new_boolean(is_undo))
+
+        # Reverse detector order so undo operates correctly
+        previous_disabled_detector_list.reverse()
+
+        self.model.disabled_detector_list.clear()
+        self.app.print_detector_state()
+        self.app.lcd.reset()
+        self.app.update_leds()
+
+        return previous_disabled_detector_list
+
     def set_in_history(self, circuit_number: int, detector_number: int, in_history: bool) -> None:
         previous_in_history, previous_history_index = self.in_history_setter(circuit_number, detector_number, in_history, None)
 

@@ -70,6 +70,7 @@ class App(Gtk.Application):
                                ("edit_detector", self.on_edit_detector_clicked, "s"),
                                ("edit_building", self.on_edit_building_clicked, None),
                                ("edit_fbf", self.on_edit_fbf_clicked, None),
+                               ("clear_disabled", self.on_clear_disabled_clicked, None),
                                ("clear_history", self.on_clear_history_clicked, None)]
 
         hidden_action_entries = [("previous_alarm", self.on_previous_message_clicked, None),
@@ -542,6 +543,9 @@ class App(Gtk.Application):
 
         self.lcd.reset()
         self.update_leds()
+
+    def on_clear_disabled_clicked(self, *args):
+        self.detector_ops.clear_disabled()
 
     def on_clear_history_clicked(self, *args):
         self.detector_ops.clear_history()
