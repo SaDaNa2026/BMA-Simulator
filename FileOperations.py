@@ -106,7 +106,7 @@ class FileOperations:
         print("File loaded successfully")
 
     @staticmethod
-    def apply_scenario(load_dict, circuit_dict, detector_action_group, model):
+    def apply_scenario(load_dict, circuit_dict, detector_action_group, model, scenario_description_textbuffer):
         """Set all detectors listed in load_dict to active"""
         for number_list in load_dict["active_detector_list"]:
             # Check for correct Syntax
@@ -188,6 +188,10 @@ class FileOperations:
 
             history_action.change_state(GLib.Variant.new_boolean(True))
 
+        # Set the scenario description
+        scenario_description_textbuffer.set_text(load_dict["scenario_description"])
+
+        # Set LEDs
         model.set_extinguisher_triggered(load_dict["settings"]["extinguisher_triggered"])
         model.set_acoustic_signals_off(load_dict["settings"]["acoustic_signals_off"])
         model.set_ue_off(load_dict["settings"]["ue_off"])
@@ -284,7 +288,7 @@ class FileOperations:
 
 
     @staticmethod
-    def create_scenario_save_dict(model) -> dict:
+    def create_scenario_save_dict(model, scenario_description: str) -> dict:
         """Create a dictionary that contains a list of active detectors and a description."""
         save_dict = {"active_detector_list": model.get_active_detectors(),
                      "disabled_detector_list": model.get_disabled_detectors(),
@@ -293,5 +297,5 @@ class FileOperations:
                                   "acoustic_signals_off": model.get_acoustic_signals_off(),
                                   "ue_off": model.get_ue_off(),
                                   "fire_controls_off": model.get_fire_controls_off()},
-                     "scenario_description": "Beschreibung"}
+                     "scenario_description": scenario_description}
         return save_dict

@@ -17,6 +17,7 @@ und welche LEDs am FBF aktiv sind.
 * [Inhaltsverzeichnis](#inhaltsverzeichnis)
 * [Dateistruktur](#dateistruktur)
 * [Bedienung](#bedienung)
+  * [Layout der Benutzeroberfläche](#layout-der-benutzeroberfläche)
   * [Auslösen von Meldern](#auslösen-von-meldern)
   * [Laden von Dateien](#laden-von-dateien)
   * [Speichern](#speichern)
@@ -41,6 +42,16 @@ Ansonsten ist die Zuordnung eines Szenarios zur Konfiguration beim Laden nicht e
 es wird eine Fehlermeldung angezeigt.
 
 # Bedienung
+
+## Layout der Benutzeroberfläche
+
+Die Benutzeroberfläche ist grundsätzlich in vier Bereiche gegliedert:
+
+- Kopfleiste: Menüs für Aktionen, die die ganze Anwendung betreffen.
+- Fußleiste: Informationen über ausgelöste, abgeschaltete und in der Historie befindliche Melder. 
+    Die Reihenfolge der Anzeige entspricht der auf dem FAT.
+- Rechte Seitenleiste: Anzeige bzw. Bearbeitung der Szenariobeschreibung.
+- Zentrale Arbeitsfläche: Anzeige aller Meldergruppen und Melder mit Auslöseschaltern.
 
 ## Auslösen von Meldern
 

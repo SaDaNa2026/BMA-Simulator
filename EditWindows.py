@@ -110,9 +110,18 @@ class EditCommitMessageWindow(ModalWindow):
 
         self.description_label = Gtk.Label(label="Änderungen beschreiben:")
 
-        # Use a TextView to allow multiline commit messages
-        self.description_textview = Gtk.TextView(hexpand=True, vexpand=True)
-        self.description_box.append(self.description_textview)
+        # Use a scrollable TextView to allow multiline commit messages
+        self.description_scrolled_window = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.AUTOMATIC,
+                                                              vscrollbar_policy=Gtk.PolicyType.AUTOMATIC,
+                                                              propagate_natural_width=True,
+                                                              propagate_natural_height=True)
+        self.description_box.append(self.description_scrolled_window)
+        self.description_textview = Gtk.TextView(hexpand=True,
+                                                 vexpand=True,
+                                                 height_request=200,
+                                                 width_request=500,
+                                                 wrap_mode=Gtk.WrapMode.WORD)
+        self.description_scrolled_window.set_child(self.description_textview)
         self.textbuffer = self.description_textview.get_buffer()
 
         # Buttons to cancel or confirm

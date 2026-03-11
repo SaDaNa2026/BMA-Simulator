@@ -13,8 +13,7 @@ oder deaktiviert werden.
 Zum Ausführen des Python-Scripts müssen Python 3.13 oder neuer und alle in requirements.txt 
 definierten Abhängigkeiten installiert sein. 
 
-Zusätzlich ist, wie im Kommentar in requirements.in erwähnt, 
-Okular notwendig, um die Hilfedatei anzeigen zu können. Dabei muss okular-extra-backends installiert werden, 
+Zusätzlich ist Okular notwendig, um die Hilfedatei anzeigen zu können. Dabei muss okular-extra-backends installiert werden, 
 um Markdown-Dateien anzeigen zu können. Natürlich kann auch ein anderer Markdown-Viewer verwendet werden, 
 wenn in Application.py die Konstante MARKDOWN_VIEWER entsprechend angepasst wird.  
 Falls die Hilfedatei nach PDF konvertiert wird, bieten sich natürlich noch mehr Möglichkeiten. 

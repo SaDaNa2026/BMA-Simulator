@@ -316,7 +316,10 @@ class App(Gtk.Application):
             save_dict = FileOperations.create_building_save_dict(self.model)
 
         elif file_type == "scenario":
-            save_dict = FileOperations.create_scenario_save_dict(self.model)
+            start = self.window.scenario_buffer.get_start_iter()
+            end = self.window.scenario_buffer.get_end_iter()
+            scenario_description = self.window.scenario_buffer.get_text(start, end)
+            save_dict = FileOperations.create_scenario_save_dict(self.model, scenario_description)
 
         else:
             self.window.show_error_alert("Invalide Dateiendung", "Dateien müssen auf .building oder .scenario enden")
@@ -394,7 +397,11 @@ class App(Gtk.Application):
             return
 
         try:
-            FileOperations.apply_scenario(scenario_load_dict, self.window.circuit_dict, self.detector_action_group, self.model)
+            FileOperations.apply_scenario(scenario_load_dict,
+                                          self.window.circuit_dict,
+                                          self.detector_action_group,
+                                          self.model,
+                                          self.window.scenario_buffer)
             self.clear_redo()
             self.clear_undo()
 

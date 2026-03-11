@@ -32,6 +32,6 @@ class Detector(Gtk.Box):
     def set_highlight(self, highlight: bool) -> None:
         """Highlight the detector by changing the label color"""
         if highlight:
-            self.detector_label.set_markup(f"<span foreground='blue'>{self.label_text}</span>")
+            self.detector_label.set_markup(f"<span foreground='red'>{self.label_text}</span>")
         else:
             self.detector_label.set_markup(f"<span foreground='black'>{self.label_text}</span>")

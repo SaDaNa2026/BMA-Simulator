@@ -29,12 +29,16 @@ class MainWindow(Gtk.ApplicationWindow):
         self.outer_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         self.set_child(self.outer_box)
 
+        self.h_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
+        self.outer_box.append(self.h_box)
+
         # Box that contains all circuits and detectors
-        self.scrollable = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.AUTOMATIC,
-                                             vscrollbar_policy=Gtk.PolicyType.AUTOMATIC)
-        self.outer_box.append(self.scrollable)
+        self.main_scrolled_window = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.AUTOMATIC,
+                                                       vscrollbar_policy=Gtk.PolicyType.AUTOMATIC)
+        self.h_box.append(self.main_scrolled_window)
         self.main_box = Gtk.FlowBox(selection_mode=Gtk.SelectionMode.NONE,
                                     vexpand=True,
+                                    hexpand=True,
                                     homogeneous=True,
                                     margin_top=5,
                                     margin_bottom=5,
@@ -42,14 +46,29 @@ class MainWindow(Gtk.ApplicationWindow):
                                     margin_end=5,
                                     column_spacing=5)
         self.main_box.set_sort_func(self.sort_circuits, None)
-        self.scrollable.set_size_request(-1, 400)
-        self.scrollable.set_child(self.main_box)
+        self.main_scrolled_window.set_size_request(-1, 400)
+        self.main_scrolled_window.set_child(self.main_box)
 
+        # Console to display the scenario description
+        self.scenario_frame = Gtk.Frame(label="Szenariobeschreibung",
+                                        hexpand=False,
+                                        vexpand=True,
+                                        width_request=400)
+        self.h_box.append(self.scenario_frame)
+        self.scenario_scrolled_window = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.AUTOMATIC,
+                                                           vscrollbar_policy=Gtk.PolicyType.AUTOMATIC)
+        self.scenario_frame.set_child(self.scenario_scrolled_window)
+        self.scenario_buffer = Gtk.TextBuffer()
+        self.scenario_textview = Gtk.TextView(left_margin=10,
+                                              top_margin=10,
+                                              buffer=self.scenario_buffer,
+                                              wrap_mode=Gtk.WrapMode.WORD)
+        self.scenario_scrolled_window.set_child(self.scenario_textview)
 
         # Consoles that display information about active and disabled detectors
         self.console_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, homogeneous=True)
         self.console_box.set_size_request(1000, -1)
-        self.outer_box.insert_child_after(self.console_box, self.scrollable)
+        self.outer_box.append(self.console_box)
         self.active_console = Console("Ausgelöste Melder")
         self.console_box.append(self.active_console)
         self.disabled_console = Console("Abgeschaltete Melder")
