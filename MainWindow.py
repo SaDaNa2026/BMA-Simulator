@@ -29,13 +29,19 @@ class MainWindow(Gtk.ApplicationWindow):
         self.outer_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         self.set_child(self.outer_box)
 
-        self.h_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
-        self.outer_box.append(self.h_box)
+        self.h_paned = Gtk.Paned(orientation=Gtk.Orientation.HORIZONTAL,
+                                 resize_start_child=True,
+                                 resize_end_child=False,
+                                 shrink_end_child=False,
+                                 shrink_start_child=False)
+        self.outer_box.append(self.h_paned)
 
         # Box that contains all circuits and detectors
         self.main_scrolled_window = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.AUTOMATIC,
-                                                       vscrollbar_policy=Gtk.PolicyType.AUTOMATIC)
-        self.h_box.append(self.main_scrolled_window)
+                                                       vscrollbar_policy=Gtk.PolicyType.AUTOMATIC,
+                                                       height_request=400,
+                                                       width_request=300)
+        self.h_paned.set_start_child(self.main_scrolled_window)
         self.main_box = Gtk.FlowBox(selection_mode=Gtk.SelectionMode.NONE,
                                     vexpand=True,
                                     hexpand=True,
@@ -46,15 +52,14 @@ class MainWindow(Gtk.ApplicationWindow):
                                     margin_end=5,
                                     column_spacing=5)
         self.main_box.set_sort_func(self.sort_circuits, None)
-        self.main_scrolled_window.set_size_request(-1, 400)
         self.main_scrolled_window.set_child(self.main_box)
 
         # Console to display the scenario description
         self.scenario_frame = Gtk.Frame(label="Szenariobeschreibung",
                                         hexpand=False,
                                         vexpand=True,
-                                        width_request=400)
-        self.h_box.append(self.scenario_frame)
+                                        width_request=300)
+        self.h_paned.set_end_child(self.scenario_frame)
         self.scenario_scrolled_window = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.AUTOMATIC,
                                                            vscrollbar_policy=Gtk.PolicyType.AUTOMATIC)
         self.scenario_frame.set_child(self.scenario_scrolled_window)

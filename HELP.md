@@ -50,7 +50,8 @@ Die Benutzeroberfläche ist grundsätzlich in vier Bereiche gegliedert:
 - Kopfleiste: Menüs für Aktionen, die die ganze Anwendung betreffen.
 - Fußleiste: Informationen über ausgelöste, abgeschaltete und in der Historie befindliche Melder. 
     Die Reihenfolge der Anzeige entspricht der auf dem FAT.
-- Rechte Seitenleiste: Anzeige bzw. Bearbeitung der Szenariobeschreibung.
+- Rechte Seitenleiste: Anzeige bzw. Bearbeitung der Szenariobeschreibung. Die Seitenleiste kann 
+    Greifen und Ziehen des linken Rands in der Breite verändert werden.
 - Zentrale Arbeitsfläche: Anzeige aller Meldergruppen und Melder mit Auslöseschaltern.
 
 ## Auslösen von Meldern
