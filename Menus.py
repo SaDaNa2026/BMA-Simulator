@@ -6,10 +6,12 @@ class PrimaryMenu(Gio.Menu):
     """Menu model for the primary menu"""
     def __init__(self):
         super().__init__()
-        help_item = Gio.MenuItem.new("Hilfe", "app.help")
+        help_item = Gio.MenuItem.new("Hilfe...", "app.help")
         self.append_item(help_item)
         about_item = Gio.MenuItem.new("Über BMA-Steuerung", "app.about")
         self.append_item(about_item)
+        settings_item = Gio.MenuItem.new("Einstellungen...", "app.settings")
+        self.append_item(settings_item)
 
 class DataMenu(Gio.Menu):
     """Menu model for the "Data" MenuButton in the header bar."""

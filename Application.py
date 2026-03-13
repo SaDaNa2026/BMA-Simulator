@@ -54,14 +54,15 @@ class App(Gtk.Application):
 
         # Actions for all buttons to connect to
         app_action_entries = [("save_building", self.on_save_clicked, None),
-                               ("save_scenario", self.on_save_clicked, None),
-                               ("open", self.on_open_clicked, None),
-                               ("rollback", self.on_rollback_clicked, None),
-                               ("edit_mode", None, None, "false", self.on_edit_mode_clicked),
-                               ("undo", self.on_undo_clicked, None),
-                               ("redo", self.on_redo_clicked, None),
-                               ("help", self.on_help_clicked, None),
-                               ("about", self.on_about_clicked, None)]
+                              ("save_scenario", self.on_save_clicked, None),
+                              ("open", self.on_open_clicked, None),
+                              ("rollback", self.on_rollback_clicked, None),
+                              ("edit_mode", None, None, "false", self.on_edit_mode_clicked),
+                              ("undo", self.on_undo_clicked, None),
+                              ("redo", self.on_redo_clicked, None),
+                              ("help", self.on_help_clicked, None),
+                              ("about", self.on_about_clicked, None),
+                              ("settings", self.on_settings_clicked, None)]
 
         edit_action_entries = [("create_circuit", self.on_add_circuit_clicked, None),
                                ("delete_circuit", self.on_delete_circuit_clicked, "i"),
@@ -105,6 +106,7 @@ class App(Gtk.Application):
         # Add shortcuts to the actions
         self.accels_list = [
             ("app.help", ["F1"]),
+            ("app.settings", ["<Ctrl>P"]),
             ("app.save_building", ["<Ctrl>G"]),
             ("app.save_scenario", ["<Ctrl>S"]),
             ("app.open", ["<Ctrl>O"]),
@@ -441,7 +443,7 @@ class App(Gtk.Application):
         self.window.show_commit_list(directory, commit_list, FileOperations.rollback)
 
     def on_edit_fbf_clicked(self, *args):
-        self.window.show_settings_window(self.model, self.update_leds)
+        self.window.show_fbf_window(self.model, self.update_leds)
 
     def on_detector_switch_toggled(self, action, parameter, circuit_number: int, detector_number: int):
         """Callback function for detector_switch. Set the alarm_status of the detector according to the position of
@@ -594,8 +596,12 @@ class App(Gtk.Application):
                          stderr=subprocess.DEVNULL)
 
     def on_about_clicked(self, *args):
-        """Open an about-window"""
+        """Open the about window"""
         self.window.show_about_window()
+
+    def on_settings_clicked(self, *args):
+        """Open the settings window"""
+        self.window.show_settings_window(self.model, self.lcd.refresh)
 
     def on_acoustic_signals_off_toggled(self, state):
         """Update acoustic_signals_off"""

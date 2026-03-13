@@ -1,3 +1,4 @@
+from datetime import datetime
 from dataclasses import dataclass, field
 from typing import Dict, List
 
@@ -62,6 +63,10 @@ class BuildingModel:
     acoustic_signals_off: bool = field(default=False)
     ue_off: bool = field(default=False)
     fire_controls_off: bool = field(default=False)
+    history_time_mode: str = field(default="automatic")
+    history_time_offset: int = field(default=8)
+    current_time = datetime.now()
+    history_time_absolute: tuple = field(default=(current_time.hour, current_time.minute))
 
     def __post_init__(self):
         if not isinstance(self.building_description, str):
@@ -74,6 +79,10 @@ class BuildingModel:
         if self.history_detector_list:
             raise ValueError("history_detector_list must be empty upon initialization. Add detectors to history later using "
                              "set_detector_in_history.")
+        if self.history_time_mode != "automatic":
+            raise ValueError("history_time_mode must be automatic upon initialization")
+        if not isinstance(self.history_time_offset, int):
+            raise TypeError("history_time_offset must be int")
 
     def clear_data(self):
         """Resets to init values."""
@@ -310,3 +319,44 @@ class BuildingModel:
 
     def get_fire_controls_off(self) -> bool:
         return self.fire_controls_off
+
+    def set_history_time_mode(self, history_time_mode: str) -> None:
+        if not isinstance(history_time_mode, str):
+            raise TypeError("history_time_mode must be str")
+        if not history_time_mode in ("automatic", "user_defined"):
+            raise ValueError("history_time_mode must be either 'automatic' or 'user_defined'")
+
+        self.history_time_mode = history_time_mode
+
+    def get_history_time_mode(self) -> str:
+        return self.history_time_mode
+
+    def set_history_time_offset(self, offset: int) -> None:
+        if not isinstance(offset, int):
+            raise TypeError("offset must be int")
+        if offset < 0 or offset > 99:
+            raise ValueError("offset must be in range(0, 100")
+
+        self.history_time_offset = offset
+
+    def get_history_time_offset(self) -> int:
+        return self.history_time_offset
+
+    def set_history_time_absolute(self, time: tuple) -> None:
+        if not isinstance(time, tuple):
+            raise TypeError("time must be a tuple")
+        if not len(time) == 2:
+            raise ValueError("len(time) must be 2")
+        if not isinstance(time[0], int):
+            raise TypeError("hour value must be int")
+        if not isinstance(time[1], int):
+            raise TypeError("minute value must be int")
+        if time[0] < 0 or time[0] > 23:
+            raise ValueError("invalid hour value")
+        if time[1] < 0 or time[1] > 59:
+            raise ValueError("invalid minute value")
+
+        self.history_time_absolute = time
+
+    def get_history_time_absolute(self) -> tuple:
+        return self.history_time_absolute

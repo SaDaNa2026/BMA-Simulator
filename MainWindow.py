@@ -10,8 +10,9 @@ from DefineObjectWindows import DefineCircuitWindow, DefineDetectorWindow
 from EditWindows import EditBuildingWindow, EditDetectorWindow, EditCommitMessageWindow
 from CommitListWindow import CommitListWindow
 from Console import Console
-from SettingsWindow import SettingsWindow
+from FBFWindow import FBFWindow
 from AboutWindow import AboutWindow
+from SettingsWindow import SettingsWindow
 
 
 class MainWindow(Gtk.ApplicationWindow):
@@ -19,7 +20,7 @@ class MainWindow(Gtk.ApplicationWindow):
     application functionality."""
 
     def __init__(self, edit_action_group, hidden_action_group, detector_action_group, *args, **kwargs):
-        super().__init__(*args, **kwargs, maximized=True)
+        super().__init__(*args, **kwargs, maximized=False)
         self.set_title("BMA-Steuerung")
 
         # A dictionary to keep track of the circuits in this window.
@@ -111,10 +112,10 @@ class MainWindow(Gtk.ApplicationWindow):
         self.insert_action_group("hidden_actions", hidden_action_group)
         self.insert_action_group("detector", detector_action_group)
 
-    def show_settings_window(self, model, update_led_func):
+    def show_fbf_window(self, model, update_led_func):
         """Show the settings window"""
-        settings_window = SettingsWindow(self, model, update_led_func)
-        settings_window.present()
+        fbf_window = FBFWindow(self, model, update_led_func)
+        fbf_window.present()
 
     def show_open_dialog(self, open_response_callback, last_dir):
         """Show a FileOpenDialog."""
@@ -158,6 +159,10 @@ class MainWindow(Gtk.ApplicationWindow):
     def show_about_window(self):
         self.about_window = AboutWindow(self)
         self.about_window.show()
+
+    def show_settings_window(self, model, refresh_lcd):
+        self.settings_window = SettingsWindow(self, model, refresh_lcd)
+        self.settings_window.show()
 
     def sort_circuits(self, child1, child2, user_data) -> int:
         """Sorting function for the circuits inside main_box."""

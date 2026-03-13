@@ -1,83 +1,190 @@
 import gi
+
 gi.require_version('Gtk', '4.0')
-from gi.repository import Gtk, Gio
+gi.require_version('Gio', '2.0')
+from gi.repository import Gtk, Gio, GLib
+
 from ModalWindow import ModalWindow
 
 
-class SettingsItem(Gtk.Frame):
-    def __init__(self, label, action_name):
-        super().__init__(hexpand=True,
-                         vexpand=False,
-                         margin_start=10,
-                         margin_end=10,
-                         margin_top=10,
-                         margin_bottom=10
-                         )
+class HistoryTimeFrame(Gtk.Frame):
+    def __init__(self, history_time_mode: str, history_time_offset: int, history_time_absolute: tuple) -> None:
+        super().__init__(label="Uhrzeit der Historie")
+        # Convert time information to str for display in the entries
+        offset_string = str(history_time_offset)
+        # Add a leading zero to the hour and minute string if it's single-digit
+        hour_string = str(history_time_absolute[0])
+        if len(hour_string) == 1:
+            hour_string = "0" + hour_string
+        minute_string = str(history_time_absolute[1])
+        if len(minute_string) == 1:
+            minute_string = "0" + minute_string
 
-        self.main_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,
-                                spacing=10,
-                                margin_start=10,
-                                margin_end=10,
-                                margin_top=10,
-                                margin_bottom=10,
-                                homogeneous=True
-                                )
+        self.main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,
+                                margin_top=5,
+                                margin_bottom=5,
+                                spacing=5)
         self.set_child(self.main_box)
 
-        self.label = Gtk.Label(label=label, halign=Gtk.Align.START)
-        self.main_box.append(self.label)
+        # Box for the "automatic" option
+        self.automatic_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,
+                                     margin_start=20)
+        self.main_box.append(self.automatic_box)
+        self.automatic_button = Gtk.CheckButton(label="Automatisch vor",
+                                                action_name="settings.history_time_mode",
+                                                action_target=GLib.Variant("s", "automatic"))
+        self.automatic_box.append(self.automatic_button)
 
-        self.switch = Gtk.Switch(action_name=action_name, halign=Gtk.Align.END)
-        self.main_box.append(self.switch)
+        self.offset_entry = Gtk.Entry(margin_start=5,
+                                      max_length=2,
+                                      input_purpose=Gtk.InputPurpose.DIGITS,
+                                      max_width_chars=2,
+                                      sensitive=True if history_time_mode == "automatic" else False,
+                                      text=offset_string,
+                                      xalign=0.5)
+        self.offset_entry.connect_after("changed", self.validate_input, 99)
+        self.automatic_box.append(self.offset_entry)
+
+        self.offset_label = Gtk.Label(label="Minuten",
+                                      margin_start=5)
+        self.automatic_box.append(self.offset_label)
+
+
+        # Box for the "user defined" option
+        self.user_defined_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,
+                                        margin_start=20)
+        self.main_box.append(self.user_defined_box)
+        self.user_defined_button = Gtk.CheckButton(label="Benutzerdefiniert um",
+                                                   group=self.automatic_button,
+                                                   action_name="settings.history_time_mode",
+                                                   action_target=GLib.Variant("s", "user_defined"))
+        self.user_defined_box.append(self.user_defined_button)
+        self.hour_entry = Gtk.Entry(margin_start=5,
+                                    max_length=2,
+                                    input_purpose=Gtk.InputPurpose.DIGITS,
+                                    max_width_chars=2,
+                                    sensitive=True if history_time_mode == "user_defined" else False,
+                                    text=hour_string,
+                                    xalign=0.5)
+        self.hour_entry.connect("changed", self.validate_input, 23)
+        self.user_defined_box.append(self.hour_entry)
+        self.colon_label = Gtk.Label(label=":")
+        self.user_defined_box.append(self.colon_label)
+        self.minute_entry = Gtk.Entry(max_length=2,
+                                      input_purpose=Gtk.InputPurpose.DIGITS,
+                                      max_width_chars=2,
+                                      sensitive=True if history_time_mode == "user_defined" else False,
+                                      text=minute_string,
+                                      xalign=0.5)
+        self.minute_entry.connect("changed", self.validate_input, 59)
+        self.user_defined_box.append(self.minute_entry)
+
+    def validate_input(self, entry, limit):
+        """Changes the CSS class of the entry to error if the input contains non-digit characters"""
+        text = entry.get_text()
+        if text.isdigit():
+            if int(text) <= limit:
+                entry.remove_css_class("error")
+            else:
+                entry.add_css_class("error")
+        else:
+            entry.add_css_class("error")
 
 
 class SettingsWindow(ModalWindow):
-    def __init__(self, parent, model, update_led_func):
-        super().__init__(parent, title="Einstellungen")
+    def __init__(self, parent, model, refresh_lcd, **kwargs):
+        super().__init__(parent, title="Einstellungen", **kwargs)
         self.model = model
-        self.update_leds = update_led_func
+        self.refresh_lcd = refresh_lcd
+        history_time_mode = self.model.get_history_time_mode()
 
-        action_entries = [("extinguisher_triggered", None, None, "true" if self.model.get_extinguisher_triggered() else "false", self.on_extinguisher_triggered_toggled),
-                          ("acoustic_signals_off", None, None, "true" if self.model.get_acoustic_signals_off() else "false", self.on_acoustic_signals_off_toggled),
-                          ("ue_off", None, None, "true" if self.model.get_ue_off() else "false", self.on_ue_off_toggled),
-                          ("fire_controls_off", None, None, "true" if self.model.get_fire_controls_off() else "false", self.on_fire_controls_off_toggled)]
+        # Add an action to keep track of the radio buttons
+        self.history_time_mode_action = Gio.SimpleAction.new_stateful("history_time_mode",
+                                                                 GLib.VariantType("s"),
+                                                                 GLib.Variant("s", history_time_mode))
+        self.history_time_mode_action.connect("change-state", self.on_history_time_mode_changed)
+        self.action_group = Gio.SimpleActionGroup.new()
+        self.action_group.insert(self.history_time_mode_action)
+        self.insert_action_group("settings", self.action_group)
 
-        self.actions = Gio.SimpleActionGroup.new()
-        self.actions.add_action_entries(action_entries, None)
-        self.insert_action_group("settings", self.actions)
-
-        self.main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, homogeneous=True)
+        self.main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         self.set_child(self.main_box)
 
-        self.extinguisher_triggered_item = SettingsItem("Löschanlage ausgelöst", "settings.extinguisher_triggered")
-        self.main_box.append(self.extinguisher_triggered_item)
-        self.acoustic_signals_off_item = SettingsItem("Akustische Signale ab", "settings.acoustic_signals_off")
-        self.main_box.append(self.acoustic_signals_off_item)
-        self.ue_triggered_item = SettingsItem("ÜE ab", "settings.ue_off")
-        self.main_box.append(self.ue_triggered_item)
-        self.fire_controls_off_item = SettingsItem("Brandfallsteuerungen ab", "settings.fire_controls_off")
-        self.main_box.append(self.fire_controls_off_item)
+        self.list_box = Gtk.ListBox(show_separators=False,
+                                    selection_mode=Gtk.SelectionMode.NONE,
+                                    margin_top=5,
+                                    margin_bottom=5)
+        self.main_box.append(self.list_box)
 
-    def on_extinguisher_triggered_toggled(self, action, parameter, *args):
-        action.set_state(parameter)
-        state = parameter.get_boolean()
-        self.model.set_extinguisher_triggered(state)
-        self.update_leds()
+        self.history_time_frame = HistoryTimeFrame(history_time_mode, self.model.get_history_time_offset(), self.model.get_history_time_absolute())
+        self.list_box.append(self.history_time_frame)
 
-    def on_acoustic_signals_off_toggled(self, action, parameter, *args):
-        action.set_state(parameter)
-        state = parameter.get_boolean()
-        self.model.set_acoustic_signals_off(state)
-        self.update_leds()
+        # Box with buttons to cancel, apply or confirm
+        self.button_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,
+                                  spacing=10,
+                                  margin_start=50,
+                                  margin_end=5,
+                                  margin_top=5,
+                                  margin_bottom=5)
+        self.main_box.append(self.button_box)
 
-    def on_ue_off_toggled(self, action, parameter, *args):
-        action.set_state(parameter)
-        state = parameter.get_boolean()
-        self.model.set_ue_off(state)
-        self.update_leds()
+        self.cancel_button = Gtk.Button(label="Abbrechen", halign=Gtk.Align.END)
+        self.cancel_button.connect("clicked", lambda button, *args: self.destroy())
+        self.button_box.append(self.cancel_button)
 
-    def on_fire_controls_off_toggled(self, action, parameter, *args):
+        self.apply_button = Gtk.Button(label="Anwenden", halign=Gtk.Align.END)
+        self.apply_button.connect("clicked", lambda button, *args: self.on_apply_clicked())
+        self.button_box.append(self.apply_button)
+
+        self.confirm_button = Gtk.Button(label="OK", halign=Gtk.Align.END)
+        self.confirm_button.connect("clicked", lambda button, *args: self.on_confirm_clicked())
+        self.button_box.append(self.confirm_button)
+
+    def on_history_time_mode_changed(self, action, parameter, *args):
         action.set_state(parameter)
-        state = parameter.get_boolean()
-        self.model.set_fire_controls_off(state)
-        self.update_leds()
+
+        if parameter.get_string() == "automatic":
+            self.history_time_frame.offset_entry.set_sensitive(True)
+            self.history_time_frame.hour_entry.set_sensitive(False)
+            self.history_time_frame.minute_entry.set_sensitive(False)
+
+        elif parameter.get_string() == "user_defined":
+            self.history_time_frame.offset_entry.set_sensitive(False)
+            self.history_time_frame.hour_entry.set_sensitive(True)
+            self.history_time_frame.minute_entry.set_sensitive(True)
+
+    def validate_settings(self) -> bool:
+        entries = ((self.history_time_frame.offset_entry.get_text(), 99),
+                   (self.history_time_frame.hour_entry.get_text(), 23),
+                    (self.history_time_frame.minute_entry.get_text(), 59))
+
+        for entry_tuple in entries:
+            entry = entry_tuple[0]
+            limit = entry_tuple[1]
+            if not entry.isdigit():
+                return False
+            elif int(entry) < 0 or int(entry) > limit:
+                return False
+
+        return True
+
+    def on_apply_clicked(self):
+        """Apply settings and keep the window open"""
+        self.apply_settings()
+
+    def on_confirm_clicked(self):
+        """Apply settings and close the window"""
+        if self.apply_settings():
+            self.destroy()
+
+    def apply_settings(self) -> bool:
+        if self.validate_settings():
+            history_time_mode_action = self.action_group.lookup_action("history_time_mode")
+            self.model.set_history_time_mode(history_time_mode_action.get_state().get_string())
+            self.model.set_history_time_offset(int(self.history_time_frame.offset_entry.get_text()))
+            hour = int(self.history_time_frame.hour_entry.get_text())
+            minute = int(self.history_time_frame.minute_entry.get_text())
+            self.model.set_history_time_absolute((hour, minute))
+            return True
+        else:
+            return False
