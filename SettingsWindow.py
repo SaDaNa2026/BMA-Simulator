@@ -95,7 +95,7 @@ class SwitchFrame(Gtk.Frame):
     def __init__(self, action_name: str, switch_label: str) -> None:
         super().__init__()
         self.main_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,
-                                spacing=5,
+                                spacing=10,
                                 margin_top=5,
                                 margin_bottom=5,
                                 margin_start=5,
@@ -108,10 +108,11 @@ class SwitchFrame(Gtk.Frame):
 
 
 class SettingsWindow(ModalWindow):
-    def __init__(self, parent, model, refresh_lcd, update_leds, **kwargs):
+    def __init__(self, parent, model, refresh_lcd, update_leds, print_detector_state, **kwargs):
         super().__init__(parent, title="Einstellungen", **kwargs)
         self.model = model
         self.refresh_lcd = refresh_lcd
+        self.print_detector_state = print_detector_state
         self.update_leds = update_leds
         history_time_mode = self.model.get_history_time_mode()
 
@@ -218,6 +219,7 @@ class SettingsWindow(ModalWindow):
             self.model.set_beeper_enabled(beeper_enabled_action.get_state().get_boolean())
 
             self.refresh_lcd()
+            self.print_detector_state()
             self.update_leds()
             return True
         else:

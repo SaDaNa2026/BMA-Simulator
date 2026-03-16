@@ -607,7 +607,7 @@ class App(Gtk.Application):
 
     def on_settings_clicked(self, *args):
         """Open the settings window"""
-        self.window.show_settings_window(self.model, self.lcd.refresh, self.update_leds)
+        self.window.show_settings_window(self.model, self.lcd.refresh, self.update_leds, self.print_detector_state)
 
     def on_acoustic_signals_off_toggled(self, state):
         """Update acoustic_signals_off"""

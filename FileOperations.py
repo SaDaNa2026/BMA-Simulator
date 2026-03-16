@@ -197,6 +197,11 @@ class FileOperations:
         model.set_ue_off(load_dict["settings"]["ue_off"])
         model.set_fire_controls_off(load_dict["settings"]["fire_controls_off"])
 
+        # Apply history time settings
+        model.set_history_time_mode(load_dict["settings"]["history_time_mode"])
+        model.set_history_time_offset(load_dict["settings"]["history_time_offset"])
+        model.set_history_time_absolute(tuple(load_dict["settings"]["history_time_absolute"]))
+
     @staticmethod
     def retrieve_save_file(dialog, result):
         """Retrieve the save path from the file dialog."""
@@ -212,7 +217,7 @@ class FileOperations:
 
         # Write save_dict to the file in JSON format
         with open(file_path, "w", encoding="utf-8") as file_dict:
-            json.dump(save_dict, file_dict, sort_keys=True, indent=4)
+            json.dump(save_dict, file_dict, indent=4)
 
         FileOperations.commit_changes(file, message)
 
@@ -296,6 +301,9 @@ class FileOperations:
                      "settings": {"extinguisher_triggered": model.get_extinguisher_triggered(),
                                   "acoustic_signals_off": model.get_acoustic_signals_off(),
                                   "ue_off": model.get_ue_off(),
-                                  "fire_controls_off": model.get_fire_controls_off()},
+                                  "fire_controls_off": model.get_fire_controls_off(),
+                                  "history_time_mode": model.get_history_time_mode(),
+                                  "history_time_offset": model.get_history_time_offset(),
+                                  "history_time_absolute": model.get_history_time_absolute()},
                      "scenario_description": scenario_description}
         return save_dict

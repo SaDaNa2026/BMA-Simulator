@@ -17,10 +17,10 @@ from SettingsWindow import SettingsWindow
 
 class MainWindow(Gtk.ApplicationWindow):
     """Main Window of the application. Displays Detectors grouped in circuits as well as menus to access all
-    application functionality."""
+    application functionality and Consoles to print information."""
 
     def __init__(self, edit_action_group, hidden_action_group, detector_action_group, *args, **kwargs):
-        super().__init__(*args, **kwargs, maximized=False)
+        super().__init__(*args, **kwargs, maximized=True)
         self.set_title("BMA-Steuerung")
 
         # A dictionary to keep track of the circuits in this window.
@@ -160,8 +160,8 @@ class MainWindow(Gtk.ApplicationWindow):
         self.about_window = AboutWindow(self)
         self.about_window.show()
 
-    def show_settings_window(self, model, refresh_lcd, update_leds):
-        self.settings_window = SettingsWindow(self, model, refresh_lcd, update_leds)
+    def show_settings_window(self, model, refresh_lcd, update_leds, print_detector_state):
+        self.settings_window = SettingsWindow(self, model, refresh_lcd, update_leds, print_detector_state)
         self.settings_window.show()
 
     def sort_circuits(self, child1, child2, user_data) -> int:

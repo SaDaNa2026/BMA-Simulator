@@ -80,7 +80,6 @@ class CommitListWindow(ModalWindow):
         # Add every commit to a new row in the ListBox
         index = 0
         for commit in commit_list:
-            print(commit)
             commit_box = CommitBox(commit, index)
             self.list_box.append(commit_box)
             index += 1
