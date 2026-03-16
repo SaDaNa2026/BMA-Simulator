@@ -160,8 +160,8 @@ class MainWindow(Gtk.ApplicationWindow):
         self.about_window = AboutWindow(self)
         self.about_window.show()
 
-    def show_settings_window(self, model, refresh_lcd):
-        self.settings_window = SettingsWindow(self, model, refresh_lcd)
+    def show_settings_window(self, model, refresh_lcd, update_leds):
+        self.settings_window = SettingsWindow(self, model, refresh_lcd, update_leds)
         self.settings_window.show()
 
     def sort_circuits(self, child1, child2, user_data) -> int:

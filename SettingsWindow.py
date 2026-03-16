@@ -91,11 +91,28 @@ class HistoryTimeFrame(Gtk.Frame):
             entry.add_css_class("error")
 
 
+class SwitchFrame(Gtk.Frame):
+    def __init__(self, action_name: str, switch_label: str) -> None:
+        super().__init__()
+        self.main_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,
+                                spacing=5,
+                                margin_top=5,
+                                margin_bottom=5,
+                                margin_start=5,
+                                margin_end=5)
+        self.set_child(self.main_box)
+        self.switch = Gtk.Switch(action_name=action_name)
+        self.main_box.append(self.switch)
+        self.label = Gtk.Label(label=switch_label)
+        self.main_box.append(self.label)
+
+
 class SettingsWindow(ModalWindow):
-    def __init__(self, parent, model, refresh_lcd, **kwargs):
+    def __init__(self, parent, model, refresh_lcd, update_leds, **kwargs):
         super().__init__(parent, title="Einstellungen", **kwargs)
         self.model = model
         self.refresh_lcd = refresh_lcd
+        self.update_leds = update_leds
         history_time_mode = self.model.get_history_time_mode()
 
         # Add an action to keep track of the radio buttons
@@ -103,8 +120,12 @@ class SettingsWindow(ModalWindow):
                                                                  GLib.VariantType("s"),
                                                                  GLib.Variant("s", history_time_mode))
         self.history_time_mode_action.connect("change-state", self.on_history_time_mode_changed)
+        self.beeper_enabled_action = Gio.SimpleAction.new_stateful("beeper_enabled",
+                                                                   None,
+                                                                   GLib.Variant("b", self.model.get_beeper_enabled()))
         self.action_group = Gio.SimpleActionGroup.new()
         self.action_group.insert(self.history_time_mode_action)
+        self.action_group.insert(self.beeper_enabled_action)
         self.insert_action_group("settings", self.action_group)
 
         self.main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
@@ -116,8 +137,13 @@ class SettingsWindow(ModalWindow):
                                     margin_bottom=5)
         self.main_box.append(self.list_box)
 
+        # Frame with settings for the history time
         self.history_time_frame = HistoryTimeFrame(history_time_mode, self.model.get_history_time_offset(), self.model.get_history_time_absolute())
         self.list_box.append(self.history_time_frame)
+
+        # Switch to control beeper_enabled
+        self.beeper_enabled_frame = SwitchFrame("settings.beeper_enabled", "Summer bei Alarm aktivieren")
+        self.list_box.append(self.beeper_enabled_frame)
 
         # Box with buttons to cancel, apply or confirm
         self.button_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,
@@ -179,13 +205,20 @@ class SettingsWindow(ModalWindow):
 
     def apply_settings(self) -> bool:
         if self.validate_settings():
+            # Apply history time settings
             history_time_mode_action = self.action_group.lookup_action("history_time_mode")
             self.model.set_history_time_mode(history_time_mode_action.get_state().get_string())
             self.model.set_history_time_offset(int(self.history_time_frame.offset_entry.get_text()))
             hour = int(self.history_time_frame.hour_entry.get_text())
             minute = int(self.history_time_frame.minute_entry.get_text())
             self.model.set_history_time_absolute((hour, minute))
+
+            # Apply beeper settings
+            beeper_enabled_action = self.action_group.lookup_action("beeper_enabled")
+            self.model.set_beeper_enabled(beeper_enabled_action.get_state().get_boolean())
+
             self.refresh_lcd()
+            self.update_leds()
             return True
         else:
             return False
