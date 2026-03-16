@@ -650,7 +650,7 @@ class App(Gtk.Application):
 
         active_detector_text = self.generate_text(active_detector_list)
         disabled_detector_text = self.generate_text(disabled_detector_list)
-        history_detector_text = self.generate_text(history_detector_list)
+        history_detector_text = f"{self.model.get_history_time_string()}\n\r" + self.generate_text(history_detector_list)
 
         self.window.active_console.buffer.set_text(active_detector_text)
         self.window.disabled_console.buffer.set_text(disabled_detector_text)

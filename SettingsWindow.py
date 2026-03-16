@@ -185,6 +185,7 @@ class SettingsWindow(ModalWindow):
             hour = int(self.history_time_frame.hour_entry.get_text())
             minute = int(self.history_time_frame.minute_entry.get_text())
             self.model.set_history_time_absolute((hour, minute))
+            self.refresh_lcd()
             return True
         else:
             return False

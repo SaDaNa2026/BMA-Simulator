@@ -1,4 +1,4 @@
-from datetime import datetime
+import datetime as dt
 from dataclasses import dataclass, field
 from typing import Dict, List
 
@@ -65,8 +65,7 @@ class BuildingModel:
     fire_controls_off: bool = field(default=False)
     history_time_mode: str = field(default="automatic")
     history_time_offset: int = field(default=8)
-    current_time = datetime.now()
-    history_time_absolute: tuple = field(default=(current_time.hour, current_time.minute))
+    history_time_absolute: tuple = field(default=(dt.datetime.now().hour, dt.datetime.now().minute))
 
     def __post_init__(self):
         if not isinstance(self.building_description, str):
@@ -360,3 +359,25 @@ class BuildingModel:
 
     def get_history_time_absolute(self) -> tuple:
         return self.history_time_absolute
+
+    def get_history_time_string(self) -> str:
+        if self.get_history_time_mode() == "automatic":
+            history_time = dt.datetime.now() - dt.timedelta(minutes=self.get_history_time_offset())
+            hour_string = str(history_time.hour)
+            minute_string = str(history_time.minute)
+
+        elif self.get_history_time_mode() == "user_defined":
+            time_tuple = self.get_history_time_absolute()
+            hour_string = str(time_tuple[0])
+            minute_string = str(time_tuple[1])
+
+        else:
+            hour_string = ""
+            minute_string = ""
+
+        if len(hour_string) == 1:
+            hour_string = "0" + hour_string
+        if len(minute_string) == 1:
+            minute_string = "0" + minute_string
+
+        return f"{hour_string}:{minute_string}"

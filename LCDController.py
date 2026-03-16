@@ -40,7 +40,7 @@ class LCDController(CharLCD):
         elif message_type == "disabled":
             self.write_string("Abschaltung")
         elif message_type == "history":
-            self.write_string("   Historie")
+            self.write_string("      Feuer")
         self.write_string(f"\r\n{detector_description}")
 
     def add_alarm(self, detector: tuple):
@@ -78,12 +78,11 @@ class LCDController(CharLCD):
     def _write_history_detectors(self):
         """Set visible_dict according to the history detectors and refresh"""
         history_detectors = self.model.get_history_detectors()
-        if self.current_screen == 3 and len(history_detectors) > 0:
-            self.visible_dict.clear()
-            self.visible_dict["bottom"] = history_detectors[-1]
-
-            if len(history_detectors) > 1:
-                self.visible_dict["top"] = history_detectors[0]
+        if self.current_screen == 3:
+            self.clear()
+            if len(history_detectors) > 0:
+                self.visible_dict.clear()
+                self.visible_dict["bottom"] = history_detectors[-1]
 
         self.refresh()
 
@@ -104,38 +103,51 @@ class LCDController(CharLCD):
 
 
     def previous_message(self) -> bool:
-        """Set the top alarm to the previous alarm. Returns true if the operation was successful, otherwise false"""
+        """Set the scrollable to the previous alarm. Returns true if the operation was successful, otherwise false"""
         message_list = self._get_message_list()
         if not message_list:
             return False
 
+        if self.current_screen == 3:
+            position = "bottom"
+            shown_detectors = 1
+        else:
+            position = "top"
+            shown_detectors = 2
+
         # Check if there are enough alarms to scroll
-        if not len(message_list) > 2 or self.visible_dict["top"] not in message_list:
+        if not len(message_list) > shown_detectors or self.visible_dict[position] not in message_list:
             return False
-        current_index = message_list.index(self.visible_dict["top"])
-        # Return if the top alarm is already the first one
+        current_index = message_list.index(self.visible_dict[position])
         if current_index == 0:
             return False
+
         new_index = current_index - 1
-        self.visible_dict["top"] = message_list[new_index]
+        self.visible_dict[position] = message_list[new_index]
         self.refresh()
         return True
 
     def next_message(self) -> bool:
-        """Set the top alarm to the next alarm. Returns true if the operation was successful, otherwise false"""
+        """Set the scrollable alarm to the next alarm. Returns true if the operation was successful, otherwise false"""
         message_list = self._get_message_list()
         if not message_list:
             return False
 
+        if self.current_screen == 3:
+            position = "bottom"
+            shown_detectors = 1
+        else:
+            position = "top"
+            shown_detectors = 2
+
         # Check if there are enough alarms to scroll
-        if not len(message_list) > 2 or self.visible_dict["top"] not in message_list:
+        if not len(message_list) > shown_detectors or self.visible_dict[position] not in message_list:
             return False
-        current_index = message_list.index(self.visible_dict["top"])
-        # Return if the top alarm is already the first one
-        if message_list[current_index] == message_list[-2]:
+        current_index = message_list.index(self.visible_dict[position])
+        if message_list[current_index] == message_list[-shown_detectors]:
             return False
         new_index = current_index + 1
-        self.visible_dict["top"] = message_list[new_index]
+        self.visible_dict[position] = message_list[new_index]
         self.refresh()
         return True
 
@@ -150,32 +162,37 @@ class LCDController(CharLCD):
             return False
 
     def first_message_shown(self) -> bool:
-        """Checks if the first message is shown in the top position of the LCD. Return True if there are less than or
-        equal to two messages or current_screen == 0 (home screen)"""
-        if len(self.visible_dict) < 2:
-            return True
-        elif self.current_screen == 1:
-            return self.visible_dict["top"] == self.model.get_active_detectors()[0]
-        elif self.current_screen == 2:
-            return self.visible_dict["top"] == self.model.get_disabled_detectors()[0]
-        elif self.current_screen == 3:
-            return self.visible_dict["top"] == self.model.get_history_detectors()[0]
-        else:
-            return True
+        """Checks if the first message is shown on the LCD. Return True if current_screen == 0 (home screen)"""
+        match self.current_screen:
+            case 1:
+                if len(self.visible_dict) < 2:
+                    return True
+                return self.visible_dict["top"] == self.model.get_active_detectors()[0]
+            case 2:
+                if len(self.visible_dict) < 2:
+                    return True
+                return self.visible_dict["top"] == self.model.get_disabled_detectors()[0]
+            case 3:
+                return self.visible_dict["bottom"] == self.model.get_history_detectors()[0]
+            case _:
+                return True
 
     def last_message_shown(self) -> bool:
-        """Checks if the last scrollable (second to last) message is shown in the top position of the LCD. Returns
-        True if there are less than or equal to 2 messages or current_screen == 0 (home screen)"""
-        if len(self.visible_dict) < 2:
-            return True
-        elif self.current_screen == 1:
-            return self.visible_dict["top"] == self.model.get_active_detectors()[-2]
-        elif self.current_screen == 2:
-            return self.visible_dict["top"] == self.model.get_disabled_detectors()[-2]
-        elif self.current_screen == 3:
-            return self.visible_dict["top"] == self.model.get_history_detectors()[-2]
-        else:
-            return True
+        """Checks if the last scrollable (second to last) message is shown on the LCD. Returns
+        True if current_screen == 0 (home screen)"""
+        match self.current_screen:
+            case 1:
+                if len(self.visible_dict) < 2:
+                    return True
+                return self.visible_dict["top"] == self.model.get_active_detectors()[-2]
+            case 2:
+                if len(self.visible_dict) < 2:
+                    return True
+                return self.visible_dict["top"] == self.model.get_disabled_detectors()[-2]
+            case 3:
+                return self.visible_dict["bottom"] == self.model.get_history_detectors()[-1]
+            case _:
+                return True
 
     def toggle_view_level(self):
         """Switch between alarms and disabled detectors"""
@@ -233,8 +250,11 @@ class LCDController(CharLCD):
 
         elif self.current_screen == 3:
             self.clear()
-            for position in self.visible_dict:
-                self._write_message(self.visible_dict[position], position, "history")
+            self.cursor_pos = (0, 12)
+            self.write_string("Historie")
+            self.cursor_pos = (1, 15)
+            self.write_string(self.model.get_history_time_string())
+            self._write_message(self.visible_dict["bottom"], "bottom", "history")
 
     def test(self):
         """Fill the screen with blocks to test all pixels"""

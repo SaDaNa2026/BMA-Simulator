@@ -303,7 +303,42 @@ class TestBuildingModel(unittest.TestCase):
         with self.assertRaises(TypeError):
             self.model.delete_detector(1, "1")
 
+    def test_history_time_functions(self):
+        with self.assertRaises(TypeError):
+            self.model.set_history_time_mode(1)
+        with self.assertRaises(ValueError):
+            self.model.set_history_time_mode("test")
 
+        self.model.set_history_time_mode("user_defined")
+        self.assertEqual(self.model.get_history_time_mode(), "user_defined")
+
+        with self.assertRaises(TypeError):
+            self.model.set_history_time_absolute("15:13")
+        with self.assertRaises(ValueError):
+            self.model.set_history_time_absolute((15, 34, 12))
+        with self.assertRaises(TypeError):
+            self.model.set_history_time_absolute(("12", 19))
+        with self.assertRaises(TypeError):
+            self.model.set_history_time_absolute((12, "19"))
+        with self.assertRaises(ValueError):
+            self.model.set_history_time_absolute((24, 12))
+        with self.assertRaises(ValueError):
+            self.model.set_history_time_absolute((12, 60))
+
+        self.model.set_history_time_absolute((0, 0))
+        self.assertEqual(self.model.get_history_time_absolute(), (0, 0))
+        self.assertEqual(self.model.get_history_time_string(), "00:00")
+
+        self.model.set_history_time_mode("automatic")
+        self.assertEqual(self.model.get_history_time_mode(), "automatic")
+
+        with self.assertRaises(TypeError):
+            self.model.set_history_time_offset("3")
+        with self.assertRaises(ValueError):
+            self.model.set_history_time_offset(100)
+
+        self.model.set_history_time_offset(42)
+        self.assertEqual(self.model.get_history_time_offset(), 42)
 
 if __name__ == '__main__':
     unittest.main()
