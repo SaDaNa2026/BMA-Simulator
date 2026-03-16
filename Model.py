@@ -66,6 +66,8 @@ class BuildingModel:
     history_time_mode: str = field(default="automatic")
     history_time_offset: int = field(default=8)
     history_time_absolute: tuple = field(default=(dt.datetime.now().hour, dt.datetime.now().minute))
+    beeper_off: bool = field(default=False)
+    beeper_enabled: bool = field(default=True)
 
     def __post_init__(self):
         if not isinstance(self.building_description, str):
@@ -94,6 +96,7 @@ class BuildingModel:
         self.acoustic_signals_off = False
         self.ue_off = False
         self.fire_controls_off = False
+        self.beeper_off = False
 
     def set_building_description(self, description: str) -> None:
         if not isinstance(description, str):
@@ -187,8 +190,8 @@ class BuildingModel:
                     self.disabled_detector_list.insert(list_index, detector_tuple)
                 else:
                     self.disabled_detector_list.append(detector_tuple)
-            if detector_tuple in self.active_detector_list:
-                self.active_detector_list.remove(detector_tuple)
+
+            self.set_detector_alarm_status(circuit_number, detector_number, False, None)
 
     def get_detector_enabled(self, circuit_number: int, detector_number: int) -> bool:
         if not circuit_number in self.circuit_dict:
@@ -266,6 +269,8 @@ class BuildingModel:
                     self.active_detector_list.insert(list_index, detector_tuple)
                 else:
                     self.active_detector_list.append(detector_tuple)
+
+                self.set_beeper_off(False)
         else:
             if detector_tuple in self.active_detector_list:
                 self.active_detector_list.remove(detector_tuple)
@@ -381,3 +386,19 @@ class BuildingModel:
             minute_string = "0" + minute_string
 
         return f"{hour_string}:{minute_string}"
+
+    def set_beeper_off(self, is_off: bool) -> None:
+        if not isinstance(is_off, bool):
+            raise TypeError("is_off must be bool")
+        self.beeper_off = is_off
+
+    def get_beeper_off(self) -> bool:
+        return self.beeper_off
+
+    def set_beeper_enabled(self, enabled: bool):
+        if not isinstance(enabled, bool):
+            raise TypeError("enabled must be bool")
+        self.beeper_enabled = enabled
+
+    def get_beeper_enabled(self) -> bool:
+        return self.beeper_enabled

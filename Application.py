@@ -130,6 +130,7 @@ class App(Gtk.Application):
                              "next_alarm": GPB0,
                              "view_level": GPB6,
                              "beeper_off": GPB2,
+                             "beeper": GPA4,
                              "working": GPA3,
                              "alarm": GPA2,
                              "error": GPA1,
@@ -137,7 +138,7 @@ class App(Gtk.Application):
 
         self.mcp_fat = MCPController(0x27,
                                      [(GPB1, self.on_next_message_clicked, None, False, False),
-                                      (GPB3, self.beeper_off, self.on_self_test_pressed, False, False),
+                                      (GPB3, self.on_beeper_off_clicked, self.on_self_test_pressed, False, False),
                                       (GPB5, self.on_previous_message_clicked, None, False, False),
                                       (GPB7, self.on_view_level_clicked, self.on_history_pressed, False, False)],
                                      self.fat_led_dict)
@@ -535,6 +536,11 @@ class App(Gtk.Application):
         self.lcd.toggle_view_level()
         self.update_leds()
 
+    def on_beeper_off_clicked(self):
+        """Turns off the beeper until a new alarm is added"""
+        self.model.set_beeper_off(True)
+        self.update_leds()
+
     def on_clear_alarms_clicked(self, *args):
         """Schedule alarms to be cleared after a short delay"""
         GLib.timeout_add_seconds(3, self.clear_alarms)
@@ -688,6 +694,10 @@ class App(Gtk.Application):
             if self.lcd.current_screen == 1:
                 self.led_fat.stop_blink("alarm")
                 self.led_fat.on("alarm")
+                if (not self.model.get_beeper_off()) and self.model.get_beeper_enabled():
+                    self.led_fat.on("beeper")
+                else:
+                    self.led_fat.off("beeper")
             else:
                 self.led_fat.start_blink("alarm")
 
@@ -705,6 +715,7 @@ class App(Gtk.Application):
         else:
             self.led_fat.off("alarm")
             self.led_fat.stop_blink("alarm")
+            self.led_fat.off("beeper")
             self.led_fbf.off("alarm")
             if FLASH_RELAY_PIN is not None:
                 self.flash_relay.off()
@@ -751,6 +762,3 @@ class App(Gtk.Application):
         else:
             self.led_fbf.off("fire_controls_off")
 
-    def beeper_off(self):
-        """Turns off the beeper. Currently a placeholder."""
-        pass
