@@ -27,6 +27,7 @@ und welche LEDs am FBF aktiv sind.
     * [Rechtsklick auf Meldergruppen-Nummer](#rechtsklick-auf-meldergruppen-nummer)
     * [Rechtsklick auf Melder](#rechtsklick-auf-melder)
   * [Undo / Redo](#undo--redo)
+  * [Einstellungen](#einstellungen)
   * [Schnellere Bedienung](#schnellere-bedienung)
     * [Tastenkürzel](#tastenkürzel)
     * [Linksklick-Kombinationen](#linksklick-kombinationen)
@@ -148,6 +149,7 @@ Es stehen dann folgende Funktionen zur Verfügung:
 3. In Historie:  
     Legt fest, ob der Melder in der Historie erscheint. Diese Einstellung wird im Szenario gespeichert. 
     Zur besseren Übersicht werden Nummer und Beschreibung von Meldern in der Historie farblich abgehoben. 
+    Die in der Historie angezeigte Zeit kann über die Einstellungen angepasst werden.
 4. Melder löschen
 
 Abschaltung und Historie sind auch bei ausgeschaltetem Bearbeitungsmodus verfügbar.
@@ -165,6 +167,21 @@ Das Laden einer Datei löscht alle bisherigen Einträge im undo/redo-Stack.
 Wenn die aktuelle Datei gespeichert wird, bleibt der Stack allerdings erhalten, sodass alle Änderungen 
 seit dem letzten Laden rückgängig gemacht werden können.
 
+## Einstellungen
+
+Die Anwendungseinstellungen können über das Hauptmenü oben links, unter dem sich auch die Hilfe befindet, geöffnet werden. 
+Alternativ funktioniert auch die Tastenkombination Strg+P. Folgende Einstellungen sind verfügbar:
+
+- Zeit für die Historie: Bestimmt, welche Uhrzeit in der Historie angezeigt werden soll. 
+    Diese Einstellung wird im Szenario gespeichert.
+  - Automatisch: Die angezeigte Uhrzeit berechnet sich aus der jeweils aktuellen Zeit minus der eingegebenen Differenz.
+  - Benutzerdefiniert: Hier kann jede beliebige Uhrzeit eingegeben werden, die dann unabhängig 
+    von der aktuellen Zeit angezeigt wird. Dadurch können z.B. Nachtszenarien dargestellt werden.
+- Summer bei Alarm aktivieren: Der Summer wird, wie bei einer echten BMA, bei jedem neu ausgelösten Melder aktiviert. 
+    Diese Einstellung bietet die Möglichkeit, den Summer für die gesamte Dauer der aktuellen Sitzung abzuschalten. 
+    Das ist nützlich, wenn Szenarien konfiguriert werden. 
+    Die Einstellung wird bei jedem Programmstart auf "EIN" zurückgesetzt.
+
 ## Schnellere Bedienung
 
 ### Tastenkürzel
@@ -177,6 +194,7 @@ Alle Tastenkürzel sind neben dem entsprechenden Button mit der gleichen Funktio
 Hier eine Übersicht aller Tastenkürzel:
 
 - F1: Öffnet diese Hilfe-Datei
+- Strg+P: Einstellungs-Fenster öffnen
 - Strg+G: Gebäudekonfiguration speichern
 - Strg+S: Szenario speichern
 - Strg+O: Datei öffnen (Gebäudekonfiguration / Szenario)
