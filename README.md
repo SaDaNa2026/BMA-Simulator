@@ -19,6 +19,22 @@ wenn in Application.py die Konstante MARKDOWN_VIEWER entsprechend angepasst wird
 Falls die Hilfedatei nach PDF konvertiert wird, bieten sich natürlich noch mehr Möglichkeiten. 
 Markdown wurde lediglich aufgrund der besseren Integration in das Versionskontrollsystem ausgewählt.
 
+## Desktopeintrag
+
+Es liegt ein Beispiel für eine passende Desktopeintrags-Datei bei. Wenn die in der Datei angegebenen Anpassungen 
+erfolgt sind, kann die Datei im entsprechenden Ordner (z.B. /usr/local/share/applications/) abgelegt werden.  
+Falls ein Autostart der App erwünscht ist, kann der Desktopeintrag zusätzlich noch in /etc/xdg/autostart/ abgelegt werden.
+
+## Startskript
+
+Da sich alle Python-Pakete und Skripte in einer virtuellen Umgebung befinden, muss diese beim Programmstart erst 
+aktiviert werden. Daher ist ein Startskript nötig, das diese Aufgabe übernimmt. Ein entsprechendes Beispiel liegt bei, 
+es muss nur der Pfad zum Anwendungsordner angepasst werden.
+
+Für den Fall, dass alle Python-Pakete systemweit installiert sind (ohne virtuelle Umgebung), 
+entfällt die Notwendigkeit des Startskripts. Man verliert dann aber natürlich auch alle Vorteile 
+der Separierung durch virtuelle Umgebungen.
+
 ## Konfiguration von labwc
 
 Falls Raspberry Pi OS (oder ein anderes Betriebssystem mit labwc als Compositor) verwendet wird, 
