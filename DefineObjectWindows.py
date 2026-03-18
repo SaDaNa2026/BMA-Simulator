@@ -8,7 +8,7 @@ from DescriptionBox import DescriptionBox
 class DefineObjectWindow(ModalWindow):
     """Base class for a Window that lets the use create an object with a chosen number."""
     def __init__(self, handle_create_method, entry_label, parent, max_length=None, **kwargs):
-        super().__init__(parent, default_width=350, default_height=100, **kwargs)
+        super().__init__(parent, **kwargs)
 
         self.main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,
                                 margin_top=5,
@@ -29,6 +29,8 @@ class DefineObjectWindow(ModalWindow):
         self.choose_number_entry = Gtk.Entry(has_frame=True, activates_default=True)
         if max_length is not None:
             self.choose_number_entry.set_max_length(max_length)
+            self.choose_number_entry.set_max_width_chars(max_length)
+            self.choose_number_entry.connect("changed", self.validate_input, max_length)
         self.choose_number_box.append(self.choose_number_entry)
 
         # Buttons to cancel or add the object
@@ -47,6 +49,14 @@ class DefineObjectWindow(ModalWindow):
 
         # Prepare a label to display an error if the input is wrong
         self.warning_label = Gtk.Label()
+
+    def validate_input(self, entry, max_length):
+        """Changes the CSS class of the entry to error if the input contains non-digit characters"""
+        text = entry.get_text()
+        if text.isdigit() and len(text) <= max_length:
+            entry.remove_css_class("error")
+        else:
+            entry.add_css_class("error")
 
     def get_number_entry(self) -> int:
         """Retrieve the entry and check it for correct syntax."""

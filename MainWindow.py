@@ -102,9 +102,9 @@ class MainWindow(Gtk.ApplicationWindow):
         self.header.pack_start(self.edit_menubutton)
 
         # Buttons for undo/redo
-        self.undo_button = Gtk.Button(icon_name="edit-undo", action_name="app.undo", tooltip_text="Undo")
+        self.undo_button = Gtk.Button(icon_name="edit-undo-symbolic", action_name="app.undo", tooltip_text="Undo")
         self.header.pack_start(self.undo_button)
-        self.redo_button = Gtk.Button(icon_name="edit-redo", action_name="app.redo", tooltip_text="Redo")
+        self.redo_button = Gtk.Button(icon_name="edit-redo-symbolic", action_name="app.redo", tooltip_text="Redo")
         self.header.pack_start(self.redo_button)
 
         # Bind the action groups to the window
