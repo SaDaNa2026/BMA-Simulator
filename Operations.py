@@ -16,6 +16,11 @@ class Operation:
 
 
 class DetectorOps(Operation):
+    def __init__(self, model, app):
+        super().__init__(model, app)
+        # Variable to block set_alarm_status so the switch can be flipped without activating the method
+        self.block_set_alarm_status = False
+
     def add(self,
             circuit_number: int,
             detector_number: int,
@@ -283,6 +288,49 @@ class DetectorOps(Operation):
         detector.detector_label.set_label(f"{detector_number}: {description}")
         self.app.print_detector_state()
         self.app.lcd.refresh()
+
+    def set_alarm_status(self, circuit_number: int, detector_number: int, alarm_status: bool) -> None:
+        if not self.block_set_alarm_status:
+            undo_args = self._active_setter(circuit_number, detector_number, alarm_status, None)
+
+            self.app.clear_redo()
+            self.app.append_undo((self.undo_set_alarm_status, undo_args))
+
+    def undo_set_alarm_status(self, circuit_number: int, detector_number: int, alarm_status: bool, alarm_index: int|None) -> None:
+        self.block_set_alarm_status = True
+        detector = self.app.window.circuit_dict[circuit_number].detector_dict[detector_number]
+        detector.detector_switch.set_active(alarm_status)
+        redo_args = self._active_setter(circuit_number, detector_number, alarm_status, alarm_index)
+        self.block_set_alarm_status = False
+
+        self.app.append_redo((self.redo_set_alarm_status, redo_args))
+
+    def redo_set_alarm_status(self, circuit_number: int, detector_number: int, alarm_status: bool, alarm_index: int|None) -> None:
+        self.block_set_alarm_status = True
+        detector = self.app.window.circuit_dict[circuit_number].detector_dict[detector_number]
+        detector.detector_switch.set_active(alarm_status)
+        undo_args = self._active_setter(circuit_number, detector_number, alarm_status, alarm_index)
+        self.block_set_alarm_status = False
+
+        self.app.append_undo((self.undo_set_alarm_status, undo_args))
+
+    def _active_setter(self, circuit_number: int, detector_number: int, alarm_status: bool, alarm_index: int|None) -> tuple[int, int, bool, int|None]:
+        previous_alarm_status = self.model.get_detector_alarm_status(circuit_number, detector_number)
+        if previous_alarm_status:
+            previous_alarm_index = self.model.active_detector_list.index((circuit_number, detector_number))
+        else:
+            previous_alarm_index = None
+
+        self.model.set_detector_alarm_status(circuit_number, detector_number, alarm_status, alarm_index)
+
+        self.app.print_detector_state()
+        if alarm_status:
+            self.app.lcd.add_alarm((circuit_number, detector_number))
+        else:
+            self.app.lcd.reset()
+        self.app.update_leds()
+
+        return circuit_number, detector_number, previous_alarm_status, previous_alarm_index
 
     def set_enabled(self, circuit_number: int, detector_number: int, enabled: bool) -> None:
         """Set the enabled status of a detector"""

@@ -157,11 +157,11 @@ Abschaltung und Historie sind auch bei ausgeschaltetem Bearbeitungsmodus verfüg
 ## Undo / Redo
 
 Jede Aktion lässt sich per Strg+Z oder dem Undo-Button rückgängig machen, 
-außer dem Auslösen von Meldern und den Einstellungen für das FBF
-(hier kann man den Schalter einfach wieder umlegen).  
+außer den Einstellungen für das FBF (das würde nur zu Verwirrung führen, wenn das entsprechende Fenster 
+nicht mehr geöffnet ist).  
 Per Strg+Y, Strg+Shift+Z oder dem Redo-Button kann man die rückgängig gemachte Aktion wiederherstellen.  
 Falls keine Aktion mehr rückgängig gemacht oder wiederhergestellt werden kann, 
-ist der entsprechende Button ausgegraut.
+ist der entsprechende Button in der Kopfleiste ausgegraut.
 
 Das Laden einer Datei löscht alle bisherigen Einträge im undo/redo-Stack. 
 Wenn die aktuelle Datei gespeichert wird, bleibt der Stack allerdings erhalten, sodass alle Änderungen 

@@ -452,15 +452,7 @@ class App(Gtk.Application):
         # Toggle alarm status
         action.set_state(parameter)
         alarm_status = parameter.get_boolean()
-        self.model.set_detector_alarm_status(circuit_number, detector_number, alarm_status)
-
-        self.print_detector_state()
-        if alarm_status:
-            self.lcd.add_alarm((circuit_number, detector_number))
-        else:
-            self.lcd.reset()
-
-        self.update_leds()
+        self.detector_ops.set_alarm_status(circuit_number, detector_number, alarm_status)
 
     def on_enable_detector_clicked(self, action, parameter):
         """Toggle the enabled state of the detector switch"""
