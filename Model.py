@@ -191,8 +191,6 @@ class BuildingModel:
                 else:
                     self.disabled_detector_list.append(detector_tuple)
 
-            self.set_detector_alarm_status(circuit_number, detector_number, False, None)
-
     def get_detector_enabled(self, circuit_number: int, detector_number: int) -> bool:
         if not circuit_number in self.circuit_dict:
             raise KeyError("circuit does not exist")
@@ -277,10 +275,15 @@ class BuildingModel:
 
     def get_detector_alarm_status(self, circuit_number: int, detector_number: int) -> bool:
         detector_tuple: tuple = (circuit_number, detector_number)
-        return detector_tuple in self.active_detector_list
+        return (detector_tuple in self.active_detector_list) and (detector_tuple not in self.disabled_detector_list)
 
     def get_active_detectors(self) -> list:
-        return self.active_detector_list
+        return_list = []
+        for detector_tuple in self.active_detector_list:
+            if detector_tuple not in self.disabled_detector_list:
+                return_list.append(detector_tuple)
+
+        return return_list
 
     def get_detectors_for_circuit(self, circuit_number: int) -> list:
         """Get all detectors for a specific circuit."""

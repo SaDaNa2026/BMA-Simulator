@@ -26,6 +26,7 @@ class DetectorOps(Operation):
         self.create_detector(circuit_number,
                              detector_number,
                              description,
+                             False,
                              alarm_status,
                              None,
                              enabled,
@@ -50,6 +51,7 @@ class DetectorOps(Operation):
                  circuit_number: int,
                  detector_number: int,
                  description: str,
+                 switch_active: bool,
                  alarm_status: bool,
                  alarm_index: int | None,
                  enabled: bool,
@@ -60,6 +62,7 @@ class DetectorOps(Operation):
         self._readd_detector(circuit_number,
                              detector_number,
                              description,
+                             switch_active,
                              alarm_status,
                              alarm_index,
                              enabled,
@@ -85,6 +88,7 @@ class DetectorOps(Operation):
                     circuit_number: int,
                     detector_number: int,
                     description: str,
+                    switch_active: bool,
                     alarm_status: bool,
                     alarm_index: int | None,
                     enabled: bool,
@@ -95,6 +99,7 @@ class DetectorOps(Operation):
         self._readd_detector(circuit_number,
                              detector_number,
                              description,
+                             switch_active,
                              alarm_status,
                              alarm_index,
                              enabled,
@@ -117,6 +122,7 @@ class DetectorOps(Operation):
                         circuit_number: int,
                         detector_number: int,
                         description: str,
+                        switch_active: bool = False,
                         alarm_status: bool = False,
                         alarm_index: int | None = None,
                         enabled: bool = True,
@@ -132,6 +138,9 @@ class DetectorOps(Operation):
 
         circuit = self.app.window.circuit_dict[circuit_number]
         detector = Detector(circuit_number, detector_number, description)
+
+        # Set switch according to parameter
+        detector.detector_switch.set_active(switch_active)
 
         # Create a new stateful action for the detector switch
         switch_action_name = f"detector_toggle_{circuit_number}_{detector_number}"
@@ -189,6 +198,7 @@ class DetectorOps(Operation):
                         circuit_number: int,
                         detector_number: int,
                         description: str,
+                        switch_active: bool,
                         alarm_status: bool,
                         alarm_index: int | None,
                         enabled: bool,
@@ -198,6 +208,7 @@ class DetectorOps(Operation):
         self.create_detector(circuit_number,
                              detector_number,
                              description,
+                             switch_active,
                              alarm_status,
                              alarm_index,
                              enabled,
@@ -211,12 +222,13 @@ class DetectorOps(Operation):
         self.app.update_leds()
 
     def remove_detector(self, circuit_number: int, detector_number: int) -> tuple[
-        int, int, str, bool, int | None, bool, int | None, bool, int | None]:
+        int, int, str, bool, bool, int | None, bool, int | None, bool, int | None]:
         # Get the corresponding objects
         circuit = self.app.window.circuit_dict[circuit_number]
         detector = self.app.window.circuit_dict[circuit_number].detector_dict[detector_number]
         description = self.model.get_detector_description(circuit_number, detector_number)
-        alarm_status = self.model.get_detector_alarm_status(circuit_number, detector_number)
+        switch_active = detector.detector_switch.get_state()
+        alarm_status = (circuit_number, detector_number) in self.model.active_detector_list
         if alarm_status:
             alarm_index = self.model.active_detector_list.index((circuit_number, detector_number))
         else:
@@ -245,7 +257,7 @@ class DetectorOps(Operation):
         history_action_name = f"in_history_{circuit_number}_{detector_number}"
         self.app.detector_action_group.remove_action(history_action_name)
 
-        return circuit_number, detector_number, description, alarm_status, alarm_index, enabled, disabled_index, in_history, history_index
+        return circuit_number, detector_number, description, switch_active, alarm_status, alarm_index, enabled, disabled_index, in_history, history_index
 
     def edit(self, circuit_number: int, detector_number: int, description: str) -> None:
         """Change a specified detector's description if it differs from the previous one."""
@@ -274,80 +286,64 @@ class DetectorOps(Operation):
 
     def set_enabled(self, circuit_number: int, detector_number: int, enabled: bool) -> None:
         """Set the enabled status of a detector"""
-        previous_alarm_status, previous_alarm_index, previous_disabled_index = self.enable_detector_switch(circuit_number, detector_number,
+        previous_disabled_index = self.enable_detector_switch(circuit_number, detector_number,
                                                                                   enabled, None)
+
+        self.app.print_detector_state()
+        self.app.lcd.reset()
+        self.app.update_leds()
 
         self.app.clear_redo()
         self.app.append_undo(
             (self.undo_set_enabled,
-             (circuit_number, detector_number, not enabled, previous_disabled_index, previous_alarm_status, previous_alarm_index)))
+             (circuit_number, detector_number, not enabled, previous_disabled_index)))
 
     def undo_set_enabled(self,
                          circuit_number: int,
                          detector_number: int,
                          enabled: bool,
-                         disabled_index: int|None,
-                         alarm_status: bool,
-                         alarm_index: int | None) -> None:
-        previous_alarm_status, previous_alarm_index, previous_disabled_index = self.enable_detector_switch(circuit_number, detector_number,
+                         disabled_index: int|None) -> None:
+        previous_disabled_index = self.enable_detector_switch(circuit_number, detector_number,
                                                                                   enabled, disabled_index)
-
-        detector = self.app.window.circuit_dict[circuit_number].detector_dict[detector_number]
-        if alarm_status:
-            # Set alarm status before activating the switch to insert the detector at the correct index instead of appending
-            self.model.set_detector_alarm_status(circuit_number, detector_number, alarm_status, alarm_index)
-            detector.detector_switch.set_active(True)
 
         enable_action = self.app.detector_action_group.lookup_action(
             f"enable_detector_{circuit_number}_{detector_number}"
         )
         enable_action.set_state(GLib.Variant.new_boolean(not enabled))
 
+        self.app.print_detector_state()
+        self.app.lcd.reset()
+        self.app.update_leds()
+
         self.app.append_redo(
             (self.redo_set_enabled,
-             (circuit_number, detector_number, not enabled, previous_disabled_index, previous_alarm_status, previous_alarm_index)))
+             (circuit_number, detector_number, not enabled, previous_disabled_index)))
 
     def redo_set_enabled(self,
                          circuit_number: int,
                          detector_number: int,
                          enabled: bool,
-                         disabled_index: int | None,
-                         alarm_status: bool,
-                         alarm_index: int | None) -> None:
-        previous_alarm_status, previous_alarm_index, previous_disabled_index = self.enable_detector_switch(
+                         disabled_index: int | None) -> None:
+        previous_disabled_index = self.enable_detector_switch(
             circuit_number, detector_number, enabled, disabled_index)
-
-        detector = self.app.window.circuit_dict[circuit_number].detector_dict[detector_number]
-        if alarm_status:
-            # Set alarm status before activating the switch to insert the detector at the correct index instead of appending
-            self.model.set_detector_alarm_status(circuit_number, detector_number, alarm_status, alarm_index)
-            detector.detector_switch.set_active(True)
 
         enable_action = self.app.detector_action_group.lookup_action(
             f"enable_detector_{circuit_number}_{detector_number}"
         )
         enable_action.set_state(GLib.Variant.new_boolean(not enabled))
 
+        self.app.print_detector_state()
+        self.app.lcd.reset()
+        self.app.update_leds()
+
         self.app.append_undo((self.undo_set_enabled,
-                              (circuit_number, detector_number, not enabled, previous_disabled_index,
-                               previous_alarm_status, previous_alarm_index)))
+                              (circuit_number, detector_number, not enabled, previous_disabled_index)))
 
-    def enable_detector_switch(self, circuit_number: int, detector_number: int, enabled: bool, disabled_index: int|None) -> tuple[
-        bool, int | None, int | None]:
-        previous_alarm_status = self.model.get_detector_alarm_status(circuit_number, detector_number)
-        if previous_alarm_status:
-            alarm_index = self.model.active_detector_list.index((circuit_number, detector_number))
-        else:
-            alarm_index = None
-
+    def enable_detector_switch(self, circuit_number: int, detector_number: int, enabled: bool, disabled_index: int|None) -> int | None:
         if not self.model.get_detector_enabled(circuit_number, detector_number):
             previous_disabled_index = self.model.disabled_detector_list.index((circuit_number, detector_number))
         else:
             previous_disabled_index = None
-
-        detector = self.app.window.circuit_dict[circuit_number].detector_dict[detector_number]
-        if not enabled:
-            detector.detector_switch.set_active(False)
 
         detector_switch_action = self.app.detector_action_group.lookup_action(
             f"detector_toggle_{circuit_number}_{detector_number}")
@@ -355,11 +351,8 @@ class DetectorOps(Operation):
             detector_switch_action.set_enabled(enabled)
 
         self.model.set_detector_enabled(circuit_number, detector_number, enabled, disabled_index)
-        self.app.print_detector_state()
-        self.app.lcd.reset()
-        self.app.update_leds()
 
-        return previous_alarm_status, alarm_index, previous_disabled_index
+        return previous_disabled_index
 
     def clear_disabled(self) -> None:
         # Return if no detectors are disabled

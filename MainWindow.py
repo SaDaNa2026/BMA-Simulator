@@ -20,7 +20,7 @@ class MainWindow(Gtk.ApplicationWindow):
     application functionality and Consoles to print information."""
 
     def __init__(self, edit_action_group, hidden_action_group, detector_action_group, *args, **kwargs):
-        super().__init__(*args, **kwargs, maximized=True)
+        super().__init__(*args, **kwargs, maximized=False)
         self.set_title("BMA-Steuerung")
 
         # A dictionary to keep track of the circuits in this window.
