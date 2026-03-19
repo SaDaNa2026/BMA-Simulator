@@ -53,7 +53,7 @@ class DefineObjectWindow(ModalWindow):
     def validate_input(self, entry, max_length):
         """Changes the CSS class of the entry to error if the input contains non-digit characters"""
         text = entry.get_text()
-        if text.isdigit() and len(text) <= max_length:
+        if text.isdigit() and len(text) <= max_length and int(text) > 0:
             entry.remove_css_class("error")
         else:
             entry.add_css_class("error")
@@ -88,7 +88,7 @@ class DefineCircuitWindow(DefineObjectWindow):
         try:
             create_circuit_callback(circuit_number)
         except ValueError as e:
-            self.warning_label.set_markup(f"<span foreground='red'>{e}.</span>")
+            self.warning_label.set_markup(f"<span foreground='red'>{e}</span>")
             self.main_box.insert_child_after(self.warning_label, self.choose_number_box)
 
 

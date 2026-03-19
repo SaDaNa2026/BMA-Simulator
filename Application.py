@@ -22,8 +22,14 @@ from LEDController import LEDController
 # -----------------------------------------------CONSTANTS--------------------------------------------------------------
 # Set this to the application used to view HELP.md
 MARKDOWN_VIEWER: str = "okular"
-# Set this to the GPIO pin that the relay for the flashing light (Blitzleuchte) is connected to.
-# Setting it to None will disable all functionality regarding the flashing light.
+
+# Set this to the pin that the switch of the Freischaltelement (FSE) is connected to. None deactivates the functionality.
+FSE_PIN: int|None = 17
+# Specify if an internal pullup should be activated for the FSE switch.
+# True -> pullup activated, false -> pull-down activated, None -> floating state (if switch is externally biased)
+FSE_PULLUP: bool|None = True
+
+# Set this to the GPIO pin that the relay for the flashing light (Blitzleuchte) is connected to. None deactivates the functionality.
 FLASH_RELAY_PIN: int|None = 26
 
 
@@ -168,6 +174,12 @@ class App(Gtk.Application):
         self.led_fat.on("working")
         self.led_fbf.on("working")
 
+        # Set up polling of the FSE
+        if FSE_PIN is not None:
+            self.fse_button = gpiozero.Button(FSE_PIN, pull_up=FSE_PULLUP)
+            self.fse_button_last_state = False
+            GLib.timeout_add(500, self._poll_FSE)
+
         # Set up the relay for the flashing light
         if FLASH_RELAY_PIN is not None:
             self.flash_relay = gpiozero.OutputDevice(pin=FLASH_RELAY_PIN, active_high=False)
@@ -187,6 +199,18 @@ class App(Gtk.Application):
         self.led_fbf.shutdown()
         if FLASH_RELAY_PIN is not None:
             self.flash_relay.off()
+
+    def _poll_FSE(self):
+        if self.fse_button.is_active and not self.fse_button_last_state:
+            self.fse_button_last_state = True
+            self.model.activate_fse()
+            self.print_detector_state()
+            self.lcd.reset()
+            self.update_leds()
+        else:
+            self.fse_button_last_state = False
+
+        return True
 
     def append_undo(self, entry: tuple) -> None:
         """Append the given entry to the undo stack and enable the undo action"""
@@ -541,6 +565,9 @@ class App(Gtk.Application):
         """Clear all alarms"""
         self.is_reset = True
 
+        # Deactivate the FSE (has to happen first to avoid issues)
+        self.model.delete_fse()
+
         # Convert list to tuple to make it immutable for iteration
         active_detectors = tuple(self.model.get_active_detectors())
 
@@ -548,6 +575,7 @@ class App(Gtk.Application):
             detector = self.window.circuit_dict[detector_tuple[0]].detector_dict[detector_tuple[1]]
             detector.detector_switch.set_active(False)
 
+        self.print_detector_state()
         self.lcd.reset()
         self.update_leds()
 

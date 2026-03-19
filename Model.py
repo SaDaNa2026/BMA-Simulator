@@ -405,3 +405,16 @@ class BuildingModel:
 
     def get_beeper_enabled(self) -> bool:
         return self.beeper_enabled
+
+    def activate_fse(self):
+        """Adds (if necessary) and activates a virtual detector with number 0/0"""
+        if 0 not in self.circuit_dict:
+            self.circuit_dict[0] = Circuit()
+            self.circuit_dict[0].detector_dict[0] = Detector(description="Freischaltelement")
+
+        self.set_detector_alarm_status(0, 0, True)
+
+    def delete_fse(self):
+        """Remove the virtual detector with number 0/0"""
+        if 0 in self.circuit_dict:
+            self.delete_circuit(0)
