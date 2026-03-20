@@ -45,3 +45,13 @@ Weitere Informationen dazu sind unter https://labwc.github.io/labwc-config.5.htm
 In diesem Fall empfiehlt es sich auch, in /etc/xdg/labwc/environment die Umgebungsvariable 
 QT_WAYLAND_DISABLE_WINDOWDECORATION=0 zu setzen, da ansonsten für Qt-Anwendungen wie Okular 
 keine Kopfleiste mehr angezeigt wird.
+
+## Konstanten
+
+In Application.py werden unterhalb der Imports einige Konstanten definiert, mit denen die Anwendung 
+an die Umgebung angepasst werden kann. Verfügbar sind:
+
+- Der Standard-Dateipfad
+- Der Markdown-Viewer zur Anzeige der Hilfedatei (einzutragender Name entspricht dem in der Shell)
+- GPIO-Pin und Pullup-Konfiguration für das Freischaltelement, das FSE kann hier auch abgeschaltet werden
+- GPIO-Pin des Relais' für die Blitzleuchte, kann hier auch abgeschaltet werden

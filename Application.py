@@ -20,23 +20,26 @@ from LEDController import LEDController
 
 
 # -----------------------------------------------CONSTANTS--------------------------------------------------------------
-# Set this to the application used to view HELP.md
+# Set the default path that should show up when a file chooser dialog is opened
+DEFAULT_FILE_PATH = "/home/lfs-bma/BMA-Dateien"
+
+# Set the application used to view HELP.md
 MARKDOWN_VIEWER: str = "okular"
 
-# Set this to the pin that the switch of the Freischaltelement (FSE) is connected to. None deactivates the functionality.
+# Set the pin that the switch of the Freischaltelement (FSE) is connected to. None deactivates the functionality.
 FSE_PIN: int|None = 17
 # Specify if an internal pullup should be activated for the FSE switch.
 # True -> pullup activated, false -> pull-down activated, None -> floating state (if switch is externally biased)
 FSE_PULLUP: bool|None = True
 
-# Set this to the GPIO pin that the relay for the flashing light (Blitzleuchte) is connected to. None deactivates the functionality.
+# Set the GPIO pin that the relay for the flashing light (Blitzleuchte) is connected to. None deactivates the functionality.
 FLASH_RELAY_PIN: int|None = 26
 
 
 # ----------------------------------------------APPLICATION-------------------------------------------------------------
 class App(Gtk.Application):
     def __init__(self, **kwargs):
-        super().__init__(application_id="org.example.BMA-control", **kwargs)
+        super().__init__(application_id="de.lfs-bw.BMA-control", **kwargs)
         self.connect('activate', self.on_activate)
         self.connect('shutdown', self.on_shutdown)
 
@@ -44,7 +47,7 @@ class App(Gtk.Application):
         self.lcd = LCDController(self.model)
 
         # Create a placeholder to memorize opened files
-        self.last_file = Gio.File.new_for_path("/home/lfs-bma/git_test1")
+        self.last_file = Gio.File.new_for_path(DEFAULT_FILE_PATH)
 
         # Keep track if the reset button has been pressed. This is necessary to check if the alarm LED needs to light up
         # if there are detectors in the history. Resets when a new file is loaded
@@ -178,7 +181,7 @@ class App(Gtk.Application):
         if FSE_PIN is not None:
             self.fse_button = gpiozero.Button(FSE_PIN, pull_up=FSE_PULLUP)
             self.fse_button_last_state = False
-            GLib.timeout_add(500, self._poll_FSE)
+            GLib.timeout_add(500, self._poll_fse)
 
         # Set up the relay for the flashing light
         if FLASH_RELAY_PIN is not None:
@@ -200,7 +203,7 @@ class App(Gtk.Application):
         if FLASH_RELAY_PIN is not None:
             self.flash_relay.off()
 
-    def _poll_FSE(self):
+    def _poll_fse(self):
         if self.fse_button.is_active and not self.fse_button_last_state:
             self.fse_button_last_state = True
             self.model.activate_fse()
@@ -314,6 +317,16 @@ class App(Gtk.Application):
         else:
             print("Edit mode inactive")
 
+    def get_last_dir(self):
+        """Check if last file is already a directory, if not get parent directory"""
+        file_type = self.last_file.query_file_type(Gio.FileQueryInfoFlags.NONE, None)
+        if file_type == Gio.FileType.DIRECTORY:
+            last_dir = self.last_file
+        else:
+            last_dir = self.last_file.get_parent()
+
+        return last_dir
+
     def on_save_clicked(self, action, *args):
         """Show a dialog to enter a commit message."""
         action_name = action.get_name()
@@ -326,7 +339,8 @@ class App(Gtk.Application):
         """Create a FileSaveDialog to save the building configuration."""
         file_path = self.last_file.get_path().split(".")[0]
         last_name = file_path.split("/")[-1]
-        last_dir = self.last_file.get_parent()
+        last_dir = self.get_last_dir()
+
         self.window.show_save_dialog(self.on_file_save_response, message, file_type, last_dir, last_name)
 
     def on_file_save_response(self, dialog, result, message: str, file_type: str):
@@ -357,7 +371,8 @@ class App(Gtk.Application):
 
     def on_open_clicked(self, *args):
         """Creates a FileOpenDialog."""
-        last_dir = self.last_file.get_parent()
+        last_dir = self.get_last_dir()
+
         self.window.show_open_dialog(self.on_file_open_response, last_dir)
 
     def on_file_open_response(self, dialog, result):
