@@ -170,7 +170,7 @@ seit dem letzten Laden rückgängig gemacht werden können.
 ## Einstellungen
 
 Die Anwendungseinstellungen können über das Hauptmenü oben links, unter dem sich auch die Hilfe befindet, geöffnet werden. 
-Alternativ funktioniert auch die Tastenkombination Strg+P. Folgende Einstellungen sind verfügbar:
+Alternativ funktioniert auch die Tastenkombination Strg+P oder Strg+Komma. Folgende Einstellungen sind verfügbar:
 
 - Zeit für die Historie: Bestimmt, welche Uhrzeit in der Historie angezeigt werden soll. 
     Diese Einstellung wird im Szenario gespeichert.
@@ -198,7 +198,7 @@ Alle Tastenkürzel sind neben dem entsprechenden Button mit der gleichen Funktio
 Hier eine Übersicht aller Tastenkürzel:
 
 - F1: Öffnet diese Hilfe-Datei
-- Strg+P: Einstellungs-Fenster öffnen
+- Strg+P / Strg+Komma: Einstellungs-Fenster öffnen
 - Strg+G: Gebäudekonfiguration speichern
 - Strg+S: Szenario speichern
 - Strg+O: Datei öffnen (Gebäudekonfiguration / Szenario)

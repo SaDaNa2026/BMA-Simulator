@@ -114,7 +114,7 @@ class App(Gtk.Application):
         # Add shortcuts to the actions
         self.accels_list = [
             ("app.help", ["F1"]),
-            ("app.settings", ["<Ctrl>P"]),
+            ("app.settings", ["<Ctrl>P", "<Ctrl>comma"]),
             ("app.save_building", ["<Ctrl>G"]),
             ("app.save_scenario", ["<Ctrl>S"]),
             ("app.open", ["<Ctrl>O"]),
