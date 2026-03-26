@@ -181,6 +181,10 @@ Alternativ funktioniert auch die Tastenkombination Strg+P. Folgende Einstellunge
     Diese Einstellung bietet die Möglichkeit, den Summer für die gesamte Dauer der aktuellen Sitzung abzuschalten. 
     Das ist nützlich, wenn Szenarien konfiguriert werden. 
     Die Einstellung wird bei jedem Programmstart auf "EIN" zurückgesetzt.
+- Blitzleuchte bei Alarm aktivieren: Die Blitzleuchte ist standardmäßig eingeschaltet, solange ein Alarm anliegt. 
+    Das Zurückstellen der BMA schaltet sie wieder aus.  
+    Über diese Einstellung kann die Blitzleuchte komplett deaktiviert werden. 
+    Bei jedem Programmstart wird sie auf "EIN" zurückgesetzt.
 
 ## Schnellere Bedienung
 
