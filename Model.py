@@ -68,6 +68,7 @@ class BuildingModel:
     history_time_absolute: tuple = field(default=(dt.datetime.now().hour, dt.datetime.now().minute))
     beeper_off: bool = field(default=False)
     beeper_enabled: bool = field(default=True)
+    flash_enabled: bool = field(default=True)
 
     def __post_init__(self):
         if not isinstance(self.building_description, str):
@@ -405,6 +406,14 @@ class BuildingModel:
 
     def get_beeper_enabled(self) -> bool:
         return self.beeper_enabled
+
+    def set_flash_enabled(self, enabled: bool):
+        if not isinstance(enabled, bool):
+            raise TypeError("enabled must be bool")
+        self.flash_enabled = enabled
+
+    def get_flash_enabled(self) -> bool:
+        return self.flash_enabled
 
     def activate_fse(self):
         """Adds (if necessary) and activates a virtual detector with number 0/0"""

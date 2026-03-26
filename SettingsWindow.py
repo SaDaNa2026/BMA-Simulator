@@ -124,9 +124,13 @@ class SettingsWindow(ModalWindow):
         self.beeper_enabled_action = Gio.SimpleAction.new_stateful("beeper_enabled",
                                                                    None,
                                                                    GLib.Variant("b", self.model.get_beeper_enabled()))
+        self.flash_enabled_action = Gio.SimpleAction.new_stateful("flash_enabled",
+                                                                  None,
+                                                                  GLib.Variant("b", self.model.get_flash_enabled()))
         self.action_group = Gio.SimpleActionGroup.new()
         self.action_group.insert(self.history_time_mode_action)
         self.action_group.insert(self.beeper_enabled_action)
+        self.action_group.insert(self.flash_enabled_action)
         self.insert_action_group("settings", self.action_group)
 
         self.main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
@@ -145,6 +149,10 @@ class SettingsWindow(ModalWindow):
         # Switch to control beeper_enabled
         self.beeper_enabled_frame = SwitchFrame("settings.beeper_enabled", "Summer bei Alarm aktivieren")
         self.list_box.append(self.beeper_enabled_frame)
+
+        # Switch to control flash_enabled
+        self.flash_enabled_frame = SwitchFrame("settings.flash_enabled", "Blitzleuchte bei Alarm aktivieren")
+        self.list_box.append(self.flash_enabled_frame)
 
         # Box with buttons to cancel, apply or confirm
         self.button_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,
@@ -217,6 +225,10 @@ class SettingsWindow(ModalWindow):
             # Apply beeper settings
             beeper_enabled_action = self.action_group.lookup_action("beeper_enabled")
             self.model.set_beeper_enabled(beeper_enabled_action.get_state().get_boolean())
+
+            # Apply flash settings
+            flash_enabled_action = self.action_group.lookup_action("flash_enabled")
+            self.model.set_flash_enabled(flash_enabled_action.get_state().get_boolean())
 
             self.refresh_lcd()
             self.print_detector_state()

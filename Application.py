@@ -736,7 +736,7 @@ class App(Gtk.Application):
             else:
                 self.led_fat.start_blink("alarm")
 
-            if FLASH_RELAY_PIN is not None:
+            if FLASH_RELAY_PIN is not None and self.model.get_flash_enabled():
                 self.flash_relay.on()
 
             if not (self.model.get_ue_off() or self.ue_off_switch):
