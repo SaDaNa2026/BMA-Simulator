@@ -44,7 +44,6 @@ class App(Gtk.Application):
         self.connect('shutdown', self.on_shutdown)
 
         self.model = BuildingModel()
-        self.lcd = LCDController(self.model)
 
         # Create a placeholder to memorize opened files
         self.last_file = Gio.File.new_for_path(DEFAULT_FILE_PATH)
@@ -134,48 +133,62 @@ class App(Gtk.Application):
         self.ue_off_switch: bool = False
         self.fire_controls_off_switch: bool = False
 
-        # Set up the port expander on the FAT
-        self.fat_led_dict = {"previous_alarm": GPB4,
-                             "next_alarm": GPB0,
-                             "view_level": GPB6,
-                             "beeper_off": GPB2,
-                             "beeper": GPA4,
-                             "working": GPA3,
-                             "alarm": GPA2,
-                             "error": GPA1,
-                             "turn_off": GPA0}
+        # Instantiate the main window, starting the GUI
+        self.window = MainWindow(edit_action_group=self.edit_action_group,
+                                 hidden_action_group=self.hidden_action_group,
+                                 detector_action_group=self.detector_action_group)
 
-        self.mcp_fat = MCPController(0x27,
-                                     [(GPB1, self.on_next_message_clicked, None, False, False),
-                                      (GPB3, self.on_beeper_off_clicked, self.on_self_test_pressed, False, False),
-                                      (GPB5, self.on_previous_message_clicked, None, False, False),
-                                      (GPB7, self.on_view_level_clicked, self.on_history_pressed, False, False)],
-                                     self.fat_led_dict)
+        # Try to connect to the port expanders
+        try:
+            # Set up LCD
+            self.lcd = LCDController(self.model)
 
-        self.led_fat = LEDController(self.mcp_fat, self.fat_led_dict)
+            # Set up the port expander on the FAT
+            self.fat_led_dict = {"previous_alarm": GPB4,
+                                 "next_alarm": GPB0,
+                                 "view_level": GPB6,
+                                 "beeper_off": GPB2,
+                                 "beeper": GPA4,
+                                 "working": GPA3,
+                                 "alarm": GPA2,
+                                 "error": GPA1,
+                                 "turn_off": GPA0}
 
-        # Set up the port expander on the FBF
-        self.fbf_led_dict = {"working": GPA0,
-                             "extinguisher_triggered": GPA1,
-                             "acoustic_signals_off": GPA2,
-                             "ue_off": GPA3,
-                             "ue_triggered": GPB5,
-                             "fire_controls_off": GPB4,
-                             "alarm": GPB3}
+            self.mcp_fat = MCPController(0x27,
+                                         [(GPB1, self.on_next_message_clicked, None, False, False),
+                                          (GPB3, self.on_beeper_off_clicked, self.on_self_test_pressed, False, False),
+                                          (GPB5, self.on_previous_message_clicked, None, False, False),
+                                          (GPB7, self.on_view_level_clicked, self.on_history_pressed, False, False)],
+                                         self.fat_led_dict)
 
-        self.mcp_fbf = MCPController(0x26,
-                                     [(GPA4, self.on_acoustic_signals_off_toggled, None, True, False),
-                                      (GPA5, self.on_ue_off_toggled, None, True, False),
-                                      (GPB2, self.on_fire_controls_off_toggled, None, True, True),
-                                      (GPB1, self.on_clear_alarms_clicked, None, False, False),
-                                      (GPB0, self.on_UE_test_clicked, None, False, False)],
-                                     self.fbf_led_dict)
+            self.led_fat = LEDController(self.mcp_fat, self.fat_led_dict)
 
-        self.led_fbf = LEDController(self.mcp_fbf, self.fbf_led_dict)
+            # Set up the port expander on the FBF
+            self.fbf_led_dict = {"working": GPA0,
+                                 "extinguisher_triggered": GPA1,
+                                 "acoustic_signals_off": GPA2,
+                                 "ue_off": GPA3,
+                                 "ue_triggered": GPB5,
+                                 "fire_controls_off": GPB4,
+                                 "alarm": GPB3}
 
-        # Turn on the green LEDs
-        self.led_fat.on("working")
-        self.led_fbf.on("working")
+            self.mcp_fbf = MCPController(0x26,
+                                         [(GPA4, self.on_acoustic_signals_off_toggled, None, True, False),
+                                          (GPA5, self.on_ue_off_toggled, None, True, False),
+                                          (GPB2, self.on_fire_controls_off_toggled, None, True, True),
+                                          (GPB1, self.on_clear_alarms_clicked, None, False, False),
+                                          (GPB0, self.on_UE_test_clicked, None, False, False)],
+                                         self.fbf_led_dict)
+
+            self.led_fbf = LEDController(self.mcp_fbf, self.fbf_led_dict)
+
+            # Turn on the green LEDs
+            self.led_fat.on("working")
+            self.led_fbf.on("working")
+
+        except OSError as e:
+            self.window.show_error_alert(str(e), "Stellen Sie sicher, dass alle Port Expander korrekt verbunden sind.\n"
+                                                 "Die App wird im aktuellen Zustand nicht korrekt funktionieren")
 
         # Set up polling of the FSE
         if FSE_PIN is not None:
@@ -186,10 +199,6 @@ class App(Gtk.Application):
         # Set up the relay for the flashing light
         if FLASH_RELAY_PIN is not None:
             self.flash_relay = gpiozero.OutputDevice(pin=FLASH_RELAY_PIN, active_high=False)
-
-        self.window = MainWindow(edit_action_group=self.edit_action_group,
-                                 hidden_action_group=self.hidden_action_group,
-                                 detector_action_group=self.detector_action_group)
 
     def on_activate(self, app):
         self.window.set_application(app)
