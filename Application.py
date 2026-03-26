@@ -740,13 +740,17 @@ class App(Gtk.Application):
                 self.led_fat.on("alarm")
                 if (not self.model.get_beeper_off()) and self.model.get_beeper_enabled():
                     self.led_fat.start_blink("beeper")
+                    self.led_fat.start_blink("beeper_off")
                 else:
                     self.led_fat.stop_blink("beeper")
+                    self.led_fat.stop_blink("beeper_off")
             else:
                 self.led_fat.start_blink("alarm")
 
             if FLASH_RELAY_PIN is not None and self.model.get_flash_enabled():
                 self.flash_relay.on()
+            else:
+                self.flash_relay.off()
 
             if not (self.model.get_ue_off() or self.ue_off_switch):
                 self.led_fbf.on("ue_triggered")
@@ -760,6 +764,7 @@ class App(Gtk.Application):
             self.led_fat.off("alarm")
             self.led_fat.stop_blink("alarm")
             self.led_fat.stop_blink("beeper")
+            self.led_fat.stop_blink("beeper_off")
             self.led_fbf.off("alarm")
             if FLASH_RELAY_PIN is not None:
                 self.flash_relay.off()
