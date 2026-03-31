@@ -9,10 +9,10 @@ class Detector(Gtk.Box):
     """Contains a switch and a label with the number of the detector."""
     def __init__(self, circuit_number, detector_number, description, *args, **kwargs):
         super().__init__(*args, orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
-
+        self.number = detector_number
         self.detector_switch = Gtk.Switch()
-        self.label_text = f"{detector_number}: {description}"
-        self.detector_label = Gtk.Label(label=self.label_text)
+        label_text = f"{detector_number}: {description}"
+        self.detector_label = Gtk.Label(label=label_text)
 
         self.append(self.detector_switch)
         self.append(self.detector_label)
@@ -29,9 +29,9 @@ class Detector(Gtk.Box):
         self.context_menu_popover.set_parent(self)
         self.context_menu_popover.set_has_arrow(False)
 
-    def set_highlight(self, highlight: bool) -> None:
+    def set_highlight(self, highlight: bool, label_text: str) -> None:
         """Highlight the detector by changing the label color"""
         if highlight:
-            self.detector_label.set_markup(f"<span foreground='red'>{self.label_text}</span>")
+            self.detector_label.set_markup(f"<span foreground='red'>{self.number}: {label_text}</span>")
         else:
-            self.detector_label.set_markup(f"<span foreground='black'>{self.label_text}</span>")
+            self.detector_label.set_markup(f"<span foreground='black'>{self.number}: {label_text}</span>")
