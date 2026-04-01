@@ -285,7 +285,7 @@ class DetectorOps(Operation):
     def _set_description(self, circuit_number: int, detector_number: int, description: str) -> None:
         self.model.set_detector_description(circuit_number, detector_number, description)
         detector = self.app.window.circuit_dict[circuit_number].detector_dict[detector_number]
-        detector.detector_label.set_label(f"{detector_number}: {description}")
+        detector.set_highlight(self.model.get_detector_in_history(circuit_number, detector_number), description)
         self.app.print_detector_state()
         self.app.lcd.refresh()
 
