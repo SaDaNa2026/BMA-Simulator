@@ -1,4 +1,4 @@
-import smbus3
+import smbus
 from mcp23017 import *
 import gi
 gi.require_version('GLib', '2.0')
@@ -12,7 +12,7 @@ class MCPController(MCP23017):
             - button_list: [button pin, callback function, callback function for long press (set to None if maintained_action or to disable it), maintained_action, normally_closed]
             - led_dict: {led_name : led_pin}"""
 
-        super().__init__(address, smbus3.SMBus(1))
+        super().__init__(address, smbus.SMBus(1))
         self.button_list = button_list
 
         # Dictionary to keep track of the button state

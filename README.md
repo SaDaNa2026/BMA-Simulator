@@ -29,7 +29,7 @@ Falls ein Autostart der App erwünscht ist, kann der Desktopeintrag zusätzlich 
 
 Da sich alle Python-Pakete und Skripte in einer virtuellen Umgebung befinden, muss diese beim Programmstart erst 
 aktiviert werden. Daher ist ein Startskript nötig, das diese Aufgabe übernimmt. Ein entsprechendes Beispiel liegt bei, 
-es muss nur der Pfad zum Anwendungsordner angepasst werden.
+es muss nur der Pfad zum Anwendungsordner angepasst werden. Das Skript kann dann z.B. in /usr/local/bin abgelegt werden.
 
 Für den Fall, dass alle Python-Pakete systemweit installiert sind (ohne virtuelle Umgebung), 
 entfällt die Notwendigkeit des Startskripts. Man verliert dann aber natürlich auch alle Vorteile 

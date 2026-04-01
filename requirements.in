@@ -1,7 +1,8 @@
 PyGObject
 RPLCD
-smbus3
+smbus
 gpiozero
+lgpio
 mcp23017
 gitpython
 

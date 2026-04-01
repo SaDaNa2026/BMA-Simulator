@@ -5,5 +5,5 @@
 
 cd /foo/bar/BMA-Steuerung
 source .venv/bin/activate
-python Main.py
+python .
 cd ./
