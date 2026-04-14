@@ -39,7 +39,7 @@ FLASH_RELAY_PIN: int|None = 26
 # ----------------------------------------------APPLICATION-------------------------------------------------------------
 class App(Gtk.Application):
     def __init__(self, **kwargs):
-        super().__init__(application_id="org.example.BMA-Simulator", **kwargs)
+        super().__init__(application_id="com.github.SaDaNa2026.BMA_Simulator", **kwargs)
         self.connect('activate', self.on_activate)
         self.connect('shutdown', self.on_shutdown)
 
