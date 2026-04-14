@@ -21,7 +21,7 @@ class MainWindow(Gtk.ApplicationWindow):
 
     def __init__(self, edit_action_group, hidden_action_group, detector_action_group, *args, **kwargs):
         super().__init__(*args, **kwargs, maximized=True)
-        self.set_title("BMA-Steuerung")
+        self.set_title("BMA-Simulator")
 
         # A dictionary to keep track of the circuits in this window.
         self.circuit_dict: dict = {}
