@@ -4,9 +4,9 @@
 # and icon with the path to the icon.
 
 Type=Application
-Name=BMA-Control
-Name[de]=BMA-Steuerung
-Icon=/foo/bar/BMA-Steuerung/icon.png
-Comment=Application to control the BMA trainer
-Comment[de]=Anwendung zur Steuerung der Übungs-BMA
+Name=BMA-Simulator
+Name[de]=BMA-Simulator
+Icon=/foo/bar/BMA-Simulator/icon.png
+Comment=Application to control the BMA simulator
+Comment[de]=Anwendung zur Steuerung des BMA-Simulators
 Exec=/foo/bar/StartScriptExample.sh
