@@ -52,7 +52,8 @@ keine Kopfleiste mehr angezeigt wird.
 In Application.py werden unterhalb der Imports einige Konstanten definiert, mit denen die Anwendung 
 an die Umgebung angepasst werden kann. Verfügbar sind:
 
-- Der Standard-Dateipfad
+- Der Standard-Dateipfad für das Öffnen und Speichern von Dateien. Der Pfad sollte existieren, 
+    andernfalls funktioniert die Anwendung aber trotzdem
 - Der Markdown-Viewer zur Anzeige der Hilfedatei (einzutragender Name entspricht dem in der Shell)
 - GPIO-Pin und Pullup-Konfiguration für das Freischaltelement, das FSE kann hier auch abgeschaltet werden
 - GPIO-Pin des Relais' für die Blitzleuchte, kann hier auch abgeschaltet werden
