@@ -1,10 +1,11 @@
 # Hardware
 
 Die BMA-Steuerung ist dafür ausgelegt, auf einem Raspberry Pi ausgeführt zu werden. 
-FAT und FBF werden über 5V, 3.3V und GND mit Strom versorgt und per I2C über die serielle Schnittstelle angesteuert. 
+FAT und FBF werden durch den Raspberry Pi über 5V, 3.3V und GND mit Strom versorgt 
+und per I2C über die serielle Schnittstelle angesteuert. 
 Die Platinen können anhand der beiliegenden KiCAD-Dateien hergestellt werden. 
-Zusatzmodule wie eine Blitzleuchte können nach Belieben hinzugefügt und in die Steuerung eingebunden 
-oder deaktiviert werden.
+Zusatzmodule wie eine Blitzleuchte oder ein Freischaltelement können nach Belieben hinzugefügt 
+und in die Steuerung eingebunden oder deaktiviert werden.
 
 # Software
 
@@ -16,7 +17,7 @@ definierten Abhängigkeiten installiert sein.
 Zusätzlich ist Okular notwendig, um die Hilfedatei anzeigen zu können. Dabei muss okular-extra-backends installiert werden, 
 um Markdown-Dateien anzeigen zu können. Natürlich kann auch ein anderer Markdown-Viewer verwendet werden, 
 wenn in Application.py die Konstante MARKDOWN_VIEWER entsprechend angepasst wird.  
-Falls die Hilfedatei nach PDF konvertiert wird, bieten sich natürlich noch mehr Möglichkeiten. 
+Falls die Hilfedatei nach PDF konvertiert wird, bieten sich noch mehr Möglichkeiten für die Anzeige. 
 Markdown wurde lediglich aufgrund der besseren Integration in das Versionskontrollsystem ausgewählt.
 
 ## Desktopeintrag

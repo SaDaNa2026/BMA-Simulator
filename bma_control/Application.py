@@ -26,13 +26,13 @@ DEFAULT_FILE_PATH = "/home/lfs-bma/BMA-Dateien"
 # Set the application used to view HELP.md
 MARKDOWN_VIEWER: str = "okular"
 
-# Set the pin that the switch of the Freischaltelement (FSE) is connected to. None deactivates the functionality.
+# Set the pin that the switch of the Freischaltelement (FSE) is connected to. None deactivates the functionality
 FSE_PIN: int|None = 17
 # Specify if an internal pullup should be activated for the FSE switch.
 # True -> pullup activated, false -> pull-down activated, None -> floating state (if switch is externally biased)
 FSE_PULLUP: bool|None = True
 
-# Set the GPIO pin that the relay for the flashing light (Blitzleuchte) is connected to. None deactivates the functionality.
+# Set the GPIO pin that the relay for the flashing light (Blitzleuchte) is connected to. None deactivates the functionality
 FLASH_RELAY_PIN: int|None = 26
 
 
@@ -188,7 +188,7 @@ class App(Gtk.Application):
 
         except OSError as e:
             self.window.show_error_alert(str(e), "Stellen Sie sicher, dass alle Port Expander korrekt verbunden sind.\n"
-                                                 "Die App wird im aktuellen Zustand nicht korrekt funktionieren")
+                                                 "Die App wird im aktuellen Zustand nicht korrekt funktionieren.")
 
         # Set up polling of the FSE
         if FSE_PIN is not None:

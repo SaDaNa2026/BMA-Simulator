@@ -1,9 +1,11 @@
 #!/usr/bin/bash
 
 # This is an example for a script that activates the virtual environment and launches the app.
-# Replace the example directory with the correct one before using this script.
+# Replace the project directory with the one you use.
 
-cd /foo/bar/BMA-Steuerung
+project_directory="/foo/bar/BMA-Steuerung"
+
+cd  $project_directory || (echo "Starting bma_control failed: Unable to open specified project directory $project_directory"; exit)
 source .venv/bin/activate
-python .
-cd ./
+python ./bma_control
+cd ~ || exit
