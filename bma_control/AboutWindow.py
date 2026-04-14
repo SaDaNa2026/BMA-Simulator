@@ -17,6 +17,5 @@ class AboutWindow(ModalWindow):
 
         self.info_label = Gtk.Label(label=f"Diese App dient zur Steuerung der Übungs-BMA.\n"
                                           f"Für weitere Informationen öffnen Sie die Hilfedatei (F1 drücken). \n\n"
-                                          f"Entwickler: Samuel Namyslo  (Samuel.Namyslo@fws.bwl.de)\n"
-                                          f"Support ab 01.09.2026:  BFD@fws.bwl.de")
+                                          f"Entwickler-Email: sadana2026@tutamail.com")
         self.main_box.append(self.info_label)
