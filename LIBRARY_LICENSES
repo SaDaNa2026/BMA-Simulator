@@ -1,0 +1,9 @@
+This application imports the following libraries under the licenses specified in SPDX license identifier format:
+
+- PyGObject: LGPL-2.1-or-later
+- RPLCD: MIT
+- smbus: LGPL-2.1-only
+- gpiozero: BSD-3-Clause
+- lgpio: Unlicense
+- mcp23017: MIT
+- GitPython: BSD-3-Clause
