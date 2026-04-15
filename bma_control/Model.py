@@ -5,7 +5,7 @@
 # SOFTWARE.
 
 import datetime as dt
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, InitVar
 from typing import Dict, List
 
 def sort_dict_by_key(input_dict: dict) -> dict:
@@ -75,6 +75,7 @@ class BuildingModel:
     beeper_off: bool = field(default=False)
     beeper_enabled: bool = field(default=True)
     flash_enabled: bool = field(default=True)
+    permanent_detectors: list[tuple] = field(default_factory=list)
 
     def __post_init__(self):
         if not isinstance(self.building_description, str):
@@ -91,6 +92,25 @@ class BuildingModel:
             raise ValueError("history_time_mode must be automatic upon initialization")
         if not isinstance(self.history_time_offset, int):
             raise TypeError("history_time_offset must be int")
+        if not isinstance(self.permanent_detectors, list):
+            raise TypeError("permanent_detectors must be a list")
+
+        self._add_permanent_detectors()
+
+    def _add_permanent_detectors(self):
+        for detector_tuple in self.permanent_detectors:
+            if not isinstance(detector_tuple, tuple):
+                raise TypeError("permanent_detectors must only contain tuples")
+            if len(detector_tuple) < 2:
+                raise ValueError("len(detector_tuple) in permanent_detectors must be at least 2")
+
+            circuit_number = detector_tuple[0]
+            detector_number = detector_tuple[1]
+            description = detector_tuple[2]
+            if circuit_number not in self.circuit_dict:
+                self.add_circuit(circuit_number)
+            if detector_number not in self.circuit_dict[circuit_number].detector_dict:
+                self.add_detector(circuit_number, detector_number, description)
 
     def clear_data(self):
         """Resets to init values."""
@@ -104,6 +124,7 @@ class BuildingModel:
         self.ue_off = False
         self.fire_controls_off = False
         self.beeper_off = False
+        self._add_permanent_detectors()
 
     def set_building_description(self, description: str) -> None:
         if not isinstance(description, str):

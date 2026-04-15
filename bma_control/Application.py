@@ -23,6 +23,7 @@ from LCDController import LCDController
 from MCPController import MCPController
 from mcp23017 import *
 from LEDController import LEDController
+from PhysicalDetector import PhysicalDetector
 
 
 # -----------------------------------------------CONSTANTS--------------------------------------------------------------
@@ -38,6 +39,12 @@ FSE_PIN: int|None = 17
 # True -> pullup activated, false -> pull-down activated, None -> floating state (if switch is externally biased)
 FSE_PULLUP: bool|None = True
 
+# Define physical detectors that are connected to the Raspberry Pi's GPIO pins directly. They will not be visible
+# in the GUI but represented in the model; so the user will be unable to add detectors with the same number as
+# physical ones defined here.
+# Format: ((GPIO_pin: int, pullup: bool, (circuit_number: int, detector_number: int, detector_description: str)))
+PHYSICAL_DETECTORS: tuple[tuple] = ((22, True, (1, 1, "Handmelder FIZ")),)
+
 # Set the GPIO pin that the relay for the flashing light (Blitzleuchte) is connected to. None deactivates the functionality
 FLASH_RELAY_PIN: int|None = 26
 
@@ -49,7 +56,8 @@ class App(Gtk.Application):
         self.connect('activate', self.on_activate)
         self.connect('shutdown', self.on_shutdown)
 
-        self.model = BuildingModel()
+        permanent_detectors = [detector[2] for detector in PHYSICAL_DETECTORS]
+        self.model = BuildingModel(permanent_detectors=permanent_detectors)
 
         # Create a placeholder to memorize opened files
         self.last_file = Gio.File.new_for_path(DEFAULT_FILE_PATH)
@@ -146,65 +154,82 @@ class App(Gtk.Application):
 
         # Try to connect to the port expanders
         try:
-            # Set up LCD
-            self.lcd = LCDController(self.model)
-
-            # Set up the port expander on the FAT
-            self.fat_led_dict = {"previous_alarm": GPB4,
-                                 "next_alarm": GPB0,
-                                 "view_level": GPB6,
-                                 "beeper_off": GPB2,
-                                 "beeper": GPA4,
-                                 "working": GPA3,
-                                 "alarm": GPA2,
-                                 "error": GPA1,
-                                 "turn_off": GPA0}
-
-            self.mcp_fat = MCPController(0x27,
-                                         [(GPB1, self.on_next_message_clicked, None, False, False),
-                                          (GPB3, self.on_beeper_off_clicked, self.on_self_test_pressed, False, False),
-                                          (GPB5, self.on_previous_message_clicked, None, False, False),
-                                          (GPB7, self.on_view_level_clicked, self.on_history_pressed, False, False)],
-                                         self.fat_led_dict)
-
-            self.led_fat = LEDController(self.mcp_fat, self.fat_led_dict)
-
-            # Set up the port expander on the FBF
-            self.fbf_led_dict = {"working": GPA0,
-                                 "extinguisher_triggered": GPA1,
-                                 "acoustic_signals_off": GPA2,
-                                 "ue_off": GPA3,
-                                 "ue_triggered": GPB5,
-                                 "fire_controls_off": GPB4,
-                                 "alarm": GPB3}
-
-            self.mcp_fbf = MCPController(0x26,
-                                         [(GPA4, self.on_acoustic_signals_off_toggled, None, True, False),
-                                          (GPA5, self.on_ue_off_toggled, None, True, False),
-                                          (GPB2, self.on_fire_controls_off_toggled, None, True, True),
-                                          (GPB1, self.on_clear_alarms_clicked, None, False, False),
-                                          (GPB0, self.on_UE_test_clicked, None, False, False)],
-                                         self.fbf_led_dict)
-
-            self.led_fbf = LEDController(self.mcp_fbf, self.fbf_led_dict)
-
-            # Turn on the green LEDs
-            self.led_fat.on("working")
-            self.led_fbf.on("working")
+            self._init_i2c()
 
         except OSError as e:
-            self.window.show_error_alert(str(e), "Stellen Sie sicher, dass alle Port Expander korrekt verbunden sind.\n"
-                                                 "Die App wird im aktuellen Zustand nicht korrekt funktionieren.")
+            self.window.show_error_alert(str(e), "Stellen Sie sicher, dass die Platinen richtig angeschlossen\n"
+                                                 "und auf den Platinen alle Port Expander korrekt verbunden sind.\n\n"
+                                                 "Die App wird im aktuellen Zustand nicht erwartungsgemäß funktionieren.")
 
         # Set up polling of the FSE
         if FSE_PIN is not None:
             self.fse_button = gpiozero.Button(FSE_PIN, pull_up=FSE_PULLUP)
             self.fse_button_last_state = False
-            GLib.timeout_add(500, self._poll_fse)
+            GLib.timeout_add_seconds(1, self._poll_fse)
 
         # Set up the relay for the flashing light
         if FLASH_RELAY_PIN is not None:
             self.flash_relay = gpiozero.OutputDevice(pin=FLASH_RELAY_PIN, active_high=False)
+
+        # Set up physical detectors
+        self.physical_detector_list = []
+        for detector_tuple in PHYSICAL_DETECTORS:
+            gpio_pin = detector_tuple[0]
+            pull_up = detector_tuple[1]
+            circuit_number = detector_tuple[2][0]
+            detector_number = detector_tuple[2][1]
+            detector = PhysicalDetector(gpio_pin, pull_up, circuit_number, detector_number)
+            self.physical_detector_list.append(detector)
+
+        if len(self.physical_detector_list) > 0:
+            GLib.timeout_add_seconds(1, self._poll_physical_detectors)
+
+    def _init_i2c(self):
+        # Set up LCD
+        self.lcd = LCDController(self.model)
+
+        # Set up the port expander on the FAT
+        self.fat_led_dict = {"previous_alarm": GPB4,
+                             "next_alarm": GPB0,
+                             "view_level": GPB6,
+                             "beeper_off": GPB2,
+                             "beeper": GPA4,
+                             "working": GPA3,
+                             "alarm": GPA2,
+                             "error": GPA1,
+                             "turn_off": GPA0}
+
+        self.mcp_fat = MCPController(0x27,
+                                     [(GPB1, self.on_next_message_clicked, None, False, False),
+                                      (GPB3, self.on_beeper_off_clicked, self.on_self_test_pressed, False, False),
+                                      (GPB5, self.on_previous_message_clicked, None, False, False),
+                                      (GPB7, self.on_view_level_clicked, self.on_history_pressed, False, False)],
+                                     self.fat_led_dict)
+
+        self.led_fat = LEDController(self.mcp_fat, self.fat_led_dict)
+
+        # Set up the port expander on the FBF
+        self.fbf_led_dict = {"working": GPA0,
+                             "extinguisher_triggered": GPA1,
+                             "acoustic_signals_off": GPA2,
+                             "ue_off": GPA3,
+                             "ue_triggered": GPB5,
+                             "fire_controls_off": GPB4,
+                             "alarm": GPB3}
+
+        self.mcp_fbf = MCPController(0x26,
+                                     [(GPA4, self.on_acoustic_signals_off_toggled, None, True, False),
+                                      (GPA5, self.on_ue_off_toggled, None, True, False),
+                                      (GPB2, self.on_fire_controls_off_toggled, None, True, True),
+                                      (GPB1, self.on_clear_alarms_clicked, None, False, False),
+                                      (GPB0, self.on_UE_test_clicked, None, False, False)],
+                                     self.fbf_led_dict)
+
+        self.led_fbf = LEDController(self.mcp_fbf, self.fbf_led_dict)
+
+        # Turn on the green LEDs
+        self.led_fat.on("working")
+        self.led_fbf.on("working")
 
     def on_activate(self, app):
         self.window.set_application(app)
@@ -219,14 +244,31 @@ class App(Gtk.Application):
             self.flash_relay.off()
 
     def _poll_fse(self):
-        if self.fse_button.is_active and not self.fse_button_last_state:
-            self.fse_button_last_state = True
-            self.model.activate_fse()
-            self.print_detector_state()
-            self.lcd.reset()
-            self.update_leds()
+        if self.fse_button.is_active:
+            if not self.fse_button_last_state:
+                self.fse_button_last_state = True
+                self.model.activate_fse()
+                self.print_detector_state()
+                self.lcd.reset()
+                self.update_leds()
+
         else:
             self.fse_button_last_state = False
+
+        return True
+
+    def _poll_physical_detectors(self):
+        for detector in self.physical_detector_list:
+            if detector.is_active:
+                if not detector.last_state:
+                    detector.last_state = True
+                    self.model.set_detector_alarm_status(detector.circuit_number, detector.detector_number, True)
+                    self.print_detector_state()
+                    self.lcd.reset()
+                    self.update_leds()
+
+            else:
+                detector.last_state = False
 
         return True
 
@@ -420,11 +462,11 @@ class App(Gtk.Application):
             try:
                 self.delete_all()
                 FileOperations.load_building_config(self.model, load_dict, self.circuit_ops.add, self.detector_ops.add)
+                self.clear_undo()
+                self.clear_redo()
                 self.print_detector_state()
                 self.lcd.reset()
                 self.update_leds()
-                self.clear_undo()
-                self.clear_redo()
                 self.is_reset = False
 
             except KeyError as e:
