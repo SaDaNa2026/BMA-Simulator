@@ -7,7 +7,7 @@
 import json
 from pathlib import Path
 from functools import partial
-from git import Repo, InvalidGitRepositoryError, NULL_TREE
+from git import Repo, InvalidGitRepositoryError, NULL_TREE, Commit
 import gi
 gi.require_version('Gtk', '4.0')
 from gi.repository import Gio, GLib
@@ -296,10 +296,16 @@ class FileOperations:
 
         for circuit_number in model.get_circuits():
             save_dict["circuit_dict"][circuit_number] = {}
-
+            circuit_detectors = 0
             for detector_number in model.get_detectors_for_circuit(circuit_number):
-                save_dict["circuit_dict"][circuit_number][detector_number] = \
-                    model.get_detector_description(circuit_number, detector_number)
+                detector_description = model.get_detector_description(circuit_number, detector_number)
+                # Only add detector if it's not physical
+                if not (circuit_number, detector_number, detector_description) in model.permanent_detectors:
+                    circuit_detectors += 1
+                    save_dict["circuit_dict"][circuit_number][detector_number] = detector_description
+            # Only add circuit if it contains detectors
+            if circuit_detectors == 0:
+                del save_dict["circuit_dict"][circuit_number]
 
         return save_dict
 
