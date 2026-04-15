@@ -7,7 +7,7 @@
 import json
 from pathlib import Path
 from functools import partial
-from git import Repo, InvalidGitRepositoryError, NULL_TREE, Commit
+from git import Repo, InvalidGitRepositoryError, NULL_TREE
 import gi
 gi.require_version('Gtk', '4.0')
 from gi.repository import Gio, GLib
@@ -224,7 +224,7 @@ class FileOperations:
     @staticmethod
     def save_to_file(file: Gio.File, save_dict: dict, message: str) -> None:
         """Save save_dict as JSON to the specified filepath."""
-        file_path = file.get_path()
+        file_path = str(file.get_path())
         print(f"Saving to: {file_path}")
 
         # Write save_dict to the file in JSON format
@@ -239,7 +239,7 @@ class FileOperations:
     def commit_changes(file: Gio.File, message: str) -> None:
         """Commit changes to git."""
         # Get the repo
-        file_path = Path(file.get_path()).resolve()
+        file_path = Path(str(file.get_path())).resolve()
         repo_dir = file_path.parent
         try:
             repo = Repo(repo_dir, search_parent_directories=True)
@@ -286,7 +286,7 @@ class FileOperations:
         """Perform a hard reset of the specified directory to the specified index in the commit list."""
         repo = Repo(directory)
         commit_list = list(repo.iter_commits())
-        commit = commit_list[commit_index]
+        commit = str(commit_list[commit_index])
         repo.head.reset(commit, index=True, working_tree=True)
 
     @staticmethod
