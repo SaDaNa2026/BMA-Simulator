@@ -37,26 +37,16 @@ class FileOperations:
             return load_dict, file_extension
 
     @staticmethod
-    def get_scenario_directory(scenario_file, load_dict, load_scenario_callback):
-        """Get the directory the scenario file is saved in and enumerate its children."""
-        directory = Gio.file_new_for_path(scenario_file.get_parent().get_path())
-
-        # Get the directory contents asynchronously
-        directory.enumerate_children_async(
-            'standard::name',
-            Gio.FileQueryInfoFlags.NONE,
-            GLib.PRIORITY_DEFAULT,
-            None,
-            callback=partial(FileOperations.get_building_config_for_scenario,
-                             scenario_load_dict=load_dict,
-                             load_scenario_callback=load_scenario_callback)
-        )
-
-    @staticmethod
-    def get_building_config_for_scenario(source_object, result, scenario_load_dict, load_scenario_callback):
+    def get_building_config_for_scenario(scenario_file, scenario_load_dict, load_scenario_callback):
         """Callback for get_scenario_directory. Finds the .building files in the directory and returns the file path.
         Throws an error if there is not exactly one .building file."""
-        children = source_object.enumerate_children_finish(result)
+        directory = Gio.file_new_for_path(scenario_file.get_parent().get_path())
+
+        children = directory.enumerate_children(
+            'standard::name',
+            Gio.FileQueryInfoFlags.NONE,
+            None
+        )
 
         # A list to store the paths to the ".building" files in the directory
         building_file_list = []
@@ -71,15 +61,15 @@ class FileOperations:
 
             if child_extension == "building":
                 # Get the filepath of the child and add it to building_file_list
-                file_path = source_object.get_path() + "/" + child_name
+                file_path = directory.get_path() + "/" + child_name
                 building_file_list.append(file_path)
 
         # Check if exactly one .building file was found
         if len(building_file_list) == 0:
-            raise GLib.Error(message="Keine .building-Datei in diesem Verzeichnis gefunden.")
+            raise FileNotFoundError("Keine .building-Datei in diesem Verzeichnis gefunden.")
 
         if len(building_file_list) > 1:
-            raise GLib.Error(message=f"Es wurden {len(building_file_list)} .building-Dateien gefunden.\nStellen Sie "
+            raise FileNotFoundError(f"Es wurden {len(building_file_list)} .building-Dateien gefunden.\nStellen Sie "
                              f"sicher, dass pro Ordner nur eine .building-Datei existiert.")
 
         # Load the building_config file that has been found
