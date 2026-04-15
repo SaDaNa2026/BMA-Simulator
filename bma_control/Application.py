@@ -460,6 +460,7 @@ class App(Gtk.Application):
 
         if file_type == "building":
             try:
+                self.clear_alarms()
                 self.delete_all()
                 FileOperations.load_building_config(self.model, load_dict, self.circuit_ops.add, self.detector_ops.add)
                 self.clear_undo()
@@ -643,9 +644,19 @@ class App(Gtk.Application):
         # Convert list to tuple to make it immutable for iteration
         active_detectors = tuple(self.model.get_active_detectors())
 
+        # Deactivate switches and according detectors
         for detector_tuple in active_detectors:
-            detector = self.window.circuit_dict[detector_tuple[0]].detector_dict[detector_tuple[1]]
-            detector.detector_switch.set_active(False)
+            circuit_number = detector_tuple[0]
+            detector_number = detector_tuple[1]
+            if circuit_number in self.window.circuit_dict:
+                if detector_number in self.window.circuit_dict[circuit_number].detector_dict:
+                    detector = self.window.circuit_dict[circuit_number].detector_dict[detector_number]
+                    detector.detector_switch.set_active(False)
+
+        # Reset physical detectors which have no representation as switches
+        self.model.active_detector_list.clear()
+        for detector in self.physical_detector_list:
+            detector.last_state = False
 
         self.print_detector_state()
         self.lcd.reset()
