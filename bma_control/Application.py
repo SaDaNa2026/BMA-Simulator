@@ -644,7 +644,10 @@ class App(Gtk.Application):
         # Convert list to tuple to make it immutable for iteration
         active_detectors = tuple(self.model.get_active_detectors())
 
-        # Deactivate switches and according detectors
+        # Block the set_alarm_status operation so it doesn't push to the undo stack
+        self.detector_ops.block_set_alarm_status = True
+
+        # Deactivate switches of active detectors
         for detector_tuple in active_detectors:
             circuit_number = detector_tuple[0]
             detector_number = detector_tuple[1]
@@ -653,8 +656,12 @@ class App(Gtk.Application):
                     detector = self.window.circuit_dict[circuit_number].detector_dict[detector_number]
                     detector.detector_switch.set_active(False)
 
-        # Reset physical detectors which have no representation as switches
+        self.detector_ops.block_set_alarm_status = False
+
+        # Reset all detectors
         self.model.active_detector_list.clear()
+
+        # Enable all physical detectors
         for detector in self.physical_detector_list:
             detector.last_state = False
 
