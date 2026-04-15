@@ -197,7 +197,7 @@ class DetectorOps(Operation):
 
         # Get the previous detector to add this one in the correct position (default None => top position)
         previous_detector = None
-        for other_detector_number in self.model.get_detectors_for_circuit(circuit_number):
+        for other_detector_number in circuit.detector_dict:
             if detector_number > other_detector_number:
                 previous_detector = circuit.detector_dict[other_detector_number]
 
@@ -585,7 +585,8 @@ class CircuitOps(Operation):
         self.app.append_undo((self.undo_delete, (circuit_number, detectors)))
 
     def _create_circuit(self, circuit_number: int) -> None:
-        self.model.add_circuit(circuit_number)
+        if not circuit_number in self.model.circuit_dict:
+            self.model.add_circuit(circuit_number)
         circuit = Circuit(circuit_number)
         self.app.window.circuit_dict[circuit_number] = circuit
         # Connect the event handler that detects if the circuit is right-clicked
@@ -605,7 +606,8 @@ class CircuitOps(Operation):
         # Reverse detectors so they are added correctly
         detectors.reverse()
 
-        self.model.delete_circuit(circuit_number)
+        if circuit_number in self.model.circuit_dict:
+            self.model.delete_circuit(circuit_number)
         self.app.window.main_box.remove(circuit)
         del self.app.window.circuit_dict[circuit_number]
 
