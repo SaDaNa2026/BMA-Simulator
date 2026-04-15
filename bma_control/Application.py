@@ -454,8 +454,8 @@ class App(Gtk.Application):
                                          f"dass die Datei dem JSON-Standard entspricht.")
             return True
 
-        except RuntimeError as e:
-            self.window.show_error_alert("Fehler beim Laden der Datei", e)
+        except ValueError as e:
+            self.window.show_error_alert("Fehler beim Laden der Datei", str(e))
             return True
 
         if file_type == "building":
@@ -478,7 +478,7 @@ class App(Gtk.Application):
 
             except (ValueError, TypeError) as e:
                 print(f"ValueError/TypeError: {e}")
-                self.window.show_error_alert(".building-Datei invalide", e)
+                self.window.show_error_alert(".building-Datei invalide", str(e))
                 self.model.clear_data()
                 return True
 

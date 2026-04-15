@@ -32,7 +32,7 @@ class FileOperations:
             filename = file.get_path()
             file_extension = Path(filename).suffix.lstrip(".")
             if file_extension != "building" and file_extension != "scenario":
-                raise RuntimeError("Es können nur Dateien geladen werden, die auf .building oder .scenario enden")
+                raise ValueError("Es können nur Dateien geladen werden, die auf .building oder .scenario enden")
 
             return load_dict, file_extension
 
@@ -97,7 +97,10 @@ class FileOperations:
                 raise ValueError("Mindestens eine Meldergruppen-Nummer ist keine natürliche Zahl.")
 
             circuit_number = int(circuit_string)
-            add_circuit_function(circuit_number)
+            try:
+                add_circuit_function(circuit_number)
+            except ValueError as e:
+                raise ValueError(f"Fehler beim Hinzufügen von Meldergruppe {circuit_number}: {e}")
 
             for detector_string in load_dict["circuit_dict"][circuit_string]:
                 if not detector_string.isdigit():
@@ -106,8 +109,11 @@ class FileOperations:
 
                 detector_number = int(detector_string)
                 detector_description = load_dict["circuit_dict"][circuit_string][detector_string]
-                add_detector_function(circuit_number, detector_number,
-                                   description=detector_description)
+                try:
+                    add_detector_function(circuit_number, detector_number,
+                                    description=detector_description)
+                except ValueError as e:
+                    raise ValueError(f"Fehler beim Hinzufügen von Melder {detector_number}: {e}")
 
         print("File loaded successfully")
 
