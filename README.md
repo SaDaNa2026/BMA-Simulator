@@ -4,7 +4,7 @@ Die BMA-Steuerung ist dafür ausgelegt, auf einem Raspberry Pi ausgeführt zu we
 FAT und FBF werden durch den Raspberry Pi über 5V, 3.3V und GND mit Strom versorgt 
 und per I2C über die serielle Schnittstelle angesteuert. 
 Die Platinen können anhand der beiliegenden KiCAD-Dateien hergestellt werden. 
-Zusatzmodule wie eine Blitzleuchte oder ein Freischaltelement können nach Belieben hinzugefügt 
+Zusatzmodule wie eine Blitzleuchte, ein Freischaltelement oder physische Melder können nach Belieben hinzugefügt 
 und in die Steuerung eingebunden oder deaktiviert werden.
 
 # Software
@@ -53,7 +53,30 @@ In Application.py werden unterhalb der Imports einige Konstanten definiert, mit 
 an die Umgebung angepasst werden kann. Verfügbar sind:
 
 - Der Standard-Dateipfad für das Öffnen und Speichern von Dateien. Der Pfad sollte existieren, 
-    andernfalls funktioniert die Anwendung aber trotzdem
-- Der Markdown-Viewer zur Anzeige der Hilfedatei (einzutragender Name entspricht dem in der Shell)
-- GPIO-Pin und Pullup-Konfiguration für das Freischaltelement, das FSE kann hier auch abgeschaltet werden
-- GPIO-Pin des Relais' für die Blitzleuchte, kann hier auch abgeschaltet werden
+    andernfalls funktioniert die Anwendung aber trotzdem.
+- Der Markdown-Viewer zur Anzeige der Hilfedatei (einzutragender Name entspricht dem in der Shell).
+- GPIO-Pin und Pullup-Konfiguration für das Freischaltelement, das FSE kann hier auch abgeschaltet werden.
+- Ein Tupel aller physischen Melder, die angeschlossen sind. Kommentar im Code beachten!  
+    Falls keine physischen Melder vorhanden sind, kann hier auch einfach eine leere Liste zugewiesen werden.
+- GPIO-Pin des Relais' für die Blitzleuchte, kann hier auch abgeschaltet werden.
+
+## Integration von Git
+
+Um den Dateistand zurücksetzen zu können, ist Git als Versionskontrollsystem integriert. Bei jedem Speichern
+einer Gebäudekonfiguration oder eines Szenarios wird im entsprechenden Verzeichnis ein Repository initialisiert,
+falls es nicht bereits eines ist. Anschließend werden alle Änderungen gestaget und committet. 
+Über die Funktion "Dateistand zurücksetzen" gibt es dann die Möglichkeit, einen Hard Reset durchzuführen. 
+Natürlich ist auch eine manuelle Verwaltung des Repositorys mithilfe von Git möglich.
+
+Diese Integration macht einige Annahmen, die erfüllt werden sollten, um unerwünschte Folgen zu vermeiden:
+
+- Für jede Gebäudekonfiguration mitsamt den dazugehörigen Szenarien existiert ein eigenes Verzeichnis (Gebäudeverzeichnis).
+   Dabei können für Szenario-Dateien beliebig viele Unterverzeichnisse mit beliebiger Verschachtelung angelegt werden.
+   In diesen Unterverzeichnissen dürfen jedoch keine Gebäudeverzeichnisse enthalten sein, denn:
+- Gebäudeverzeichnisse dürfen nicht verschachtelt werden: Dadurch werden alle Änderungen im höhergeordneten Verzeichnis
+   der beiden committet, wodurch keine saubere Trennung der Gebäude in den Commit-Messages mehr existiert.
+- Es sollte ein eigenes Verzeichnis angelegt werden, das alle Gebäudeverzeichnisse bzw. Verzeichnisse 
+   von Gebäudeverzeichnissen enthält. Dieses Verzeichnis sollte der Konstante DEFAULT_FILE_PATH 
+   in Application.py entsprechen, wodurch sich die Öffnen- und Speicher-Dialoge direkt im richtigen Verzeichnis befinden.  
+   Die Abschottung verhindert, dass andere, "unbeteiligte" Dateien in das Repository 
+   aufgenommen werden oder ein Repository in einem Verzeichnis initialisiert wird, wo dies unerwünscht ist.

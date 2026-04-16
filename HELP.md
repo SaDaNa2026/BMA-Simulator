@@ -15,13 +15,14 @@ und welche LEDs am FBF aktiv sind.
 <!-- TOC -->
 * [Übersicht](#übersicht)
 * [Inhaltsverzeichnis](#inhaltsverzeichnis)
-* [Dateistruktur](#dateistruktur)
+* [Physische Melder](#physische-melder)
 * [Bedienung](#bedienung)
   * [Layout der Benutzeroberfläche](#layout-der-benutzeroberfläche)
   * [Auslösen von Meldern](#auslösen-von-meldern)
-  * [Laden von Dateien](#laden-von-dateien)
-  * [Speichern](#speichern)
-  * [Dateistand wiederherstellen](#dateistand-wiederherstellen)
+  * [Dateistruktur](#dateistruktur)
+    * [Öffnen von Dateien](#öffnen-von-dateien)
+    * [Speichern](#speichern)
+    * [Dateistand wiederherstellen](#dateistand-wiederherstellen)
   * [Bearbeitungsmodus](#bearbeitungsmodus)
     * [Button "Bearbeiten"](#button-bearbeiten)
     * [Rechtsklick auf Meldergruppen-Nummer](#rechtsklick-auf-meldergruppen-nummer)
@@ -33,14 +34,13 @@ und welche LEDs am FBF aktiv sind.
     * [Linksklick-Kombinationen](#linksklick-kombinationen)
 <!-- TOC -->
 
-# Dateistruktur
+# Physische Melder
 
-Für jedes Gebäude ist ein eigener Ordner anzulegen, in dem die Gebäudekonfiguration und alle 
-dazugehörigen Szenarien gespeichert werden. Gebäudekonfigurationen haben die Endung ".building", 
-Szenarien ".scenario". 
-In jedem Ordner, in dem Szenarien gespeichert sind, muss genau eine Gebäudekonfiguration liegen. 
-Ansonsten ist die Zuordnung eines Szenarios zur Konfiguration beim Laden nicht eindeutig und 
-es wird eine Fehlermeldung angezeigt.
+Der Druckknopfmelder unter dem FBF ist in die Steuerung mit eingebunden und hat die Nummer 1/1. 
+Er lässt sich nur durch physischen Knopfdruck und nicht über die grafische Benutzeroberfläche auslösen. 
+Daher wird er auch nicht in der zentralen Arbeitsfläche angezeigt. 
+Im Auslösefall erscheint die entsprechende Meldung aber in der Fußleiste und natürlich auf dem FAT.
+Es ist nicht möglich, digitale Melder mit derselben Meldernummer (hier: 1/1) wie physische Melder anzulegen.
 
 # Bedienung
 
@@ -51,7 +51,7 @@ Die Benutzeroberfläche ist grundsätzlich in vier Bereiche gegliedert:
 - Kopfleiste: Menüs für Aktionen, die die ganze Anwendung betreffen.
 - Fußleiste: Informationen über ausgelöste, abgeschaltete und in der Historie befindliche Melder. 
     Die Reihenfolge der Anzeige entspricht der auf dem FAT.
-- Rechte Seitenleiste: Anzeige bzw. Bearbeitung der Szenariobeschreibung. Die Seitenleiste kann 
+- Rechte Seitenleiste: Anzeige bzw. Bearbeitung der Szenariobeschreibung. Die Seitenleiste kann durch
     Greifen und Ziehen des linken Rands in der Breite verändert werden.
 - Zentrale Arbeitsfläche: Anzeige aller Meldergruppen und Melder mit Auslöseschaltern.
 
@@ -67,13 +67,37 @@ die entsprechende Meldung vom FAT. Sobald keine Melder mehr aktiv sind, wechselt
 
 Informationen zur Abschaltung von Meldern finden sich im Abschnitt Bearbeitungsmodus - Rechtsklick auf Melder.
 
-## Laden von Dateien
+## Dateistruktur
+
+Alle Ordner und Dateien für diese Anwendung müssen sich im Ordner "/home/lfs-bma/BMA-Dateien" befinden. Dieser ist auch
+standardmäßig in den Dialogen zum Öffnen bzw. Speichern einer Datei ausgewählt.
+
+Für jedes Gebäude ist ein eigener Ordner (Gebäudeordner) anzulegen, in dem die Gebäudekonfiguration und alle 
+dazugehörigen Szenarien gespeichert werden. Für Szenarien können auch beliebig viele Unterordner im Gebäudeordner
+angelegt werden. In jedem Gebäudeordner muss genau eine Gebäudekonfiguration liegen. 
+Ansonsten ist die Zuordnung eines Szenarios zur Konfiguration beim Laden nicht eindeutig und 
+es wird eine Fehlermeldung angezeigt. 
+
+Gebäudekonfigurationen haben die Dateiendung ".building", Szenarien ".scenario". 
+
+Beispiel für eine mögliche Dateistruktur (Ordner sind normal gesetzt, Dateien kursiv):
+
+- BMA-Dateien
+    - Gebäude_1
+      - *Gebäude_1.building*
+      - *Szenario_1.scenario*
+      - Szenario_Ordner
+        - *Szenario_2.scenario*
+        - *Szenario_3.scenario*
+    - Gebäude_2
+
+### Öffnen von Dateien
 
 Zum Laden von vorkonfigurierten Gebäuden oder Szenarien kann die entsprechende Funktion 
 unter dem Button "Datei" ausgewählt werden oder mit dem Tastenkürzel Strg+O aktiviert werden. 
 Das Laden eines Szenarios lädt automatisch die entsprechende Gebäudekonfiguration.
 
-## Speichern
+### Speichern
 
 Beim Speichern ist zwischen Gebäudekonfiguration (Strg+G) und Szenario (Strg+S) zu unterscheiden. 
 Beide Optionen sind auch unter dem Button "Datei" verfügbar. 
@@ -85,9 +109,9 @@ Anschließend ist der Speicherort und Dateiname auszuwählen. Die Voreinstellung
 Bei Veränderungen an einer Datei ist derselbe Dateiname wie zuvor zu wählen und die Warnung, 
 dass eine gleichnamige Datei bereits existiert, mit "Ersetzen" zu bestätigen. 
 Die Dateiendung ist bereits entsprechend der vorherigen Auswahl korrekt eingestellt; 
-diese darf nicht verändert werden, da die Datei sonst nicht mehr geladen werden kann.
+manuelle Veränderungen der Dateiendung lassen den Speichervorgang fehlschlagen.
 
-## Dateistand wiederherstellen
+### Dateistand wiederherstellen
 
 Diese Option findet sich unter dem Button "Datei". Falls ungewollte Änderungen 
 an Dateien gespeichert wurden oder es anderweitig notwendig ist, lässt sich somit ein Ordner auf einen 
