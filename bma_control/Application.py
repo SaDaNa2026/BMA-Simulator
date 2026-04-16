@@ -433,8 +433,13 @@ class App(Gtk.Application):
             self.window.show_error_alert("Speichern fehlgeschlagen", "Unbekannter Fehler mit der Dateiendung")
             return
 
-        self.last_file = file
-        FileOperations.save_to_file(file, save_dict, message)
+        try:
+            self.last_file = file
+            FileOperations.save_to_file(file, save_dict, message)
+
+        except PermissionError as e:
+            self.window.show_error_alert("Keine Schreibrechte im gewählten Verzeichnis", str(e))
+            return
 
     def on_open_clicked(self, *args):
         """Creates a FileOpenDialog."""
