@@ -6,7 +6,6 @@
 
 import json
 from pathlib import Path
-from functools import partial
 from git import Repo, InvalidGitRepositoryError, NULL_TREE
 import gi
 gi.require_version('Gtk', '4.0')
@@ -41,40 +40,51 @@ class FileOperations:
         """Callback for get_scenario_directory. Finds the .building files in the directory and returns the file path.
         Throws an error if there is not exactly one .building file."""
         directory = Gio.file_new_for_path(scenario_file.get_parent().get_path())
+        building_file_found = False
 
-        children = directory.enumerate_children(
-            'standard::name',
-            Gio.FileQueryInfoFlags.NONE,
-            None
-        )
+        # Check directory for building file. If none is found, check parent directories recursively
+        while not building_file_found:
+            # Stop recursing after no files have been found in the user's home directory
+            if str(directory.get_path()) == "/home":
+                raise FileNotFoundError("Es wurde keine .building-Datei gefunden. Stellen Sie sicher, dass im selben "
+                                        "oder einem übergeordneten Verzeichnis wie die gewählte .scenario-Datei "
+                                        "eine .building-Datei existiert.")
 
-        # A list to store the paths to the ".building" files in the directory
-        building_file_list = []
+            children = directory.enumerate_children(
+                'standard::name',
+                Gio.FileQueryInfoFlags.NONE,
+                None
+            )
 
-        for child_info in children:
-            # Get the filename
-            child_name = child_info.get_name()
-            # Find the last dot in the filename
-            dot_pos = child_name.rfind('.')
-            # The extension is everything after the last dot. Return empty string if there is no dot
-            child_extension = child_name[dot_pos + 1:] if dot_pos != -1 else ""
+            # A list to store the paths to the ".building" files in the directory
+            building_file_list = []
 
-            if child_extension == "building":
-                # Get the filepath of the child and add it to building_file_list
-                file_path = directory.get_path() + "/" + child_name
-                building_file_list.append(file_path)
+            for child_info in children:
+                child_name = child_info.get_name()
+                # Find the last dot in the filename
+                dot_pos = child_name.rfind('.')
+                # The extension is everything after the last dot. Return empty string if there is no dot
+                child_extension = child_name[dot_pos + 1:] if dot_pos != -1 else ""
 
-        # Check if exactly one .building file was found
-        if len(building_file_list) == 0:
-            raise FileNotFoundError("Keine .building-Datei in diesem Verzeichnis gefunden.")
+                if child_extension == "building":
+                    # Get the filepath of the child and add it to building_file_list
+                    file_path = str(directory.get_path()) + "/" + child_name
+                    building_file_list.append(file_path)
 
-        if len(building_file_list) > 1:
-            raise FileNotFoundError(f"Es wurden {len(building_file_list)} .building-Dateien gefunden.\nStellen Sie "
-                             f"sicher, dass pro Ordner nur eine .building-Datei existiert.")
+            # Check if exactly one .building file was found
+            match len(building_file_list):
+                case 0:
+                    directory = directory.get_parent()
 
-        # Load the building_config file that has been found
-        building_file = Gio.file_new_for_path(building_file_list[0])
-        load_scenario_callback(building_file, scenario_load_dict)
+                case 1:
+                    building_file_found = True
+                    # Load the building_config file that has been found
+                    building_file = Gio.file_new_for_path(building_file_list[0])
+                    load_scenario_callback(building_file, scenario_load_dict)
+
+                case _:
+                    raise FileNotFoundError(f"Es wurden {len(building_file_list)} .building-Dateien gefunden.\nStellen Sie "
+                                     f"sicher, dass pro Verzeichnis nur eine .building-Datei existiert.")
 
     @staticmethod
     def load_building_config(model, load_dict, add_circuit_function, add_detector_function):
