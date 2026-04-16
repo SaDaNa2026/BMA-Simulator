@@ -224,7 +224,7 @@ class App(Gtk.Application):
                                       (GPA5, self.on_ue_off_toggled, None, True, False),
                                       (GPB2, self.on_fire_controls_off_toggled, None, True, True),
                                       (GPB1, self.on_clear_alarms_clicked, None, False, False),
-                                      (GPB0, self.on_UE_test_clicked, None, False, False)],
+                                      (GPB0, self.on_ue_test_clicked, None, False, False)],
                                      self.fbf_led_dict)
 
         self.led_fbf = LEDController(self.mcp_fbf, self.fbf_led_dict)
@@ -412,7 +412,15 @@ class App(Gtk.Application):
                 self.window.show_error_alert("Speichern fehlgeschlagen", e.message)
             return
 
-        if file_type == "building":
+        file_extension = FileOperations.get_file_extension(str(file.get_path()))
+
+        # Check if extension matches file type
+        if not file_extension == file_type:
+            self.window.show_error_alert("Invalide Dateiendung", "Dateien müssen auf .building oder .scenario enden")
+            return
+
+        # Create the dictionary that will be saved as json depending on the file type
+        elif file_type == "building":
             save_dict = FileOperations.create_building_save_dict(self.model)
 
         elif file_type == "scenario":
@@ -422,7 +430,7 @@ class App(Gtk.Application):
             save_dict = FileOperations.create_scenario_save_dict(self.model, scenario_description)
 
         else:
-            self.window.show_error_alert("Invalide Dateiendung", "Dateien müssen auf .building oder .scenario enden")
+            self.window.show_error_alert("Speichern fehlgeschlagen", "Unbekannter Fehler mit der Dateiendung")
             return
 
         self.last_file = file
@@ -740,7 +748,7 @@ class App(Gtk.Application):
         self.fire_controls_off_switch = state
         self.update_leds()
 
-    def on_UE_test_clicked(self, *args):
+    def on_ue_test_clicked(self, *args):
         """Test the transmission unit (UE). Currently a placeholder."""
         if not (self.model.get_ue_off() or self.ue_off_switch):
             self.led_fbf.on("ue_triggered")
