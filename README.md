@@ -1,6 +1,9 @@
 # Hardware
 
-Die BMA-Steuerung ist dafür ausgelegt, auf einem Raspberry Pi ausgeführt zu werden. 
+Die Steuerung des BMA-SImulators ist dafür ausgelegt, auf einem Raspberry Pi ausgeführt zu werden. 
+Getestet wurde mit einem Raspberry Pi 5B mit 8 GB RAM, die Anwendung sollte allerdings auch ohne Probleme 
+auf einem Modell 4 mit 2 GB RAM laufen.
+
 FAT und FBF werden durch den Raspberry Pi über 5V, 3.3V und GND mit Strom versorgt 
 und per I2C über die serielle Schnittstelle angesteuert. 
 Die Platinen können anhand der beiliegenden KiCAD-Dateien hergestellt werden. 
