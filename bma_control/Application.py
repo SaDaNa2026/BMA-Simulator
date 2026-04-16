@@ -45,7 +45,7 @@ FSE_PULLUP: bool|None = True
 # Format: ((GPIO_pin: int, pullup: bool, (circuit_number: int, detector_number: int, detector_description: str)))
 # CAUTION: Setting any of circuit_number, detector_number or detector_description to illegal values
 #          will cause the application to crash
-PHYSICAL_DETECTORS: tuple = ((22, True, (1, 1, "Handmelder FIZ")),)
+PHYSICAL_DETECTORS: tuple = ((22, True, (1, 1, "Druckknopfmelder FIZ")),)
 
 # Set the GPIO pin that the relay for the flashing light (Blitzleuchte) is connected to. None deactivates the functionality
 FLASH_RELAY_PIN: int|None = 26
