@@ -14,6 +14,15 @@ from gi.repository import Gio, GLib
 
 class FileOperations:
     @staticmethod
+    def get_file_extension(file_path: str):
+        # Find the last dot in the file path
+        dot_pos = file_path.rfind('.')
+        # The extension is everything after the last dot. Return empty string if there is no dot
+        file_extension = file_path[dot_pos + 1:] if dot_pos != -1 else ""
+
+        return file_extension
+
+    @staticmethod
     def retrieve_open_file(dialog, result):
         """Retrieve the file path from an open dialog."""
         file = dialog.open_finish(result)
@@ -61,10 +70,7 @@ class FileOperations:
 
             for child_info in children:
                 child_name = child_info.get_name()
-                # Find the last dot in the filename
-                dot_pos = child_name.rfind('.')
-                # The extension is everything after the last dot. Return empty string if there is no dot
-                child_extension = child_name[dot_pos + 1:] if dot_pos != -1 else ""
+                child_extension = FileOperations.get_file_extension(child_name)
 
                 if child_extension == "building":
                     # Get the filepath of the child and add it to building_file_list
