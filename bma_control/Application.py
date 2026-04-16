@@ -40,10 +40,12 @@ FSE_PIN: int|None = 17
 FSE_PULLUP: bool|None = True
 
 # Define physical detectors that are connected to the Raspberry Pi's GPIO pins directly. They will not be visible
-# in the GUI but represented in the model; so the user will be unable to add detectors with the same number as
-# physical ones defined here.
+#   in the GUI but represented in the model; so the user will be unable to add detectors with the same number as
+#   physical ones defined here. If there are no physical detectors assign PHYSICAL_DETECTORS = ()
 # Format: ((GPIO_pin: int, pullup: bool, (circuit_number: int, detector_number: int, detector_description: str)))
-PHYSICAL_DETECTORS: tuple[tuple] = ((22, True, (1, 1, "Handmelder FIZ")),)
+# CAUTION: Setting any of circuit_number, detector_number or detector_description to illegal values
+#          will cause the application to crash
+PHYSICAL_DETECTORS: tuple = ((22, True, (1, 1, "Handmelder FIZ")),)
 
 # Set the GPIO pin that the relay for the flashing light (Blitzleuchte) is connected to. None deactivates the functionality
 FLASH_RELAY_PIN: int|None = 26
@@ -458,6 +460,10 @@ class App(Gtk.Application):
             self.window.show_error_alert("Fehler beim Laden der Datei", str(e))
             return True
 
+        except PermissionError as e:
+            self.window.show_error_alert("Keine Leserechte für die Datei", str(e))
+            return True
+
         if file_type == "building":
             try:
                 self.clear_alarms()
@@ -484,11 +490,11 @@ class App(Gtk.Application):
 
         else:
             try:
-                FileOperations.get_scenario_directory(file, load_dict, self.load_scenario_callback)
+                FileOperations.get_building_config_for_scenario(file, load_dict, self.load_scenario_callback)
 
-            except GLib.Error as error:
-                print(f"Error listing directory: {error.message}")
-                self.window.show_error_alert(f"Öffnen fehlgeschlagen", error.message)
+            except FileNotFoundError as e:
+                print(f"Error listing directory: {e}")
+                self.window.show_error_alert(f"Öffnen fehlgeschlagen", str(e))
                 return True
 
     def load_scenario_callback(self, building_file, scenario_load_dict):
