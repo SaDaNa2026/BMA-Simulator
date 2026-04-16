@@ -13,6 +13,7 @@ from gi.repository import GLib, Gio
 from functools import partial
 from Detector import Detector
 from Circuit import Circuit
+from Model import sort_dict_by_key
 
 
 class Operation:
@@ -197,6 +198,8 @@ class DetectorOps(Operation):
 
         # Get the previous detector to add this one in the correct position (default None => top position)
         previous_detector = None
+        # Sort dict to make sure the for loop works as intended
+        circuit.detector_dict = sort_dict_by_key(circuit.detector_dict)
         for other_detector_number in circuit.detector_dict:
             if detector_number > other_detector_number:
                 previous_detector = circuit.detector_dict[other_detector_number]
