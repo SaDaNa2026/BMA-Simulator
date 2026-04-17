@@ -797,12 +797,12 @@ class App(Gtk.Application):
             circuit_number = reference[0]
             detector_number = reference[1]
             detector_description = self.model.get_detector_description(circuit_number, detector_number)
-            for i in range(4 - len(str(circuit_number))):
+            for i in range(5 - len(str(circuit_number))):
                 detector_text += " "
             detector_text += f"{circuit_number}/{detector_number}"
             for i in range(2 - len(str(detector_number))):
                 detector_text += " "
-            detector_text += f"        {detector_description}\n"
+            detector_text += f"   {detector_description}\n"
 
         return detector_text
 
