@@ -53,8 +53,8 @@ class FileOperations:
 
         # Check directory for building file. If none is found, check parent directories recursively
         while not building_file_found:
-            # Stop recursing after no files have been found in the user's home directory
-            if str(directory.get_path()) == "/home":
+            # Stop recursing when reaching the user's home directory
+            if directory == Path.home():
                 raise FileNotFoundError("Es wurde keine .building-Datei gefunden. Stellen Sie sicher, dass im selben "
                                         "oder einem übergeordneten Verzeichnis wie die gewählte .scenario-Datei "
                                         "eine .building-Datei existiert.")
@@ -260,12 +260,19 @@ class FileOperations:
             repo.index.commit(message or "Update files")
 
     @staticmethod
-    def get_commits_for_dir(directory):
+    def get_commits_for_dir(directory, recursion_limit):
         """Returns a list of all commits for the provided directory containing tuples with commit date and message.
+        Recursively tries parent directories until the provided limit (or the home directory) is reached.
         Returns None if the directory is not a git repository."""
-        try:
-            repo = Repo(directory)
-        except InvalidGitRepositoryError:
+        repo = None
+        while (not (directory == Path.home() or directory == recursion_limit.get_parent())) and repo is None:
+            try:
+                print(directory)
+                repo = Repo(directory)
+            except InvalidGitRepositoryError:
+                directory = directory.get_parent()
+
+        if repo is None:
             return None
 
         # Get a list of all commits of the current directory

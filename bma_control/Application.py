@@ -548,8 +548,8 @@ class App(Gtk.Application):
 
     def on_rollback_clicked(self, *args):
         """Present a list of all commits for the current directory."""
-        directory = self.last_file.get_parent().get_path()
-        commit_list = FileOperations.get_commits_for_dir(directory)
+        directory = self.last_file.get_parent()
+        commit_list = FileOperations.get_commits_for_dir(directory, Gio.File.new_for_path(DEFAULT_FILE_PATH))
 
         # Display an error if the directory is not a repository
         if commit_list is None:
@@ -557,7 +557,7 @@ class App(Gtk.Application):
                                          "Öffnen Sie eine Datei aus dem Ordner, den Sie zurücksetzen wollen")
             return
 
-        self.window.show_commit_list(directory, commit_list, FileOperations.rollback)
+        self.window.show_commit_list(directory.get_path(), commit_list, FileOperations.rollback)
 
     def on_edit_fbf_clicked(self, *args):
         self.window.show_fbf_window(self.model, self.update_leds)
