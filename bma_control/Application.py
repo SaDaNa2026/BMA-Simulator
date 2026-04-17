@@ -34,7 +34,7 @@ DEFAULT_FILE_PATH = "/home/lfs-bma/BMA-Dateien"
 MARKDOWN_VIEWER: str = "okular"
 
 # Set the pin that the switch of the Freischaltelement (FSE) is connected to. None deactivates the functionality
-FSE_PIN: int|None = 17
+FSE_PIN: int|None = 19
 # Specify if an internal pullup should be activated for the FSE switch.
 # True -> pullup activated, false -> pull-down activated, None -> floating state (if switch is externally biased)
 FSE_PULLUP: bool|None = True
