@@ -8,23 +8,93 @@ from RPLCD.i2c import CharLCD
 
 class LCDController(CharLCD):
     def __init__(self, model):
-        super().__init__('PCF8574', 0x25)
+        super().__init__('PCF8574', 0x25, charmap="A00")
+        self.init_special_chars()
         self.model = model
         self.current_screen: int = 0
         self.visible_dict: dict = {}
         self._write_building_description()
 
+    def init_special_chars(self):
+        """Create custom characters to be able to display Ä, Ö, Ü and ß"""
+        sharp_s_bitmap = (
+            0b00110,
+            0b01001,
+            0b01001,
+            0b01110,
+            0b01001,
+            0b01001,
+            0b01110,
+            0b01000
+        )
+        self.create_char(0, sharp_s_bitmap)
+
+        large_ae_bitmap = (
+            0b01010,
+            0b00000,
+            0b01110,
+            0b10001,
+            0b11111,
+            0b10001,
+            0b10001,
+            0b00000
+        )
+        self.create_char(1, large_ae_bitmap)
+
+        large_oe_bitmap = (
+            0b01010,
+            0b00000,
+            0b01110,
+            0b10001,
+            0b10001,
+            0b10001,
+            0b01110,
+            0b00000
+        )
+        self.create_char(2, large_oe_bitmap)
+
+        large_ue_bitmap = (
+            0b01010,
+            0b00000,
+            0b10001,
+            0b10001,
+            0b10001,
+            0b10001,
+            0b01110,
+            0b00000
+        )
+        self.create_char(3, large_ue_bitmap)
+
+    def _substitute_special_chars(self, input_string: str) ->str:
+        """Substitute Ä, Ö, Ü and ß with the created special characters so they are rendered properly"""
+        output_string: str = ""
+        for char in input_string:
+            match char:
+                case "ß":
+                    output_string += "\x00"
+                case "Ä":
+                    output_string += "\x01"
+                case "Ö":
+                    output_string += "\x02"
+                case "Ü":
+                    output_string += "\x03"
+                case _:
+                    output_string += char
+
+        return output_string
+
     def _write_building_description(self):
         """Write the building description to the LCD."""
         self.clear()
         self.cursor_pos = (0, 0)
-        self.write_string(self.model.get_building_description())
+        string_to_write = self._substitute_special_chars(self.model.get_building_description())
+        self.write_string(string_to_write)
 
     def _write_message(self, detector: tuple, position, message_type: str) ->None:
         """Write an alarm to the LCD at the specified position."""
         circuit_number = detector[0]
         detector_number = detector[1]
-        detector_description = self.model.get_detector_description(circuit_number, detector_number)
+        detector_description = self._substitute_special_chars(self.model.get_detector_description(circuit_number, detector_number))
         circuit_string = str(circuit_number)
         detector_string = str(detector_number)
 
@@ -110,8 +180,8 @@ class LCDController(CharLCD):
 
     def previous_message(self) -> bool:
         """Set the scrollable to the previous alarm. Returns true if the operation was successful, otherwise false"""
-        message_list = self._get_message_list()
-        if not message_list:
+        message_list, success = self._get_message_list()
+        if not success:
             return False
 
         if self.current_screen == 3:
@@ -135,8 +205,8 @@ class LCDController(CharLCD):
 
     def next_message(self) -> bool:
         """Set the scrollable alarm to the next alarm. Returns true if the operation was successful, otherwise false"""
-        message_list = self._get_message_list()
-        if not message_list:
+        message_list, success = self._get_message_list()
+        if not success:
             return False
 
         if self.current_screen == 3:
@@ -157,15 +227,15 @@ class LCDController(CharLCD):
         self.refresh()
         return True
 
-    def _get_message_list(self) -> list|bool:
+    def _get_message_list(self) -> tuple[list, bool]:
         if self.current_screen == 1:
-            return self.model.get_active_detectors()
+            return self.model.get_active_detectors(), True
         elif self.current_screen == 2:
-            return self.model.get_disabled_detectors()
+            return self.model.get_disabled_detectors(), True
         elif self.current_screen == 3:
-            return self.model.get_history_detectors()
+            return self.model.get_history_detectors(), True
         else:
-            return False
+            return [], False
 
     def first_message_shown(self) -> bool:
         """Checks if the first message is shown on the LCD. Return True if current_screen == 0 (home screen)"""
