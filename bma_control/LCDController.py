@@ -156,9 +156,11 @@ class LCDController(CharLCD):
         history_detectors = self.model.get_history_detectors()
         if self.current_screen == 3:
             self.clear()
+            self.visible_dict.clear()
             if len(history_detectors) > 0:
-                self.visible_dict.clear()
                 self.visible_dict["bottom"] = history_detectors[-1]
+            else:
+                self.visible_dict["bottom"] = "history_empty"
 
         self.refresh()
 
@@ -305,9 +307,8 @@ class LCDController(CharLCD):
 
     def show_history(self):
         """Switch to the history screen if there are detectors in the history"""
-        if len(self.model.get_history_detectors()) > 0:
-            self.current_screen = 3
-            self._write_history_detectors()
+        self.current_screen = 3
+        self._write_history_detectors()
 
     def refresh(self):
         """Refresh the LCD according to visible_alarm_dict."""
@@ -330,7 +331,11 @@ class LCDController(CharLCD):
             self.write_string("Historie")
             self.cursor_pos = (1, 15)
             self.write_string(self.model.get_history_time_string())
-            self._write_message(self.visible_dict["bottom"], "bottom", "history")
+            if self.visible_dict["bottom"] == "history_empty":
+                self.cursor_pos = (3, 6)
+                self.write_string("Keine Einträge")
+            else:
+                self._write_message(self.visible_dict["bottom"], "bottom", "history")
 
     def test(self):
         """Fill the screen with blocks to test all pixels"""
