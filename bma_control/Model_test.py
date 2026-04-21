@@ -346,5 +346,36 @@ class TestBuildingModel(unittest.TestCase):
         self.model.set_history_time_offset(42)
         self.assertEqual(self.model.get_history_time_offset(), 42)
 
+    def test_permanent_detectors(self):
+        # Test invalid inits
+        with self.assertRaises(TypeError):
+            not_a_list = BuildingModel(permanent_detectors=1)
+        with self.assertRaises(TypeError):
+            list_contains_stuff_other_than_tuples = BuildingModel(permanent_detectors=[1, "string"])
+        with self.assertRaises(ValueError):
+            tuples_are_too_small = BuildingModel(permanent_detectors=[(2, 3)])
+
+        # Test if permanent_detectors contains the correct detector tuples
+        self.model = BuildingModel(permanent_detectors=[(1, 1, "test"), (2, 3, "string")])
+        self.assertEqual([(1, 1, "test"), (2, 3, "string")], self.model.permanent_detectors)
+        # Check if te correct description is returned
+        self.assertEqual(self.model.get_detector_description(1, 1), "test")
+
+        # Test adding detector that already is a permanent detector
+        with self.assertRaises(ValueError):
+            self.model.add_detector(1, 1)
+
+        # Test deleting a circuit that contains a permanent detector
+        self.model.delete_circuit(1)
+        self.assertEqual([(1, 1, "test"), (2, 3, "string")], self.model.permanent_detectors)
+        self.assertEqual(self.model.get_circuits(), [1, 2])
+        self.assertEqual(self.model.get_detectors_for_circuit(1), [1,])
+        # Test deleting a detector which is in permanent_detectors
+        self.model.delete_detector(2, 3)
+        self.assertEqual([(1, 1, "test"), (2, 3, "string")], self.model.permanent_detectors)
+        self.assertEqual(self.model.get_circuits(), [1, 2])
+        self.assertEqual(self.model.get_detectors_for_circuit(2), [3, ])
+
+
 if __name__ == '__main__':
     unittest.main()

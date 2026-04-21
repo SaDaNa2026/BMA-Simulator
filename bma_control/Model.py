@@ -5,7 +5,7 @@
 # SOFTWARE.
 
 import datetime as dt
-from dataclasses import dataclass, field, InitVar
+from dataclasses import dataclass, field
 from typing import Dict, List
 
 def sort_dict_by_key(input_dict: dict) -> dict:
@@ -54,7 +54,7 @@ class Circuit:
         self.detector_dict = sort_dict_by_key(self.detector_dict)
 
     def delete_detector(self, detector_number: int) -> None:
-        """Remove a detector by index."""
+        """Remove a detector by index"""
         del self.detector_dict[detector_number]
 
 
@@ -101,8 +101,8 @@ class BuildingModel:
         for detector_tuple in self.permanent_detectors:
             if not isinstance(detector_tuple, tuple):
                 raise TypeError("permanent_detectors must only contain tuples")
-            if len(detector_tuple) < 2:
-                raise ValueError("len(detector_tuple) in permanent_detectors must be at least 2")
+            if len(detector_tuple) < 3:
+                raise ValueError("len(detector_tuple) in permanent_detectors must be at least 3")
 
             circuit_number = detector_tuple[0]
             detector_number = detector_tuple[1]
@@ -157,6 +157,11 @@ class BuildingModel:
         delete_list = [num for num in self.circuit_dict[circuit_number].detector_dict]
         for detector_number in delete_list:
             self.delete_detector(circuit_number, detector_number)
+        # Do not delete the circuit if it contains permanent detectors
+        for detector_tuple in self.permanent_detectors:
+            if detector_tuple[0] == circuit_number:
+                return
+
         del self.circuit_dict[circuit_number]
 
     def get_circuits(self) -> list[int]:
@@ -174,11 +179,16 @@ class BuildingModel:
         self.circuit_dict[circuit_number].add_detector(detector_number, description)
 
     def delete_detector(self, circuit_number: int, detector_number: int) -> None:
-        """Remove a specific detector from a specific circuit."""
+        """Remove a specific detector from a specific circuit. Do not remove it if it is a permanent detector"""
         if not isinstance(circuit_number, int):
             raise TypeError("circuit_number must be int")
         if not isinstance(detector_number, int):
             raise TypeError("detector_number must be int")
+
+        # Return if the specified detector is permanent
+        for detector_tuple in self.permanent_detectors:
+            if detector_tuple[0] == circuit_number and detector_tuple[1] == detector_number:
+                return
 
         detector_tuple = (circuit_number, detector_number)
 

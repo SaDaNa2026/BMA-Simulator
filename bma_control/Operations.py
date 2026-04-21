@@ -588,8 +588,13 @@ class CircuitOps(Operation):
         self.app.append_undo((self.undo_delete, (circuit_number, detectors)))
 
     def _create_circuit(self, circuit_number: int) -> None:
+        """Add a circuit with the specified number to the model if it doesn't already exist. This allows to add visual
+        representations of circuits that already exist in the model, but not in the view.
+        If the circuit exists in the view, raise a ValueError"""
         if not circuit_number in self.model.circuit_dict:
             self.model.add_circuit(circuit_number)
+        if circuit_number in self.app.window.circuit_dict:
+            raise ValueError("Diese Meldergruppe existiert bereits")
         circuit = Circuit(circuit_number)
         self.app.window.circuit_dict[circuit_number] = circuit
         # Connect the event handler that detects if the circuit is right-clicked
