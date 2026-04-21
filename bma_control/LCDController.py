@@ -251,7 +251,10 @@ class LCDController(CharLCD):
                     return True
                 return self.visible_dict["top"] == self.model.get_disabled_detectors()[0]
             case 3:
-                return self.visible_dict["bottom"] == self.model.get_history_detectors()[0]
+                if len(self.model.get_history_detectors()) == 0:
+                    return True
+                else:
+                    return self.visible_dict["bottom"] == self.model.get_history_detectors()[0]
             case _:
                 return True
 
@@ -268,7 +271,10 @@ class LCDController(CharLCD):
                     return True
                 return self.visible_dict["top"] == self.model.get_disabled_detectors()[-2]
             case 3:
-                return self.visible_dict["bottom"] == self.model.get_history_detectors()[-1]
+                if len(self.model.get_history_detectors()) == 0:
+                    return True
+                else:
+                    return self.visible_dict["bottom"] == self.model.get_history_detectors()[-1]
             case _:
                 return True
 
