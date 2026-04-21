@@ -11,7 +11,7 @@ from ModalWindow import ModalWindow
 
 
 class FBFSettingsItem(Gtk.Frame):
-    def __init__(self, label, action_name):
+    def __init__(self, label: str, action_name: str) -> None:
         super().__init__(hexpand=True,
                          vexpand=False,
                          margin_start=10,
@@ -39,7 +39,7 @@ class FBFSettingsItem(Gtk.Frame):
 
 class FBFWindow(ModalWindow):
     def __init__(self, parent, model, update_led_func):
-        super().__init__(parent, title="Einstellungen")
+        super().__init__(parent, title="FBF-Einstellungen")
         self.model = model
         self.update_leds = update_led_func
 
