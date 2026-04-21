@@ -591,7 +591,7 @@ class CircuitOps(Operation):
         """Add a circuit with the specified number to the model if it doesn't already exist. This allows to add visual
         representations of circuits that already exist in the model, but not in the view.
         If the circuit exists in the view, raise a ValueError"""
-        if not circuit_number in self.model.circuit_dict:
+        if not circuit_number in self.model.get_circuits():
             self.model.add_circuit(circuit_number)
         if circuit_number in self.app.window.circuit_dict:
             raise ValueError("Diese Meldergruppe existiert bereits")
@@ -614,7 +614,7 @@ class CircuitOps(Operation):
         # Reverse detectors so they are added correctly
         detectors.reverse()
 
-        if circuit_number in self.model.circuit_dict:
+        if circuit_number in self.model.get_circuits():
             self.model.delete_circuit(circuit_number)
         self.app.window.main_box.remove(circuit)
         del self.app.window.circuit_dict[circuit_number]
