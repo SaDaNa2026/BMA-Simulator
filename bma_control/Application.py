@@ -163,11 +163,23 @@ class App(Gtk.Application):
                                                  "und auf den Platinen alle Port Expander korrekt verbunden sind.\n\n"
                                                  "Die App wird im aktuellen Zustand nicht erwartungsgemäß funktionieren.")
 
+        try:
+            self._init_gpio()
+
+        except gpiozero.exc.BadPinFactory:
+            self.window.show_error_alert("GPIO-Initialisierung fehlgeschlagen",
+                                         "Stellen Sie sicher, dass die lgpio-Bibliothek installiert ist.\n"
+                                         "Dabei auch die manuell zu installierende Bibliothek in C beachten.\n"
+                                         "Dieser Fehler kann auch dadurch verursacht werden, dass diese Anwendung auf\n"
+                                         "Hardware ausgeführt wird, die keine GPIO-Funktionalität bietet.")
+
+    def _init_gpio(self) -> None:
+        """Set up all GPIO devices"""
         # Set up polling of the FSE
         if FSE_PIN is not None:
             self.fse_button = gpiozero.Button(FSE_PIN, pull_up=FSE_PULLUP)
             self.fse_button_last_state = False
-            GLib.timeout_add_seconds(1, self._poll_fse)
+            GLib.timeout_add(500, self._poll_fse)
 
         # Set up the relay for the flashing light
         if FLASH_RELAY_PIN is not None:
@@ -186,7 +198,8 @@ class App(Gtk.Application):
         if len(self.physical_detector_list) > 0:
             GLib.timeout_add_seconds(1, self._poll_physical_detectors)
 
-    def _init_i2c(self):
+    def _init_i2c(self) -> None:
+        """Set up all I2C devices and callbacks for the buttons"""
         # Set up LCD
         self.lcd = LCDController(self.model)
 
@@ -233,19 +246,21 @@ class App(Gtk.Application):
         self.led_fat.on("working")
         self.led_fbf.on("working")
 
-    def on_activate(self, app):
+    def on_activate(self, app) -> None:
+        """Present the main window on startup"""
         self.window.set_application(app)
         self.window.present()
 
-    def on_shutdown(self, app):
-        """Clean up the hardware interface when the application is closed."""
+    def on_shutdown(self, app) -> None:
+        """Clean up the hardware interface when the application is closed"""
         self.lcd.clear()
         self.led_fat.shutdown()
         self.led_fbf.shutdown()
         if FLASH_RELAY_PIN is not None:
             self.flash_relay.off()
 
-    def _poll_fse(self):
+    def _poll_fse(self) -> bool:
+        """Timeout function to check if the FSE has been activated"""
         if self.fse_button.is_active:
             if not self.fse_button_last_state:
                 self.fse_button_last_state = True
@@ -259,7 +274,8 @@ class App(Gtk.Application):
 
         return True
 
-    def _poll_physical_detectors(self):
+    def _poll_physical_detectors(self) -> bool:
+        """Timeout function to check if a physical detector has been activated"""
         for detector in self.physical_detector_list:
             if detector.is_active:
                 if not detector.last_state:
@@ -288,14 +304,14 @@ class App(Gtk.Application):
         if isinstance(redo_action, Gio.SimpleAction):
             redo_action.set_enabled(True)
 
-    def clear_undo(self):
+    def clear_undo(self) -> None:
         """Clear the undo stack"""
         self.undo_stack.clear()
         undo_action = self.lookup_action("undo")
         if isinstance(undo_action, Gio.SimpleAction):
             undo_action.set_enabled(False)
 
-    def clear_redo(self):
+    def clear_redo(self) -> None:
         """Clear the undo stack"""
         self.redo_stack.clear()
         redo_action = self.lookup_action("redo")
@@ -303,7 +319,7 @@ class App(Gtk.Application):
             redo_action.set_enabled(False)
 
     def on_circuit_pressed(self, gesture, n_press, x, y, circuit_number: int) -> None:
-        """Present a context menu on a circuit if edit mode is enabled."""
+        """Present a context menu on a circuit if edit mode is enabled"""
         # Don't respond if edit mode is disabled
         if not self.get_action_state("edit_mode").get_boolean():
             return
@@ -355,7 +371,7 @@ class App(Gtk.Application):
             edit_action.activate(GLib.Variant.new_string(f"{circuit_number}, {detector_number}"))
 
     def toggle_edit_mode(self, action, *args) -> None:
-        """Toggle between normal mode and edit mode."""
+        """Toggle between normal mode and edit mode"""
         # Update the action’s stored state
         current_state = action.get_state().get_boolean()
         new_state = not current_state
@@ -386,23 +402,24 @@ class App(Gtk.Application):
 
         return last_dir
 
-    def on_save_clicked(self, action, *args):
-        """Show a dialog to enter a commit message."""
+    def on_save_clicked(self, action, *args) -> None:
+        """Show a dialog to enter a commit message"""
         action_name = action.get_name()
         if action_name == "save_building":
             self.window.show_commit_message_window(self.on_commit_message_defined, "building")
         elif action_name == "save_scenario":
             self.window.show_commit_message_window(self.on_commit_message_defined, "scenario")
 
-    def on_commit_message_defined(self, message, file_type):
-        """Create a FileSaveDialog to save the building configuration."""
+    def on_commit_message_defined(self, message, file_type) -> None:
+        """Show a FileSaveDialog to save the building configuration"""
         file_path = self.last_file.get_path().split(".")[0]
         last_name = file_path.split("/")[-1]
         last_dir = self.get_last_dir()
 
         self.window.show_save_dialog(self.on_file_save_response, message, file_type, last_dir, last_name)
 
-    def on_file_save_response(self, dialog, result, message: str, file_type: str):
+    def on_file_save_response(self, dialog, result, message: str, file_type: str) -> None:
+        """Gather information about the target file and call the save function"""
         try:
             file = FileOperations.retrieve_save_file(dialog, result)
 
@@ -441,14 +458,14 @@ class App(Gtk.Application):
             self.window.show_error_alert("Keine Schreibrechte im gewählten Verzeichnis", str(e))
             return
 
-    def on_open_clicked(self, *args):
-        """Creates a FileOpenDialog."""
+    def on_open_clicked(self, *args) -> None:
+        """Show a FileOpenDialog"""
         last_dir = self.get_last_dir()
 
         self.window.show_open_dialog(self.on_file_open_response, last_dir)
 
-    def on_file_open_response(self, dialog, result):
-        """Callback for the file dialog. Retrieves the file object and calls the load function."""
+    def on_file_open_response(self, dialog, result) -> None:
+        """Callback for the file dialog. Retrieves the file object and calls the load function"""
         try:
             file = FileOperations.retrieve_open_file(dialog, result)
         except GLib.Error as e:
@@ -459,7 +476,9 @@ class App(Gtk.Application):
         self.last_file = file
         self.load_file(file)
 
-    def load_file(self, file):
+    def load_file(self, file) -> bool:
+        """Load the file. If it is a building file, apply the configuration. If it is a scenario, load the corresponding
+        building file first. Returns True if the operation was successful, otherwise False"""
         try:
             load_dict, file_type = FileOperations.open_file(file)
 
@@ -467,15 +486,15 @@ class App(Gtk.Application):
             self.window.show_error_alert("Fehler beim Laden der Datei",
                                          f"Invalides Dateiformat von {file.get_path()}\nStellen Sie sicher, "
                                          f"dass die Datei dem JSON-Standard entspricht.")
-            return True
+            return False
 
         except ValueError as e:
             self.window.show_error_alert("Fehler beim Laden der Datei", str(e))
-            return True
+            return False
 
         except PermissionError as e:
             self.window.show_error_alert("Keine Leserechte für die Datei", str(e))
-            return True
+            return False
 
         if file_type == "building":
             try:
@@ -493,13 +512,13 @@ class App(Gtk.Application):
                 print(f"KeyError: {e}")
                 self.window.show_error_alert(".building-Datei invalide", f"Key {e} fehlt oder ist falsch geschrieben.")
                 self.model.clear_data()
-                return True
+                return False
 
             except (ValueError, TypeError) as e:
                 print(f"ValueError/TypeError: {e}")
                 self.window.show_error_alert(".building-Datei invalide", str(e))
                 self.model.clear_data()
-                return True
+                return False
 
         else:
             try:
@@ -508,11 +527,15 @@ class App(Gtk.Application):
             except FileNotFoundError as e:
                 print(f"Error listing directory: {e}")
                 self.window.show_error_alert(f"Öffnen fehlgeschlagen", str(e))
-                return True
+                return False
 
-    def load_scenario_callback(self, building_file, scenario_load_dict):
-        building_error = self.load_file(building_file)
-        if building_error:
+        return True
+
+    def load_scenario_callback(self, building_file, scenario_load_dict: dict) -> None:
+        """Is called after the building configuration for the scenario has been determined. Loads that configuration
+        first, then the scenario. Only executes if the building configuration has successfully been loaded"""
+        loading_successful = self.load_file(building_file)
+        if not loading_successful:
             return
 
         try:
@@ -546,8 +569,8 @@ class App(Gtk.Application):
             self.lcd.add_alarm(detector)
         self.update_leds()
 
-    def on_rollback_clicked(self, *args):
-        """Present a list of all commits for the current directory."""
+    def on_rollback_clicked(self, *args) -> None:
+        """Present a list of all commits returned by the commit getter function"""
         directory = self.last_file.get_parent()
         commit_list = FileOperations.get_commits_for_dir(directory, Gio.File.new_for_path(DEFAULT_FILE_PATH))
 
@@ -559,10 +582,11 @@ class App(Gtk.Application):
 
         self.window.show_commit_list(directory.get_path(), commit_list, FileOperations.rollback)
 
-    def on_edit_fbf_clicked(self, *args):
+    def on_edit_fbf_clicked(self, *args) -> None:
+        """Show an FBFWindow"""
         self.window.show_fbf_window(self.model, self.update_leds)
 
-    def on_detector_switch_toggled(self, action, parameter, circuit_number: int, detector_number: int):
+    def on_detector_switch_toggled(self, action, parameter, circuit_number: int, detector_number: int) -> None:
         """Callback function for detector_switch. Set the alarm_status of the detector according to the position of
         the switch"""
         # Toggle alarm status
@@ -570,7 +594,7 @@ class App(Gtk.Application):
         alarm_status = parameter.get_boolean()
         self.detector_ops.set_alarm_status(circuit_number, detector_number, alarm_status)
 
-    def on_enable_detector_clicked(self, action, parameter):
+    def on_enable_detector_clicked(self, action, parameter) -> None:
         """Toggle the enabled state of the detector switch"""
         action.set_state(parameter)
         enabled = not parameter.get_boolean()
@@ -579,7 +603,7 @@ class App(Gtk.Application):
         detector_number = int(detector_string)
         self.detector_ops.set_enabled(circuit_number, detector_number, enabled)
 
-    def on_detector_in_history_clicked(self, action, parameter):
+    def on_detector_in_history_clicked(self, action, parameter) -> None:
         """Toggle the history state of the detector"""
         action.set_state(parameter)
         in_history = parameter.get_boolean()
@@ -588,21 +612,22 @@ class App(Gtk.Application):
         detector_number = int(detector_string)
         self.detector_ops.set_in_history(circuit_number, detector_number, in_history)
 
-    def on_edit_mode_clicked(self, action, *args):
+    def on_edit_mode_clicked(self, action, *args) -> None:
+        """Toggle edit mode"""
         self.toggle_edit_mode(action, *args)
 
-    def on_add_circuit_clicked(self, *args):
-        """Create a DefineCircuitWindow."""
+    def on_add_circuit_clicked(self, *args) -> None:
+        """SHow a DefineCircuitWindow."""
         self.window.show_define_circuit_window(self.circuit_ops.add)
 
-    def on_add_detector_clicked(self, action, parameter, *args):
-        """Creates a DefineDetectorWindow."""
+    def on_add_detector_clicked(self, action, parameter, *args) -> None:
+        """Show a DefineDetectorWindow"""
         # Convert the action parameter to int
         circuit_number = parameter.get_int32()
         self.window.show_define_detector_window(circuit_number, self.detector_ops.add)
 
-    def on_edit_detector_clicked(self, action, parameter, *args):
-        """Create an EditDetectorWindow."""
+    def on_edit_detector_clicked(self, action, parameter, *args) -> None:
+        """Show an EditDetectorWindow"""
         # Convert parameters to int
         parameter_string = parameter.get_string()
         parameter_list = parameter_string.split(", ")
@@ -613,18 +638,18 @@ class App(Gtk.Application):
         self.window.show_edit_detector_window(circuit_number, detector_number, self.detector_ops.edit,
                                               current_description)
 
-    def on_edit_building_clicked(self, *args):
-        """Create an EditBuildingWindow."""
+    def on_edit_building_clicked(self, *args) -> None:
+        """Show an EditBuildingWindow"""
         current_description = self.model.get_building_description()
         self.window.show_edit_building_window(self.building_ops.edit, current_description)
 
-    def on_delete_circuit_clicked(self, action, parameter, *args):
-        """Convert parameter to int and call the delete_circuit method."""
+    def on_delete_circuit_clicked(self, action, parameter, *args) -> None:
+        """Convert parameter to int and call the delete_circuit method"""
         circuit_number = parameter.get_int32()
         self.circuit_ops.delete(circuit_number)
 
-    def on_delete_detector_clicked(self, action, parameter, *args):
-        """Convert parameters to int and delete the specified detector."""
+    def on_delete_detector_clicked(self, action, parameter, *args) -> None:
+        """Convert parameters to int and delete the specified detector"""
         parameter_string = parameter.get_string()
         parameter_list = parameter_string.split(", ")
         circuit_number = int(parameter_list[0])
@@ -632,28 +657,28 @@ class App(Gtk.Application):
 
         self.detector_ops.delete(circuit_number, detector_number)
 
-    def on_previous_message_clicked(self, *args):
+    def on_previous_message_clicked(self, *args) -> None:
         self.lcd.previous_message()
         self.update_leds()
 
-    def on_next_message_clicked(self, *args):
+    def on_next_message_clicked(self, *args) -> None:
         self.lcd.next_message()
         self.update_leds()
 
-    def on_view_level_clicked(self, *args):
+    def on_view_level_clicked(self, *args) -> None:
         self.lcd.toggle_view_level()
         self.update_leds()
 
-    def on_beeper_off_clicked(self):
+    def on_beeper_off_clicked(self) -> None:
         """Turns off the beeper until a new alarm is added"""
         self.model.set_beeper_off(True)
         self.update_leds()
 
-    def on_clear_alarms_clicked(self, *args):
+    def on_clear_alarms_clicked(self, *args) -> None:
         """Schedule alarms to be cleared after a short delay"""
         GLib.timeout_add_seconds(3, self.clear_alarms)
 
-    def clear_alarms(self):
+    def clear_alarms(self) -> None:
         """Clear all alarms"""
         self.is_reset = True
 
@@ -688,13 +713,13 @@ class App(Gtk.Application):
         self.lcd.reset()
         self.update_leds()
 
-    def on_clear_disabled_clicked(self, *args):
+    def on_clear_disabled_clicked(self, *args) -> None:
         self.detector_ops.clear_disabled()
 
-    def on_clear_history_clicked(self, *args):
+    def on_clear_history_clicked(self, *args) -> None:
         self.detector_ops.clear_history()
 
-    def on_undo_clicked(self, *args):
+    def on_undo_clicked(self, *args) -> None:
         """Pop the top entry of undo_stack and execute it"""
         if len(self.undo_stack) > 0:
             operation_tuple = self.undo_stack.pop(-1)
@@ -708,7 +733,7 @@ class App(Gtk.Application):
             if isinstance(undo_action, Gio.SimpleAction):
                 undo_action.set_enabled(False)
 
-    def on_redo_clicked(self, *args):
+    def on_redo_clicked(self, *args) -> None:
         """Pop the top entry of redo_stack and execute it"""
         if len(self.redo_stack) > 0:
             operation_tuple = self.redo_stack.pop(-1)
@@ -722,63 +747,64 @@ class App(Gtk.Application):
             if isinstance(redo_action, Gio.SimpleAction):
                 redo_action.set_enabled(False)
 
-    def on_help_clicked(self, *args):
-        """Open HELP.md in Okular"""
+    def on_help_clicked(self, *args) -> None:
+        """Open HELP.md in the specified Markdown viewer"""
         dir_path = os.path.abspath(os.path.dirname(sys.argv[0]))
         readme_path = dir_path + "/HELP.md"
         subprocess.Popen([MARKDOWN_VIEWER, readme_path],
                          stdout=subprocess.DEVNULL,
                          stderr=subprocess.DEVNULL)
 
-    def on_about_clicked(self, *args):
+    def on_about_clicked(self, *args) -> None:
         """Open the about window"""
         self.window.show_about_window()
 
-    def on_settings_clicked(self, *args):
+    def on_settings_clicked(self, *args) -> None:
         """Open the settings window"""
         self.window.show_settings_window(self.model, self.lcd.refresh, self.update_leds, self.print_detector_state)
 
-    def on_acoustic_signals_off_toggled(self, state):
+    def on_acoustic_signals_off_toggled(self, state) -> None:
         """Update acoustic_signals_off"""
         self.acoustic_signals_off_switch = state
         self.update_leds()
 
-    def on_ue_off_toggled(self, state):
+    def on_ue_off_toggled(self, state) -> None:
         """Update ue_off"""
         self.ue_off_switch = state
         self.update_leds()
 
-    def on_fire_controls_off_toggled(self, state):
+    def on_fire_controls_off_toggled(self, state) -> None:
         """Update fire_controls_off"""
         self.fire_controls_off_switch = state
         self.update_leds()
 
-    def on_ue_test_clicked(self, *args):
-        """Test the transmission unit (UE). Currently a placeholder."""
+    def on_ue_test_clicked(self, *args) -> None:
+        """Turns on 'ÜE-Test' if 'ÜE-ab' is not active"""
         if not (self.model.get_ue_off() or self.ue_off_switch):
             self.led_fbf.on("ue_triggered")
             GLib.timeout_add_seconds(10, self.update_leds)
 
-    def on_history_pressed(self):
+    def on_history_pressed(self) -> None:
         """Display the history screen"""
         self.lcd.show_history()
         self.update_leds()
 
-    def on_self_test_pressed(self):
+    def on_self_test_pressed(self) -> None:
         """Turn on all LEDs and all pixels on the LCD"""
         self.lcd.test()
         self.led_fat.test()
         self.led_fbf.test()
         GLib.timeout_add(5000, self.stop_test)
 
-    def stop_test(self):
+    def stop_test(self) -> None:
+        """Reset LED and LCD state after the test"""
         self.lcd.reset()
         self.led_fat.shutdown()
         self.led_fbf.shutdown()
         self.update_leds()
 
-    def print_detector_state(self):
-        """Print the active and disabled detectors to the console."""
+    def print_detector_state(self) -> None:
+        """Print the active and disabled detectors to the consoles"""
         active_detector_list = self.model.get_active_detectors()
         disabled_detector_list = self.model.get_disabled_detectors()
         history_detector_list = self.model.get_history_detectors()
@@ -792,6 +818,7 @@ class App(Gtk.Application):
         self.window.history_console.buffer.set_text(history_detector_text)
 
     def generate_text(self, detector_list: list) -> str:
+        """Generate format strings to display detector information in the respective console"""
         detector_text = ""
         for reference in detector_list:
             circuit_number = reference[0]
@@ -806,15 +833,15 @@ class App(Gtk.Application):
 
         return detector_text
 
-    def delete_all(self):
+    def delete_all(self) -> None:
         """Removes all circuits and detectors"""
         for circuit_number in self.window.circuit_dict:
             circuit = self.window.circuit_dict[circuit_number]
             self.window.main_box.remove(circuit)
             del circuit
 
-    def update_leds(self):
-        """Set the LED states according to the active detectors and contents of the LCD."""
+    def update_leds(self) -> None:
+        """Set the LED states according to the active detectors and contents of the LCD"""
         self.led_fat.on("working")
         self.led_fbf.on("working")
 
