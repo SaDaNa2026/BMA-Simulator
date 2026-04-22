@@ -169,8 +169,8 @@ class App(Gtk.Application):
         except gpiozero.exc.BadPinFactory:
             self.window.show_error_alert("GPIO-Initialisierung fehlgeschlagen",
                                          "Stellen Sie sicher, dass die lgpio-Bibliothek installiert ist.\n"
-                                         "Dabei auch die manuell zu installierende Bibliothek in C beachten.\n"
-                                         "Dieser Fehler kann auch dadurch verursacht werden, dass diese Anwendung auf\n"
+                                         "Dabei auch die manuell zu installierende Bibliothek in C beachten.\n\n"
+                                         "Dieser Fehler kann auch dadurch verursacht werden, dass diese Anwendung auf"
                                          "Hardware ausgeführt wird, die keine GPIO-Funktionalität bietet.")
 
     def _init_gpio(self) -> None:
