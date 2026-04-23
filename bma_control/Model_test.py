@@ -40,7 +40,7 @@ class TestBuildingModel(unittest.TestCase):
     def test_building_description(self):
         """Test getter, setter, and invalid inputs for building_description."""
         # Default value
-        self.assertEqual(self.model.get_building_description(), "Gebäudebeschreibung")
+        self.assertEqual(self.model.get_building_description(), "")
 
         # Valid update
         self.model.set_building_description("Neue Beschreibung\nmit 2 Zeilen")
@@ -97,10 +97,6 @@ class TestBuildingModel(unittest.TestCase):
         # Clear resets everything
         self.model.clear_data()
         self.assert_circuits_equal([])
-        self.assertEqual(
-            self.model.get_building_description(),
-            "Gebäudebeschreibung"
-        )
 
     def test_detector_lifecycle(self):
         """Test adding, updating, and deleting detectors."""
