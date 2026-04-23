@@ -118,9 +118,9 @@ class MainWindow(Gtk.ApplicationWindow):
         self.insert_action_group("hidden_actions", hidden_action_group)
         self.insert_action_group("detector", detector_action_group)
 
-    def show_fbf_window(self, model, update_led_func):
+    def show_fbf_window(self, model, app):
         """Show the settings window"""
-        fbf_window = FBFWindow(self, model, update_led_func)
+        fbf_window = FBFWindow(self, model, app)
         fbf_window.present()
 
     def show_open_dialog(self, open_response_callback, last_dir):

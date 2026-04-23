@@ -39,13 +39,19 @@ DEFAULT_BUILDING_DESCRIPTION = "BMA-Simulator\nLFS-BW"
 # Set a pin that is needed to be put in to activate potentially destructive actions (saving and rolling back)
 UNLOCK_CODE: str | None = "124440"
 
-# Define physical detectors that are connected to the Raspberry Pi's GPIO pins directly. They will not be visible
+# Define permanent detectors that should always be available and never change their description. This can be used
+#   for physical detectors connected to the GPIO pins or hidden detectors for internal use. They will not be visible
 #   in the GUI but represented in the model; so the user will be unable to add detectors with the same number as
-#   physical ones defined here. If there are no physical detectors assign PHYSICAL_DETECTORS = ()
-# Format: ((GPIO_pin: int, pullup: bool, (circuit_number: int, detector_number: int, detector_description: str)))
-# CAUTION: The model will not check this list, so any value can be assigned (especially circuit or detector number == 0)
+#   permanent ones defined here.
+#   If there are no permanent detectors assign PERMANENT_DETECTORS = ()
+#   If you want to add a hidden detector that has no physical representation, add it here
+#   and set GPIO_pin and pullup to None
+# Format: ((GPIO_pin: int | None, pullup: bool | None, (circuit_number: int, detector_number: int, detector_description: str)))
+# CAUTION: The model does not check this list, so any value can be assigned (especially circuit or detector number == 0).
 #          Be aware of the possible unexpected results of assigning to illegal values.
-PHYSICAL_DETECTORS: tuple = ((22, True, (1, 1, "Druckknopfmelder FIZ")), (19, True, (0, 0, "Freischaltelement")))
+PERMANENT_DETECTORS: tuple = ((22, True, (1, 1, "Druckknopfmelder FIZ")),
+                              (19, True, (0, 0, "Freischaltelement")),
+                              (None, None, (0, 1, "Löschanlage")))
 
 # Set the GPIO pin that the relay for the flashing light (Blitzleuchte) is connected to. None deactivates the functionality
 FLASH_RELAY_PIN: int|None = 26
@@ -58,7 +64,7 @@ class App(Gtk.Application):
         self.connect('activate', self.on_activate)
         self.connect('shutdown', self.on_shutdown)
 
-        permanent_detectors = [detector[2] for detector in PHYSICAL_DETECTORS]
+        permanent_detectors = [detector[2] for detector in PERMANENT_DETECTORS]
         self.model = BuildingModel(building_description=DEFAULT_BUILDING_DESCRIPTION, permanent_detectors=permanent_detectors)
 
         # Create a placeholder to memorize opened files
@@ -163,13 +169,14 @@ class App(Gtk.Application):
 
         # Set up physical detectors
         self.physical_detector_list = []
-        for detector_tuple in PHYSICAL_DETECTORS:
-            gpio_pin = detector_tuple[0]
-            pull_up = detector_tuple[1]
+        for detector_tuple in PERMANENT_DETECTORS:
+            gpio_pin: int | None = detector_tuple[0]
+            pull_up: bool | None  = detector_tuple[1]
             circuit_number = detector_tuple[2][0]
             detector_number = detector_tuple[2][1]
-            detector = PhysicalDetector(gpio_pin, pull_up, circuit_number, detector_number)
-            self.physical_detector_list.append(detector)
+            if gpio_pin is not None and pull_up is not None:
+                detector = PhysicalDetector(gpio_pin, pull_up, circuit_number, detector_number)
+                self.physical_detector_list.append(detector)
 
         if len(self.physical_detector_list) > 0:
             GLib.timeout_add_seconds(1, self._poll_physical_detectors)
@@ -571,7 +578,7 @@ class App(Gtk.Application):
 
     def on_edit_fbf_clicked(self, *args) -> None:
         """Show an FBFWindow"""
-        self.window.show_fbf_window(self.model, self.update_leds)
+        self.window.show_fbf_window(self.model, self)
 
     def on_detector_switch_toggled(self, action, parameter, circuit_number: int, detector_number: int) -> None:
         """Callback function for detector_switch. Set the alarm_status of the detector according to the position of

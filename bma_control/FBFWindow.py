@@ -38,10 +38,10 @@ class FBFSettingsItem(Gtk.Frame):
 
 
 class FBFWindow(ModalWindow):
-    def __init__(self, parent, model, update_led_func):
+    def __init__(self, parent, model, app):
         super().__init__(parent, title="FBF-Einstellungen")
         self.model = model
-        self.update_leds = update_led_func
+        self.app = app
 
         action_entries = [("extinguisher_triggered", None, None, "true" if self.model.get_extinguisher_triggered() else "false", self.on_extinguisher_triggered_toggled),
                           ("acoustic_signals_off", None, None, "true" if self.model.get_acoustic_signals_off() else "false", self.on_acoustic_signals_off_toggled),
@@ -68,22 +68,26 @@ class FBFWindow(ModalWindow):
         action.set_state(parameter)
         state = parameter.get_boolean()
         self.model.set_extinguisher_triggered(state)
-        self.update_leds()
+        # Activate the hidden detector belonging to the extinguishers
+        self.model.set_detector_alarm_status(0, 1, state)
+        self.app.update_leds()
+        self.app.print_detector_state()
+        self.app.lcd.reset()
 
     def on_acoustic_signals_off_toggled(self, action, parameter, *args):
         action.set_state(parameter)
         state = parameter.get_boolean()
         self.model.set_acoustic_signals_off(state)
-        self.update_leds()
+        self.app.update_leds()
 
     def on_ue_off_toggled(self, action, parameter, *args):
         action.set_state(parameter)
         state = parameter.get_boolean()
         self.model.set_ue_off(state)
-        self.update_leds()
+        self.app.update_leds()
 
     def on_fire_controls_off_toggled(self, action, parameter, *args):
         action.set_state(parameter)
         state = parameter.get_boolean()
         self.model.set_fire_controls_off(state)
-        self.update_leds()
+        self.app.update_leds()
