@@ -166,8 +166,8 @@ class MainWindow(Gtk.ApplicationWindow):
         self.about_window = AboutWindow(self)
         self.about_window.show()
 
-    def show_code_input_window(self, confirm_callback, max_length, unlock_action):
-        self.code_input_window = CodeInputWindow(confirm_callback, self, unlock_action, max_length)
+    def show_code_input_window(self, confirm_callback, unlock_action):
+        self.code_input_window = CodeInputWindow(confirm_callback, self, unlock_action)
         self.code_input_window.present()
 
     def show_settings_window(self, model, refresh_lcd, update_leds, print_detector_state):

@@ -122,13 +122,14 @@ class EditBuildingWindow(EditWindow):
 
 
 class CodeInputWindow(EditWindow):
-    def __init__(self, confirm_callback, parent, unlock_action, max_length):
+    def __init__(self, confirm_callback, parent, unlock_action):
         """Window for putting in a pin. confirm_callback should be the function that checks the pin and starts the
         protected functionality. It should return True to signal success and False to signal a wrong pin."""
         super().__init__(lambda button, *args: self.handle_edit(confirm_callback, unlock_action),
                          parent,
-                         "PIN eingeben",
-                         max_length=max_length)
+                         "PIN eingeben")
+
+        self.description_box.description_entry.set_visibility(False)
 
     def handle_edit(self, confirm_callback, unlock_action):
         """Get the pin entry and pass it to confirm_callback.

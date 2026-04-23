@@ -785,7 +785,7 @@ class App(Gtk.Application):
             if UNLOCK_CODE is None:
                 self.confirm_unlock(action, None)
             else:
-                self.window.show_code_input_window(self.confirm_unlock, len(UNLOCK_CODE), action)
+                self.window.show_code_input_window(self.confirm_unlock, action)
 
     def confirm_unlock(self, unlock_action, code: str | None) -> bool:
         """Check if the code is correct. If it is, unlock actions and return true, else false"""
