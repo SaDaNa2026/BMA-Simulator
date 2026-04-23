@@ -12,7 +12,7 @@ from DescriptionBox import DescriptionBox
 
 class EditWindow(ModalWindow):
     """Base class for a window that lets the user edit a description."""
-    def __init__(self, edit_callback, parent, title, default_text = "", max_length=None, **kwargs):
+    def __init__(self, edit_callback, parent, title, default_text: str="", max_length: int=None, description_box_label: str="Beschreibung", **kwargs):
         super().__init__(parent, default_width=350, default_height= 100, title=title, **kwargs)
 
         self.main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,
@@ -23,7 +23,7 @@ class EditWindow(ModalWindow):
                                 spacing=10)
         self.set_child(self.main_box)
 
-        self.description_box = DescriptionBox(default_text, max_length)
+        self.description_box = DescriptionBox(default_text, max_length, description_box_label)
         self.main_box.append(self.description_box)
 
         # Buttons to cancel or confirm
@@ -44,7 +44,7 @@ class EditWindow(ModalWindow):
         self.warning_label = Gtk.Label()
 
     def get_description(self):
-        # Remove old warnings
+        """Remove old warnings and parse the description from description_box"""
         if self.warning_label.get_parent():
             self.main_box.remove(self.warning_label)
 
@@ -54,7 +54,7 @@ class EditWindow(ModalWindow):
 
 
 class EditDetectorWindow(EditWindow):
-    """Window for editing the description of a detector."""
+    """Window for editing the description of a detector"""
     def __init__(self, circuit_number, detector_number, current_description, edit_detector_callback, parent, **kwargs):
         self.circuit_number = circuit_number
         self.detector_number = detector_number
@@ -77,15 +77,39 @@ class EditDetectorWindow(EditWindow):
 
 
 class EditBuildingWindow(EditWindow):
-    """Window for editing the building description."""
+    """Window for editing the building description"""
     def __init__(self, current_description, edit_building_callback, parent, **kwargs):
         title = f"Gebäudebeschreibung bearbeiten"
+
+        # Split the description into lines 0 and 1
+        line_list: list = current_description.split("\n")
+        line_0: str = line_list[0]
+        if len(line_list) > 1:
+            line_1: str = line_list[1]
+        else:
+            line_1: str = ""
+
         super().__init__(lambda button, *args: self.handle_edit(edit_building_callback),
                          parent,
                          title,
-                         current_description,
+                         line_0,
                          max_length=20,
+                         description_box_label="Zeile 1:",
                          **kwargs)
+
+        # Add a second description box for the second line of the building description
+        self.description_box_1 = DescriptionBox(line_1, 20, label="Zeile 2:")
+        self.main_box.insert_child_after(self.description_box_1, self.description_box)
+
+    def get_description(self):
+        """Remove old warnings and parse the description from the description boxes"""
+        if self.warning_label.get_parent():
+            self.main_box.remove(self.warning_label)
+
+        line_0: str = self.description_box.get_description()
+        line_1: str = self.description_box_1.get_description()
+        description: str = line_0 + "\n" + line_1
+        return description
 
     def handle_edit(self, edit_building_callback):
         description = self.get_description()
@@ -94,7 +118,7 @@ class EditBuildingWindow(EditWindow):
             self.destroy()
         except ValueError as e:
             self.warning_label.set_markup(f"<span foreground='red'>{e}</span>")
-            self.main_box.insert_child_after(self.warning_label, self.description_box)
+            self.main_box.insert_child_after(self.warning_label, self.description_box_1)
 
 
 class EditCommitMessageWindow(ModalWindow):

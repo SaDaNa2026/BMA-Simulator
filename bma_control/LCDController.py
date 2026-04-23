@@ -84,14 +84,23 @@ class LCDController(CharLCD):
         return output_string
 
     def _write_building_description(self):
-        """Write the building description to the LCD."""
+        """Write the building description to the LCD with the text being centered"""
         self.clear()
-        self.cursor_pos = (0, 0)
-        string_to_write = self._substitute_special_chars(self.model.get_building_description())
-        self.write_string(string_to_write)
+        substituted_string = self._substitute_special_chars(self.model.get_building_description())
+
+        # Split the description into lines 0 and 1
+        line_list: list = substituted_string.split("\n")
+        # Start at line 1
+        line_number = 1
+        for line in line_list:
+            # Center the text
+            cursor_offset = round((20 - len(line)) / 2)
+            self.cursor_pos = (1, cursor_offset)
+            self.write_string(line)
+            line_number += 1
 
     def _write_message(self, detector: tuple, position, message_type: str) ->None:
-        """Write an alarm to the LCD at the specified position."""
+        """Write an alarm to the LCD at the specified position"""
         circuit_number = detector[0]
         detector_number = detector[1]
         detector_description = self._substitute_special_chars(self.model.get_detector_description(circuit_number, detector_number))
@@ -120,7 +129,7 @@ class LCDController(CharLCD):
         self.write_string(f"\r\n{detector_description}")
 
     def add_alarm(self, detector: tuple):
-        """Add a new alarm."""
+        """Add a new alarm"""
         if not isinstance(detector, tuple):
             raise TypeError("detector must be a tuple")
         if detector not in self.model.get_active_detectors():
@@ -165,7 +174,7 @@ class LCDController(CharLCD):
         self.refresh()
 
     def reset(self):
-        """Resets the LCD to display the first and last alarm, if available. Displays the building description otherwise."""
+        """Resets the LCD to display the first and last alarm, if available. Displays the building description otherwise"""
         self.visible_dict.clear()
         self.clear()
         active_detector_list = self.model.get_active_detectors()

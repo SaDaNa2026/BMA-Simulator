@@ -33,6 +33,9 @@ DEFAULT_FILE_PATH = "/home/lfs-bma/BMA-Dateien"
 # Set the application used to view HELP.md
 MARKDOWN_VIEWER: str = "okular"
 
+# Set the default building description
+DEFAULT_BUILDING_DESCRIPTION = "BMA-Simulator\nLFS-BW"
+
 # Set the pin that the switch of the Freischaltelement (FSE) is connected to. None deactivates the functionality
 FSE_PIN: int|None = 19
 # Specify if an internal pullup should be activated for the FSE switch.
@@ -59,7 +62,7 @@ class App(Gtk.Application):
         self.connect('shutdown', self.on_shutdown)
 
         permanent_detectors = [detector[2] for detector in PHYSICAL_DETECTORS]
-        self.model = BuildingModel(permanent_detectors=permanent_detectors)
+        self.model = BuildingModel(building_description=DEFAULT_BUILDING_DESCRIPTION, permanent_detectors=permanent_detectors)
 
         # Create a placeholder to memorize opened files
         self.last_file = Gio.File.new_for_path(DEFAULT_FILE_PATH)

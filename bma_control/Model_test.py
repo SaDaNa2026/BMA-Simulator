@@ -43,8 +43,8 @@ class TestBuildingModel(unittest.TestCase):
         self.assertEqual(self.model.get_building_description(), "Gebäudebeschreibung")
 
         # Valid update
-        self.model.set_building_description("Neue Beschreibung")
-        self.assertEqual(self.model.get_building_description(), "Neue Beschreibung")
+        self.model.set_building_description("Neue Beschreibung\nmit 2 Zeilen")
+        self.assertEqual(self.model.get_building_description(), "Neue Beschreibung\nmit 2 Zeilen")
 
         # Type validation
         with self.assertRaises(TypeError):
@@ -52,9 +52,11 @@ class TestBuildingModel(unittest.TestCase):
         with self.assertRaises(TypeError):
             self.model.set_building_description(True)
 
-        # circuit_dict must be empty on init
+        # Length validation
         with self.assertRaises(ValueError):
-            BuildingModel(circuit_dict={1: "a"})
+            self.model.set_building_description("Viel zu lange Zeile 1 vorhanden")
+        with self.assertRaises(ValueError):
+            self.model.set_building_description("Beschreibung\nund Zeile zwei ist zu lang")
 
     def test_circuit_lifecycle(self):
         """Test adding, listing, deleting, and clearing circuits."""

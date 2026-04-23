@@ -60,7 +60,7 @@ class Circuit:
 
 @dataclass
 class BuildingModel:
-    building_description: str = field(default="BMA-Simulator")
+    building_description: str = field(default_factory=str)
     circuit_dict: Dict[int, Circuit] = field(default_factory=dict)
     active_detector_list: List[tuple] = field(default_factory=list)
     disabled_detector_list: List[tuple] = field(default_factory=list)
@@ -114,7 +114,7 @@ class BuildingModel:
 
     def clear_data(self):
         """Resets to init values."""
-        self.set_building_description("Gebäudebeschreibung")
+        self.set_building_description("")
         self.circuit_dict.clear()
         self.active_detector_list.clear()
         self.disabled_detector_list.clear()
@@ -129,8 +129,17 @@ class BuildingModel:
     def set_building_description(self, description: str) -> None:
         if not isinstance(description, str):
             raise TypeError("building_description must be a string")
-        if len(description) > 20:
-            raise ValueError("building_description must be a maximum of 20 characters")
+
+        # Split the description into lines 0 and 1
+        line_list: list = description.split("\n")
+        line_0: str = line_list[0]
+        if len(line_list) > 1:
+            line_1: str = line_list[1]
+        else:
+            line_1: str = ""
+
+        if len(line_0) > 20 or len(line_1) > 20:
+            raise ValueError("Each line of building_description must be a maximum of 20 characters")
         self.building_description = description
 
     def get_building_description(self) -> str:
