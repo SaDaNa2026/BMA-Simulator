@@ -157,25 +157,6 @@ class App(Gtk.Application):
                                  hidden_action_group=self.hidden_action_group,
                                  detector_action_group=self.detector_action_group)
 
-        # Try to connect to the port expanders
-        try:
-            self._init_i2c()
-
-        except OSError as e:
-            self.window.show_error_alert(str(e), "Stellen Sie sicher, dass die Platinen richtig angeschlossen\n"
-                                                 "und auf den Platinen alle Port Expander korrekt verbunden sind.\n\n"
-                                                 "Die App wird im aktuellen Zustand nicht erwartungsgemäß funktionieren.")
-
-        try:
-            self._init_gpio()
-
-        except gpiozero.exc.BadPinFactory:
-            self.window.show_error_alert("GPIO-Initialisierung fehlgeschlagen",
-                                         "Stellen Sie sicher, dass die lgpio-Bibliothek installiert ist.\n"
-                                         "Dabei auch die manuell zu installierende Bibliothek in C beachten.\n\n"
-                                         "Dieser Fehler kann auch dadurch verursacht werden, dass diese Anwendung auf"
-                                         "Hardware ausgeführt wird, die keine GPIO-Funktionalität bietet.")
-
     def _init_gpio(self) -> None:
         """Set up all GPIO devices"""
         # Set up polling of the FSE
@@ -250,9 +231,27 @@ class App(Gtk.Application):
         self.led_fbf.on("working")
 
     def on_activate(self, app) -> None:
-        """Present the main window on startup"""
+        """Present the main window on startup. Then try to connect to the hardware"""
         self.window.set_application(app)
         self.window.present()
+
+        # Initialize GPIO and serial devices
+        try:
+            self._init_gpio()
+
+            self._init_i2c()
+
+        except OSError as e:
+            self.window.show_error_alert(str(e), "Stellen Sie sicher, dass die Platinen richtig angeschlossen\n"
+                                                 "und auf den Platinen alle Port Expander korrekt verbunden sind.\n\n"
+                                                 "Die App wird im aktuellen Zustand nicht erwartungsgemäß funktionieren.")
+
+        except gpiozero.exc.BadPinFactory:
+            self.window.show_error_alert("GPIO-Initialisierung fehlgeschlagen",
+                                         "Stellen Sie sicher, dass die lgpio-Bibliothek installiert ist.\n"
+                                         "Dabei auch die manuell zu installierende Bibliothek in C beachten.\n\n"
+                                         "Dieser Fehler kann auch dadurch verursacht werden, dass diese Anwendung auf "
+                                         "Hardware ausgeführt wird, die keine GPIO-Funktionalität bietet.")
 
     def on_shutdown(self, app) -> None:
         """Clean up the hardware interface when the application is closed"""
