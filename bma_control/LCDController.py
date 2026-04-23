@@ -95,7 +95,7 @@ class LCDController(CharLCD):
         for line in line_list:
             # Center the text
             cursor_offset = round((20 - len(line)) / 2)
-            self.cursor_pos = (1, cursor_offset)
+            self.cursor_pos = (line_number, cursor_offset)
             self.write_string(line)
             line_number += 1
 
