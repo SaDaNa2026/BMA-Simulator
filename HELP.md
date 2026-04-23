@@ -21,8 +21,9 @@ und welche LEDs am FBF aktiv sind.
   * [Auslösen von Meldern](#auslösen-von-meldern)
   * [Dateistruktur](#dateistruktur)
     * [Öffnen von Dateien](#öffnen-von-dateien)
-    * [Speichern](#speichern)
-    * [Dateistand wiederherstellen](#dateistand-wiederherstellen)
+    * [Geschützte Dateioperationen](#geschützte-dateioperationen)
+      * [Speichern](#speichern)
+      * [Dateistand wiederherstellen](#dateistand-wiederherstellen)
   * [Bearbeitungsmodus](#bearbeitungsmodus)
     * [Button "Bearbeiten"](#button-bearbeiten)
     * [Rechtsklick auf Meldergruppen-Nummer](#rechtsklick-auf-meldergruppen-nummer)
@@ -41,6 +42,8 @@ Er lässt sich nur durch physischen Knopfdruck und nicht über die grafische Ben
 Daher wird er auch nicht in der zentralen Arbeitsfläche angezeigt. 
 Im Auslösefall erscheint die entsprechende Meldung aber in der Fußleiste und natürlich auf dem FAT.
 Es ist nicht möglich, digitale Melder mit derselben Meldernummer (hier: 1/1) wie physische Melder anzulegen.
+
+Das Freischaltelement verhält sich wie ein physischer Melder, nur hat es die Meldernummer 0/0.
 
 # Bedienung
 
@@ -97,7 +100,14 @@ Zum Laden von vorkonfigurierten Gebäuden oder Szenarien kann die entsprechende 
 unter dem Button "Datei" ausgewählt werden oder mit dem Tastenkürzel Strg+O aktiviert werden. 
 Das Laden eines Szenarios lädt automatisch die entsprechende Gebäudekonfiguration.
 
-### Speichern
+### Geschützte Dateioperationen
+
+Um Chaos in der Dateistruktur oder sogar Datenverlust durch Fehlbedienung zu vermeiden, sind die Funktionen 
+zum Speichern und Wiederherstellen des Dateistands mit einer PIN gesichert. 
+Über den Button "Speicherfunktionen freischalten" im Hauptmenü können sie aktiviert werden. 
+Dann stehen folgende Funktionen zur Verfügung:
+
+#### Speichern
 
 Beim Speichern ist zwischen Gebäudekonfiguration (Strg+G) und Szenario (Strg+S) zu unterscheiden. 
 Beide Optionen sind auch unter dem Button "Datei" verfügbar. 
@@ -111,7 +121,7 @@ dass eine gleichnamige Datei bereits existiert, mit "Ersetzen" zu bestätigen.
 Die Dateiendung ist bereits entsprechend der vorherigen Auswahl korrekt eingestellt; 
 manuelle Veränderungen der Dateiendung lassen den Speichervorgang fehlschlagen.
 
-### Dateistand wiederherstellen
+#### Dateistand wiederherstellen
 
 Diese Option findet sich unter dem Button "Datei". Falls ungewollte Änderungen 
 an Dateien gespeichert wurden oder es anderweitig notwendig ist, lässt sich somit ein Ordner auf einen 

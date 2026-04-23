@@ -12,7 +12,7 @@ from DescriptionBox import DescriptionBox
 
 class EditWindow(ModalWindow):
     """Base class for a window that lets the user edit a description."""
-    def __init__(self, edit_callback, parent, title, default_text: str="", max_length: int=None, description_box_label: str="Beschreibung", **kwargs):
+    def __init__(self, edit_callback, parent, title, default_text: str="", max_length: int | None=None, description_box_label: str="Beschreibung", **kwargs):
         super().__init__(parent, default_width=350, default_height= 100, title=title, **kwargs)
 
         self.main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,
@@ -119,6 +119,27 @@ class EditBuildingWindow(EditWindow):
         except ValueError as e:
             self.warning_label.set_markup(f"<span foreground='red'>{e}</span>")
             self.main_box.insert_child_after(self.warning_label, self.description_box_1)
+
+
+class CodeInputWindow(EditWindow):
+    def __init__(self, confirm_callback, parent, unlock_action, max_length):
+        """Window for putting in a pin. confirm_callback should be the function that checks the pin and starts the
+        protected functionality. It should return True to signal success and False to signal a wrong pin."""
+        super().__init__(lambda button, *args: self.handle_edit(confirm_callback, unlock_action),
+                         parent,
+                         "PIN eingeben",
+                         max_length=max_length)
+
+    def handle_edit(self, confirm_callback, unlock_action):
+        """Get the pin entry and pass it to confirm_callback.
+        Destroy self if the pin was correct, display an error otherwise"""
+        code = self.get_description()
+
+        if confirm_callback(unlock_action, code):
+            self.destroy()
+        else:
+            self.warning_label.set_markup("<span foreground='red'>Falsche PIN</span>")
+            self.main_box.insert_child_after(self.warning_label, self.description_box)
 
 
 class EditCommitMessageWindow(ModalWindow):

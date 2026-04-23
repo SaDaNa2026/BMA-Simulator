@@ -16,6 +16,8 @@ class PrimaryMenu(Gio.Menu):
         self.append_item(help_item)
         about_item = Gio.MenuItem.new("Über BMA-Simulator", "app.about")
         self.append_item(about_item)
+        unlock_item = Gio.MenuItem.new("Speicherfunktionen freischalten", "app.unlock")
+        self.append_item(unlock_item)
         settings_item = Gio.MenuItem.new("Einstellungen", "app.settings")
         self.append_item(settings_item)
 
@@ -23,12 +25,12 @@ class DataMenu(Gio.Menu):
     """Menu model for the "Data" MenuButton in the header bar."""
     def __init__(self):
         super().__init__()
+        open_item = Gio.MenuItem.new("Datei öffnen...", "app.open")
+        self.append_item(open_item)
         save_building_item = Gio.MenuItem.new("Gebäudekonfiguration speichern...", "app.save_building")
         self.append_item(save_building_item)
         save_scenario_item = Gio.MenuItem.new("Szenario speichern...", "app.save_scenario")
         self.append_item(save_scenario_item)
-        open_item = Gio.MenuItem.new("Datei öffnen...", "app.open")
-        self.append_item(open_item)
         rollback_item = Gio.MenuItem.new("Dateistand wiederherstellen...", "app.rollback")
         self.append_item(rollback_item)
         edit_mode_item = Gio.MenuItem.new("Bearbeitungsmodus", "app.edit_mode")

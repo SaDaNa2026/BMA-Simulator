@@ -13,7 +13,7 @@ from Menus import PrimaryMenu, DataMenu, EditMenu
 from FileOpenDialog import FileOpenDialog
 from FileSaveDialog import FileSaveDialog
 from DefineObjectWindows import DefineCircuitWindow, DefineDetectorWindow
-from EditWindows import EditBuildingWindow, EditDetectorWindow, EditCommitMessageWindow
+from EditWindows import EditBuildingWindow, EditDetectorWindow, EditCommitMessageWindow, CodeInputWindow
 from CommitListWindow import CommitListWindow
 from Console import Console
 from FBFWindow import FBFWindow
@@ -165,6 +165,10 @@ class MainWindow(Gtk.ApplicationWindow):
     def show_about_window(self):
         self.about_window = AboutWindow(self)
         self.about_window.show()
+
+    def show_code_input_window(self, confirm_callback, max_length, unlock_action):
+        self.code_input_window = CodeInputWindow(confirm_callback, self, unlock_action, max_length)
+        self.code_input_window.present()
 
     def show_settings_window(self, model, refresh_lcd, update_leds, print_detector_state):
         self.settings_window = SettingsWindow(self, model, refresh_lcd, update_leds, print_detector_state)

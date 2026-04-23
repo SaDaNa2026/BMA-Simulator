@@ -36,6 +36,9 @@ MARKDOWN_VIEWER: str = "okular"
 # Set the default building description
 DEFAULT_BUILDING_DESCRIPTION = "BMA-Simulator\nLFS-BW"
 
+# Set a pin that is needed to be put in to activate potentially destructive actions (saving and rolling back)
+UNLOCK_CODE: str | None = "124440"
+
 # Set the pin that the switch of the Freischaltelement (FSE) is connected to. None deactivates the functionality
 FSE_PIN: int|None = 19
 # Specify if an internal pullup should be activated for the FSE switch.
@@ -89,6 +92,7 @@ class App(Gtk.Application):
                               ("redo", self.on_redo_clicked, None),
                               ("help", self.on_help_clicked, None),
                               ("about", self.on_about_clicked, None),
+                              ("unlock", None, None, "false", self.on_unlock_clicked),
                               ("settings", self.on_settings_clicked, None)]
 
         edit_action_entries = [("create_circuit", self.on_add_circuit_clicked, None),
@@ -107,11 +111,11 @@ class App(Gtk.Application):
         # Add app actions to self
         self.add_action_entries(app_action_entries, None)
 
+        # Disable protected actions
+        self._set_actions_enabled(("save_scenario", "save_building", "rollback"), False)
+
         # Disable undo and redo actions (will be enabled when the respective stack has entries)
-        for action_name in ("undo", "redo"):
-            action = self.lookup_action(action_name)
-            if isinstance(action, Gio.SimpleAction):
-                action.set_enabled(False)
+        self._set_actions_enabled(("undo", "redo"), False)
 
         # Add the window's action entries to groups
         self.edit_action_group = Gio.SimpleActionGroup.new()
@@ -260,6 +264,14 @@ class App(Gtk.Application):
         self.led_fbf.shutdown()
         if FLASH_RELAY_PIN is not None:
             self.flash_relay.off()
+
+    def _set_actions_enabled(self, action_names: tuple | list, enabled):
+        """Iterate over the provided actions and set their enabled status.
+        Only works for actions registered under self"""
+        for action_name in action_names:
+            action = self.lookup_action(action_name)
+            if isinstance(action, Gio.SimpleAction):
+                action.set_enabled(enabled)
 
     def _poll_fse(self) -> bool:
         """Timeout function to check if the FSE has been activated"""
@@ -760,6 +772,30 @@ class App(Gtk.Application):
     def on_about_clicked(self, *args) -> None:
         """Open the about window"""
         self.window.show_about_window()
+
+    def on_unlock_clicked(self, action, parameter, *args) -> None:
+        """Present a CodeInputWindow if state is locked, lock actions if unlocked"""
+        old_state = action.get_state().get_boolean()
+
+        if old_state:
+            action.set_state(GLib.Variant.new_boolean(False))
+            # Deactivate protected actions
+            self._set_actions_enabled(("save_scenario", "save_building", "rollback"), False)
+        else:
+            if UNLOCK_CODE is None:
+                self.confirm_unlock(action, None)
+            else:
+                self.window.show_code_input_window(self.confirm_unlock, len(UNLOCK_CODE), action)
+
+    def confirm_unlock(self, unlock_action, code: str | None) -> bool:
+        """Check if the code is correct. If it is, unlock actions and return true, else false"""
+        if code == UNLOCK_CODE:
+            unlock_action.set_state(GLib.Variant.new_boolean(True))
+            # Activate protected actions
+            self._set_actions_enabled(("save_scenario", "save_building", "rollback"), True)
+            return True
+        else:
+            return False
 
     def on_settings_clicked(self, *args) -> None:
         """Open the settings window"""

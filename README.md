@@ -60,6 +60,8 @@ an die Umgebung angepasst werden kann. Verfügbar sind:
 - Der Markdown-Viewer zur Anzeige der Hilfedatei (einzutragender Name entspricht dem in der Shell).
 - Die Standard-Gebäudebeschreibung. Der Zeilenumbruch ist mit \n zu setzen. Die maximale Länge 
     einer Zeile beträgt 20 Zeichen.
+- Eine PIN, mit der potenziell destruktive Aktionen wie Speichern oder Rollback gesichert werden. 
+    Dies bietet ganz ausdrücklich keine wirkliche Sicherheit, sondern soll nur gegen Fehlbedienung absichern.
 - GPIO-Pin und Pullup-Konfiguration für das Freischaltelement, das FSE kann hier auch abgeschaltet werden.
 - Ein Tupel aller physischen Melder, die angeschlossen sind. Kommentar im Code beachten!  
     Falls keine physischen Melder vorhanden sind, kann hier auch einfach eine leere Liste zugewiesen werden.
