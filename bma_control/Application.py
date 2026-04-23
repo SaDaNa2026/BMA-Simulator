@@ -39,19 +39,13 @@ DEFAULT_BUILDING_DESCRIPTION = "BMA-Simulator\nLFS-BW"
 # Set a pin that is needed to be put in to activate potentially destructive actions (saving and rolling back)
 UNLOCK_CODE: str | None = "124440"
 
-# Set the pin that the switch of the Freischaltelement (FSE) is connected to. None deactivates the functionality
-FSE_PIN: int|None = 19
-# Specify if an internal pullup should be activated for the FSE switch.
-# True -> pullup activated, false -> pull-down activated, None -> floating state (if switch is externally biased)
-FSE_PULLUP: bool|None = True
-
 # Define physical detectors that are connected to the Raspberry Pi's GPIO pins directly. They will not be visible
 #   in the GUI but represented in the model; so the user will be unable to add detectors with the same number as
 #   physical ones defined here. If there are no physical detectors assign PHYSICAL_DETECTORS = ()
 # Format: ((GPIO_pin: int, pullup: bool, (circuit_number: int, detector_number: int, detector_description: str)))
-# CAUTION: Setting any of circuit_number, detector_number or detector_description to illegal values
-#          will cause the application to crash
-PHYSICAL_DETECTORS: tuple = ((22, True, (1, 1, "Druckknopfmelder FIZ")),)
+# CAUTION: The model will not check this list, so any value can be assigned (especially circuit or detector number == 0)
+#          Be aware of the possible unexpected results of assigning to illegal values.
+PHYSICAL_DETECTORS: tuple = ((22, True, (1, 1, "Druckknopfmelder FIZ")), (19, True, (0, 0, "Freischaltelement")))
 
 # Set the GPIO pin that the relay for the flashing light (Blitzleuchte) is connected to. None deactivates the functionality
 FLASH_RELAY_PIN: int|None = 26
@@ -163,12 +157,6 @@ class App(Gtk.Application):
 
     def _init_gpio(self) -> None:
         """Set up all GPIO devices"""
-        # Set up polling of the FSE
-        if FSE_PIN is not None:
-            self.fse_button = gpiozero.Button(FSE_PIN, pull_up=FSE_PULLUP)
-            self.fse_button_last_state = False
-            GLib.timeout_add(500, self._poll_fse)
-
         # Set up the relay for the flashing light
         if FLASH_RELAY_PIN is not None:
             self.flash_relay = gpiozero.OutputDevice(pin=FLASH_RELAY_PIN, active_high=False)
@@ -272,21 +260,6 @@ class App(Gtk.Application):
             action = self.lookup_action(action_name)
             if isinstance(action, Gio.SimpleAction):
                 action.set_enabled(enabled)
-
-    def _poll_fse(self) -> bool:
-        """Timeout function to check if the FSE has been activated"""
-        if self.fse_button.is_active:
-            if not self.fse_button_last_state:
-                self.fse_button_last_state = True
-                self.model.activate_fse()
-                self.print_detector_state()
-                self.lcd.reset()
-                self.update_leds()
-
-        else:
-            self.fse_button_last_state = False
-
-        return True
 
     def _poll_physical_detectors(self) -> bool:
         """Timeout function to check if a physical detector has been activated"""
@@ -695,9 +668,6 @@ class App(Gtk.Application):
     def clear_alarms(self) -> None:
         """Clear all alarms"""
         self.is_reset = True
-
-        # Deactivate the FSE (has to happen first to avoid issues)
-        self.model.delete_fse()
 
         # Convert list to tuple to make it immutable for iteration
         active_detectors = tuple(self.model.get_active_detectors())

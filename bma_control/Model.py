@@ -108,9 +108,9 @@ class BuildingModel:
             detector_number = detector_tuple[1]
             description = detector_tuple[2]
             if circuit_number not in self.circuit_dict:
-                self.add_circuit(circuit_number)
+                self.circuit_dict[circuit_number] = Circuit()
             if detector_number not in self.circuit_dict[circuit_number].detector_dict:
-                self.add_detector(circuit_number, detector_number, description)
+                self.circuit_dict[circuit_number].detector_dict[detector_number] = Detector(description)
 
     def clear_data(self):
         """Resets to init values."""
@@ -460,16 +460,3 @@ class BuildingModel:
 
     def get_flash_enabled(self) -> bool:
         return self.flash_enabled
-
-    def activate_fse(self):
-        """Adds (if necessary) and activates a virtual detector with number 0/0"""
-        if 0 not in self.circuit_dict:
-            self.circuit_dict[0] = Circuit()
-            self.circuit_dict[0].detector_dict[0] = Detector(description="Freischaltelement")
-
-        self.set_detector_alarm_status(0, 0, True)
-
-    def delete_fse(self):
-        """Remove the virtual detector with number 0/0"""
-        if 0 in self.circuit_dict:
-            self.delete_circuit(0)
