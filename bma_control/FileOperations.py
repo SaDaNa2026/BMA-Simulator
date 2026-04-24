@@ -126,6 +126,7 @@ class FileOperations:
     @staticmethod
     def apply_scenario(load_dict, circuit_dict, detector_action_group, model, scenario_description_textbuffer):
         """Set all detectors listed in load_dict to active"""
+        # Add extinguisher alarm support
         for number_list in load_dict["active_detector_list"]:
             # Check for correct Syntax
             if not type(number_list) == list:
@@ -210,10 +211,14 @@ class FileOperations:
         scenario_description_textbuffer.set_text(load_dict["scenario_description"])
 
         # Set LEDs
-        model.set_extinguisher_triggered(load_dict["settings"]["extinguisher_triggered"])
+        extinguisher_triggered = load_dict["settings"]["extinguisher_triggered"]
+        model.set_extinguisher_triggered(extinguisher_triggered)
         model.set_acoustic_signals_off(load_dict["settings"]["acoustic_signals_off"])
         model.set_ue_off(load_dict["settings"]["ue_off"])
         model.set_fire_controls_off(load_dict["settings"]["fire_controls_off"])
+
+        # Set alarm status of the hidden extinguisher detector
+        model.set_detector_alarm_status(0, 1, extinguisher_triggered)
 
         # Apply history time settings
         model.set_history_time_mode(load_dict["settings"]["history_time_mode"])
