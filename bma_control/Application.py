@@ -860,19 +860,21 @@ class App(Gtk.Application):
         self.led_fat.on("working")
         self.led_fbf.on("working")
 
+        # Alarm state
         if len(self.model.get_active_detectors()) > 0:
             self.led_fbf.on("alarm")
             if self.lcd.current_screen == 1:
                 self.led_fat.stop_blink("alarm")
                 self.led_fat.on("alarm")
-                if (not self.model.get_beeper_off()) and self.model.get_beeper_enabled():
-                    self.led_fat.start_blink("beeper")
-                    self.led_fat.start_blink("beeper_off")
-                else:
-                    self.led_fat.stop_blink("beeper")
-                    self.led_fat.stop_blink("beeper_off")
             else:
                 self.led_fat.start_blink("alarm")
+
+            if (not self.model.get_beeper_off()) and self.model.get_beeper_enabled():
+                self.led_fat.start_blink("beeper")
+                self.led_fat.start_blink("beeper_off")
+            else:
+                self.led_fat.stop_blink("beeper")
+                self.led_fat.stop_blink("beeper_off")
 
             if FLASH_RELAY_PIN is not None and self.model.get_flash_enabled():
                 self.flash_relay.on()
@@ -887,6 +889,7 @@ class App(Gtk.Application):
             else:
                 self.led_fbf.off("extinguisher_triggered")
 
+        # Non-alarm state
         else:
             self.led_fat.off("alarm")
             self.led_fat.stop_blink("alarm")
