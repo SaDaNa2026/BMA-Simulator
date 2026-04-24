@@ -374,6 +374,14 @@ class TestBuildingModel(unittest.TestCase):
         self.assertEqual(self.model.get_circuits(), [1, 2])
         self.assertEqual(self.model.get_detectors_for_circuit(2), [3, ])
 
+    def test_set_detector_alarm_status_with_index_out_of_range(self):
+        self.model.add_circuit(5)
+        self.model.add_detector(5, 5, "test")
+        self.model.set_detector_alarm_status(5, 5, True, 10)
+        self.model.add_detector(5, 6)
+        self.model.set_detector_alarm_status(5, 6, True, -23)
+        print(self.model.get_active_detectors())
+
 
 if __name__ == '__main__':
     unittest.main()
