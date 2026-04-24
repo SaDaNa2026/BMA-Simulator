@@ -858,6 +858,8 @@ class App(Gtk.Application):
             self.window.main_box.remove(circuit)
             del circuit
 
+        self.window.circuit_dict.clear()
+
     def update_leds(self) -> None:
         """Set the LED states according to the active detectors and contents of the LCD"""
         self.led_fat.on("working")
