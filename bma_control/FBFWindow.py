@@ -70,9 +70,9 @@ class FBFWindow(ModalWindow):
         self.model.set_extinguisher_triggered(state)
         # Activate the hidden detector belonging to the extinguishers
         self.model.set_detector_alarm_status(0, 1, state)
-        self.app.update_leds()
         self.app.print_detector_state()
         self.app.lcd.reset()
+        self.app.update_leds()
 
     def on_acoustic_signals_off_toggled(self, action, parameter, *args):
         action.set_state(parameter)
