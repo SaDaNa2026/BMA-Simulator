@@ -696,6 +696,9 @@ class App(Gtk.Application):
         # Reset all detectors
         self.model.active_detector_list.clear()
 
+        # Reset fire extinguisher state
+        self.model.set_extinguisher_triggered(False)
+
         # Enable all physical detectors
         for detector in self.physical_detector_list:
             detector.last_state = False
