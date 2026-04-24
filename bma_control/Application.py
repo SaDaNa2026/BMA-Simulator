@@ -43,9 +43,9 @@ UNLOCK_CODE: str | None = "124440"
 #   for physical detectors connected to the GPIO pins or hidden detectors for internal use. They will not be visible
 #   in the GUI but represented in the model; so the user will be unable to add detectors with the same number as
 #   permanent ones defined here.
-#   If there are no permanent detectors assign PERMANENT_DETECTORS = ()
 #   If you want to add a hidden detector that has no physical representation, add it here
-#   and set GPIO_pin and pullup to None
+#   and set GPIO_pin and pullup to None. The hidden detector (0, 1) is necessary as a representation for the
+#   extinguishers. Other parts of the application assume this detector exists.
 # Format: ((GPIO_pin: int | None, pullup: bool | None, (circuit_number: int, detector_number: int, detector_description: str)))
 # CAUTION: The model does not check this list, so any value can be assigned (especially circuit or detector number == 0).
 #          Be aware of the possible unexpected results of assigning to illegal values.

@@ -62,9 +62,9 @@ an die Umgebung angepasst werden kann. Verfügbar sind:
     einer Zeile beträgt 20 Zeichen.
 - Eine PIN, mit der potenziell destruktive Aktionen wie Speichern oder Rollback gesichert werden. 
     Dies bietet ganz ausdrücklich keine wirkliche Sicherheit, sondern soll nur gegen Fehlbedienung absichern.
-- GPIO-Pin und Pullup-Konfiguration für das Freischaltelement, das FSE kann hier auch abgeschaltet werden.
 - Ein Tupel aller physischen Melder, die angeschlossen sind. Kommentar im Code beachten!  
-    Falls keine physischen Melder vorhanden sind, kann hier auch einfach eine leere Liste zugewiesen werden.
+    Falls keine physischen Melder vorhanden sind, können alle Einträge bis auf den Melder mit Nummer 0/1, 
+    welcher intern als Repräsentation der Löschanlage notwendig ist, entfernt werden.
 - GPIO-Pin des Relais' für die Blitzleuchte, kann hier auch abgeschaltet werden.
 
 ## Integration von Git
