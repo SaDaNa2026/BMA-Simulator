@@ -8,6 +8,8 @@ from typing import Any
 
 import gi
 
+from bma_control.Application import App
+
 gi.require_version('GLib', '2.0')
 from gi.repository import GLib, Gio
 from functools import partial
@@ -645,6 +647,7 @@ class BuildingOps(Operation):
         if description != previous_description:
             self.model.set_building_description(description)
             self.app.lcd.reset()
+            self.app.update_leds()
             self.app.clear_redo()
             self.app.append_undo((self.undo_edit, (previous_description,)))
 
@@ -652,10 +655,12 @@ class BuildingOps(Operation):
         previous_description = self.model.get_building_description()
         self.model.set_building_description(description)
         self.app.lcd.reset()
+        self.app.update_leds()
         self.app.append_redo((self.redo_edit, (previous_description,)))
 
     def redo_edit(self, description: str) -> None:
         previous_description = self.model.get_building_description()
         self.model.set_building_description(description)
         self.app.lcd.reset()
+        self.app.update_leds()
         self.app.append_undo((self.undo_edit, (previous_description,)))
