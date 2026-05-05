@@ -7,9 +7,6 @@
 from typing import Any
 
 import gi
-
-from bma_control.Application import App
-
 gi.require_version('GLib', '2.0')
 from gi.repository import GLib, Gio
 from functools import partial
