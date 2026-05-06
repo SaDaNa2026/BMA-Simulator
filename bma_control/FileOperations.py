@@ -14,7 +14,8 @@ from gi.repository import Gio, GLib
 
 class FileOperations:
     @staticmethod
-    def get_file_extension(file_path: str):
+    def get_file_extension(file_path: str) -> str:
+        """Returns the file extension (everything after the last dot) for a given file path"""
         # Find the last dot in the file path
         dot_pos = file_path.rfind('.')
         # The extension is everything after the last dot. Return empty string if there is no dot
