@@ -19,6 +19,7 @@ from Console import Console
 from FBFWindow import FBFWindow
 from AboutWindow import AboutWindow
 from SettingsWindow import SettingsWindow
+from ScenarioBrowser import ScenarioBrowser
 
 
 class MainWindow(Gtk.ApplicationWindow):
@@ -173,6 +174,10 @@ class MainWindow(Gtk.ApplicationWindow):
     def show_settings_window(self, model, refresh_lcd, update_leds, print_detector_state):
         self.settings_window = SettingsWindow(self, model, refresh_lcd, update_leds, print_detector_state)
         self.settings_window.show()
+
+    def show_scenario_browser(self, top_level_dir_path: str, tag_file_path: str) -> None:
+        self.scenario_browser = ScenarioBrowser(self, self.show_error_alert, top_level_dir_path, tag_file_path)
+        self.scenario_browser.present()
 
     def sort_circuits(self, child1, child2, user_data) -> int:
         """Sorting function for the circuits inside main_box."""

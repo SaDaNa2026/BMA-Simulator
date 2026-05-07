@@ -10,6 +10,7 @@ from git import Repo, InvalidGitRepositoryError, NULL_TREE
 import gi
 gi.require_version('Gtk', '4.0')
 from gi.repository import Gio, GLib
+from gi.repository.Gio import File
 
 
 class FileOperations:
@@ -17,11 +18,19 @@ class FileOperations:
     def get_file_extension(file_path: str) -> str:
         """Returns the file extension (everything after the last dot) for a given file path"""
         # Find the last dot in the file path
-        dot_pos = file_path.rfind('.')
+        dot_pos = file_path.rfind(".")
         # The extension is everything after the last dot. Return empty string if there is no dot
-        file_extension = file_path[dot_pos + 1:] if dot_pos != -1 else ""
+        return file_path[dot_pos + 1:] if dot_pos != -1 else ""
 
-        return file_extension
+    @staticmethod
+    def get_filename_without_extension(file_path: str) -> str:
+        """Removes parent directories and extensions from a file path to get the file name"""
+        # Find the last slash
+        slash_pos = file_path.rfind("/")
+        file_name = file_path[slash_pos + 1:] if slash_pos != -1 else ""
+        # Find the last dot. Everything after it is the extension and needs to be removed
+        dot_pos = file_name.rfind(".")
+        return file_name[:dot_pos -1] if dot_pos > 0 else ""
 
     @staticmethod
     def retrieve_open_file(dialog, result):
@@ -47,7 +56,8 @@ class FileOperations:
 
     @staticmethod
     def get_building_config_for_scenario(scenario_file, scenario_load_dict, load_scenario_callback):
-        """Callback for get_scenario_directory. Finds the .building files in the directory and returns the file path.
+        """Callback for get_scenario_directory. Finds the .building files in the directory and calls
+        load_scenario callback with the result.
         Throws an error if there is not exactly one .building file."""
         directory = Gio.file_new_for_path(scenario_file.get_parent().get_path())
         building_file_found = False
@@ -60,23 +70,7 @@ class FileOperations:
                                         "oder einem übergeordneten Verzeichnis wie die gewählte .scenario-Datei "
                                         "eine .building-Datei existiert.")
 
-            children = directory.enumerate_children(
-                'standard::name',
-                Gio.FileQueryInfoFlags.NONE,
-                None
-            )
-
-            # A list to store the paths to the ".building" files in the directory
-            building_file_list = []
-
-            for child_info in children:
-                child_name = child_info.get_name()
-                child_extension = FileOperations.get_file_extension(child_name)
-
-                if child_extension == "building":
-                    # Get the filepath of the child and add it to building_file_list
-                    file_path = str(directory.get_path()) + "/" + child_name
-                    building_file_list.append(file_path)
+            building_file_list = FileOperations.list_building_files(directory)
 
             # Check if exactly one .building file was found
             match len(building_file_list):
@@ -92,6 +86,51 @@ class FileOperations:
                 case _:
                     raise FileNotFoundError(f"Es wurden {len(building_file_list)} .building-Dateien gefunden.\nStellen Sie "
                                      f"sicher, dass pro Verzeichnis nur eine .building-Datei existiert.")
+
+    @staticmethod
+    def list_building_files(directory: File) -> list:
+        children = directory.enumerate_children(
+            'standard::name',
+            Gio.FileQueryInfoFlags.NONE,
+            None
+        )
+
+        # A list to store the paths to the ".building" files in the directory
+        building_file_list: list = []
+
+        for child_info in children:
+            child_name = child_info.get_name()
+            child_extension = FileOperations.get_file_extension(child_name)
+
+            if child_extension == "building":
+                # Get the filepath of the child and add it to building_file_list
+                file_path = str(directory.get_path()) + "/" + child_name
+                building_file_list.append(file_path)
+        return building_file_list
+
+    @staticmethod
+    def list_child_scenarios(directory: File) -> list[File]:
+        """Recursively check child directories for scenario files. Return the Gio.File objects for the found scenarios"""
+        scenario_list: list = []
+        try:
+            children = directory.enumerate_children(
+                'standard::name',
+                Gio.FileQueryInfoFlags.NONE,
+                None
+            )
+        # Return the "directory" file if it is a scenario file
+        except Gio.IOErrorEnum.NOT_DIRECTORY:
+            file_path = str(directory.get_path())
+            if FileOperations.get_file_extension(file_path) == "scenario":
+                scenario_list.append(directory)
+
+            return scenario_list
+
+        for child in children:
+            return_list = FileOperations.list_child_scenarios(child)
+            scenario_list += return_list
+
+        return scenario_list
 
     @staticmethod
     def load_building_config(model, load_dict, add_circuit_function, add_detector_function):

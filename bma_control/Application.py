@@ -30,6 +30,9 @@ from PhysicalDetector import PhysicalDetector
 # Set the default path that should show up when a file chooser dialog is opened
 DEFAULT_FILE_PATH = "/home/lfs-bma/BMA-Dateien"
 
+# Set the path to the file containing the list of available tags
+TAG_FILE_PATH = "/home/lfs-bma/BMA-Dateien"
+
 # Set the application used to view HELP.md
 MARKDOWN_VIEWER: str = "okular"
 
@@ -86,6 +89,7 @@ class App(Gtk.Application):
         app_action_entries = [("save_building", self.on_save_clicked, None),
                               ("save_scenario", self.on_save_clicked, None),
                               ("open", self.on_open_clicked, None),
+                              ("launch_scenario_browser", self.on_launch_scenario_browser_clicked, None),
                               ("rollback", self.on_rollback_clicked, None),
                               ("edit_mode", None, None, "false", self.on_edit_mode_clicked),
                               ("undo", self.on_undo_clicked, None),
@@ -562,6 +566,10 @@ class App(Gtk.Application):
         for detector in self.model.get_active_detectors():
             self.lcd.add_alarm(detector)
         self.update_leds()
+
+    def on_launch_scenario_browser_clicked(self, *args) -> None:
+        """Present a scenario browser window"""
+        self.window.show_scenario_browser(DEFAULT_FILE_PATH, TAG_FILE_PATH)
 
     def on_rollback_clicked(self, *args) -> None:
         """Present a list of all commits returned by the commit getter function"""

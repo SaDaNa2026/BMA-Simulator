@@ -27,6 +27,8 @@ class DataMenu(Gio.Menu):
         super().__init__()
         open_item = Gio.MenuItem.new("Datei öffnen...", "app.open")
         self.append_item(open_item)
+        scenario_browser_item = Gio.MenuItem.new("Szenario-Browser", "app.launch_scenario_browser")
+        self.append_item(scenario_browser_item)
         save_building_item = Gio.MenuItem.new("Gebäudekonfiguration speichern...", "app.save_building")
         self.append_item(save_building_item)
         save_scenario_item = Gio.MenuItem.new("Szenario speichern...", "app.save_scenario")
