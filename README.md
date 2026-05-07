@@ -17,6 +17,12 @@ und in die Steuerung eingebunden oder deaktiviert werden.
 Zum Ausführen des Python-Scripts müssen Python 3.13 oder neuer und alle in requirements.txt 
 definierten Abhängigkeiten installiert sein. 
 
+Bei der Installation der lgpio-Bibliothek ist zu beachten, dass dafür lg auf dem System installiert sein muss. 
+lg und die dazugehörige Installationsanleitung sind unter https://github.com/joan2937/lg zu finden.
+
+Auch pygobject benötigt diverse systemweite Bibliotheken, darunter libcairo2-dev und libgtk-4-dev. Die Fehlermeldungen 
+bei der Installation sind in der Regel sehr hilfreich, um fehlende Pakete zu identifizieren.
+
 Zusätzlich ist Okular notwendig, um die Hilfedatei anzeigen zu können. Dabei muss okular-extra-backends installiert werden, 
 um Markdown-Dateien anzeigen zu können. Natürlich kann auch ein anderer Markdown-Viewer verwendet werden, 
 wenn in Application.py die Konstante MARKDOWN_VIEWER entsprechend angepasst wird.  
