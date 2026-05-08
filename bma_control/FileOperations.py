@@ -30,7 +30,7 @@ class FileOperations:
         file_name = file_path[slash_pos + 1:] if slash_pos != -1 else ""
         # Find the last dot. Everything after it is the extension and needs to be removed
         dot_pos = file_name.rfind(".")
-        return file_name[:dot_pos -1] if dot_pos > 0 else ""
+        return file_name[:dot_pos] if dot_pos > 0 else ""
 
     @staticmethod
     def retrieve_open_file(dialog, result):
@@ -80,7 +80,7 @@ class FileOperations:
                 case 1:
                     building_file_found = True
                     # Load the building_config file that has been found
-                    building_file = Gio.file_new_for_path(building_file_list[0])
+                    building_file = building_file_list[0]
                     load_scenario_callback(building_file, scenario_load_dict)
 
                 case _:
@@ -88,14 +88,23 @@ class FileOperations:
                                      f"sicher, dass pro Verzeichnis nur eine .building-Datei existiert.")
 
     @staticmethod
-    def list_building_files(directory: File) -> list:
+    def list_building_files(directory: File) -> list[File]:
+        """List all *.building files in the provided directory. Returns an empty list if directory is not a directory"""
+        file_type = directory.query_file_type(
+            Gio.FileQueryInfoFlags.NONE,
+            None
+        )
+
+        if file_type != Gio.FileType.DIRECTORY:
+            return []
+
         children = directory.enumerate_children(
             'standard::name',
             Gio.FileQueryInfoFlags.NONE,
             None
         )
 
-        # A list to store the paths to the ".building" files in the directory
+        # A list to store the ".building" files in the directory
         building_file_list: list = []
 
         for child_info in children:
@@ -103,32 +112,46 @@ class FileOperations:
             child_extension = FileOperations.get_file_extension(child_name)
 
             if child_extension == "building":
-                # Get the filepath of the child and add it to building_file_list
-                file_path = str(directory.get_path()) + "/" + child_name
-                building_file_list.append(file_path)
+                # Get the child file
+                child_file = directory.get_child(child_name)
+                building_file_list.append(child_file)
         return building_file_list
 
     @staticmethod
     def list_child_scenarios(directory: File) -> list[File]:
-        """Recursively check child directories for scenario files. Return the Gio.File objects for the found scenarios"""
+        """Recursively collect all *.scenario files"""
         scenario_list: list = []
-        try:
-            children = directory.enumerate_children(
-                'standard::name',
-                Gio.FileQueryInfoFlags.NONE,
-                None
-            )
-        # Return the "directory" file if it is a scenario file
-        except Gio.IOErrorEnum.NOT_DIRECTORY:
-            file_path = str(directory.get_path())
-            if FileOperations.get_file_extension(file_path) == "scenario":
+
+        file_type = directory.query_file_type(
+            Gio.FileQueryInfoFlags.NONE,
+            None
+        )
+
+        # Base case: regular file
+        if file_type == Gio.FileType.REGULAR:
+            path = directory.get_path()
+
+            if path and FileOperations.get_file_extension(path) == "scenario":
                 scenario_list.append(directory)
 
             return scenario_list
 
-        for child in children:
-            return_list = FileOperations.list_child_scenarios(child)
-            scenario_list += return_list
+        # Ignore anything that is not a directory
+        if file_type != Gio.FileType.DIRECTORY:
+            return scenario_list
+
+        # Recursive case: directory
+        children = directory.enumerate_children(
+            "standard::name",
+            Gio.FileQueryInfoFlags.NONE,
+            None
+        )
+
+        for child_info in children:
+            child_file = directory.get_child(child_info.get_name())
+            scenario_list.extend(
+                FileOperations.list_child_scenarios(child_file)
+            )
 
         return scenario_list
 
