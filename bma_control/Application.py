@@ -31,7 +31,7 @@ from PhysicalDetector import PhysicalDetector
 DEFAULT_FILE_PATH = "/home/lfs-bma/BMA-Dateien"
 
 # Set the path to the file containing the list of available tags
-TAG_FILE_PATH = "/home/lfs-bma/BMA-Dateien"
+TAG_FILE_PATH = "/home/lfs-bma/BMA-Dateien/.tags"
 
 # Set the application used to view HELP.md
 MARKDOWN_VIEWER: str = "okular"
