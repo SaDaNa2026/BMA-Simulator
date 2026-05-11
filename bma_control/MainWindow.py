@@ -95,7 +95,9 @@ class MainWindow(Gtk.ApplicationWindow):
 
         # Primary menu
         self.primary_menu = PrimaryMenu()
-        self.primary_menubutton = Gtk.MenuButton(icon_name="open-menu-symbolic", menu_model=self.primary_menu)
+        self.primary_menubutton = Gtk.MenuButton(icon_name="open-menu-symbolic",
+                                                 menu_model=self.primary_menu,
+                                                 primary=True)
         self.header.pack_start(self.primary_menubutton)
 
         # MenuButton to handle data operations
