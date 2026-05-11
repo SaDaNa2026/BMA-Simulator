@@ -478,7 +478,10 @@ class App(Gtk.Application):
         """Load the file. If it is a building file, apply the configuration. If it is a scenario, load the corresponding
         building file first. Returns True if the operation was successful, otherwise False"""
         try:
-            load_dict, file_type = FileOperations.open_file(file)
+            if FileOperations.open_file(file):
+                load_dict, file_type = FileOperations.open_file(file)
+            else:
+                return False
 
         except JSONDecodeError:
             self.window.show_error_alert("Fehler beim Laden der Datei",

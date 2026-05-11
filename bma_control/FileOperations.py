@@ -39,17 +39,20 @@ class FileOperations:
         return file
 
     @staticmethod
-    def open_file(file):
+    def open_file(file: File) -> tuple[dict, str] | None:
         """Parse the data from the provided file and decide how to load it."""
         print(f"Opening: {file.get_path()}")
 
-        with open(file, "r") as file_dict:
+        file_path = file.get_path()
+
+        if not file_path:
+            return None
+
+        with open(file_path, "r") as file_dict:
             # Load building information
             load_dict = json.load(file_dict)
-
-            filename = file.get_path()
-            file_extension = Path(filename).suffix.lstrip(".")
-            if file_extension != "building" and file_extension != "scenario":
+            file_extension = FileOperations.get_file_extension(file_path)
+            if file_extension not in ("building", "scenario"):
                 raise ValueError("Es können nur Dateien geladen werden, die auf .building oder .scenario enden")
 
             return load_dict, file_extension
