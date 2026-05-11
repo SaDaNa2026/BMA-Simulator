@@ -145,6 +145,7 @@ class App(Gtk.Application):
             ("app.save_building", ["<Ctrl>G"]),
             ("app.save_scenario", ["<Ctrl>S"]),
             ("app.open", ["<Ctrl>O"]),
+            ("app.launch_scenario_browser", ["<Ctrl>F"]),
             ("app.edit_mode", ["<Ctrl>E"]),
             ("app.undo", ["<Ctrl>Z"]),
             ("app.redo", ["<Ctrl><Shift>Z", "<Ctrl>Y"]),
