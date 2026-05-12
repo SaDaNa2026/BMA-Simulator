@@ -128,7 +128,7 @@ class TagSelector(Gtk.Box):
     def reset(self, selected_tag_ids_tuple: tuple=()):
         """Reload available tags from disk. Select all provided tag_ids if available"""
         # Clear tag_box
-        while len(self.tag_object_list) > 1:
+        while len(self.tag_object_list) > 0:
             self.tag_box.remove(self.tag_object_list.pop())
 
         self.available_tags_dict = self._load_tag_file(self.tag_file_path)
