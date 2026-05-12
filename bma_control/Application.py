@@ -575,7 +575,7 @@ class App(Gtk.Application):
 
     def on_launch_scenario_browser_clicked(self, *args) -> None:
         """Present a scenario browser window"""
-        self.window.show_scenario_browser(DEFAULT_FILE_PATH, TAG_FILE_PATH)
+        self.window.show_scenario_browser(DEFAULT_FILE_PATH, TAG_FILE_PATH, self.load_file)
 
     def on_rollback_clicked(self, *args) -> None:
         """Present a list of all commits returned by the commit getter function"""

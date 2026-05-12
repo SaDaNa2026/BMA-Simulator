@@ -179,8 +179,8 @@ class MainWindow(Gtk.ApplicationWindow):
         self.settings_window = SettingsWindow(self, model, refresh_lcd, update_leds, print_detector_state)
         self.settings_window.show()
 
-    def show_scenario_browser(self, top_level_dir_path: str, tag_file_path: str) -> None:
-        self.scenario_browser = ScenarioBrowser(self, self.show_error_alert, top_level_dir_path, tag_file_path)
+    def show_scenario_browser(self, top_level_dir_path: str, tag_file_path: str, load_file_callback) -> None:
+        self.scenario_browser = ScenarioBrowser(self, self.show_error_alert, top_level_dir_path, tag_file_path, load_file_callback)
         self.scenario_browser.present()
 
     def sort_circuits(self, child1, child2, user_data) -> int:

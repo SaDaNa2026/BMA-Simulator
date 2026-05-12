@@ -58,7 +58,7 @@ class TagObject(Gtk.Frame):
 
 
 class ScenarioBrowser(ModalWindow):
-    def __init__(self, parent, error_dialog_function, top_level_dir_path: str, tag_file_path: str) -> None:
+    def __init__(self, parent, error_dialog_function, top_level_dir_path: str, tag_file_path: str, load_file_callback) -> None:
         """A window to browse through available scenarios grouped by building and view scenario descriptions.
         Filtering by tags is also available"""
         super().__init__(parent, resizable=True, title="Szenario-Browser", default_width=800, default_height=500)
@@ -70,6 +70,7 @@ class ScenarioBrowser(ModalWindow):
         self.available_tags_dict: dict = self._load_tag_file()
         self.selected_tags_dict: dict = {}
         self.filetree_children: list = []
+        self.load_file_callback = load_file_callback
 
         self.main_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
         self.set_child(self.main_box)
@@ -133,6 +134,23 @@ class ScenarioBrowser(ModalWindow):
                                              focusable=False,
                                              wrap_mode=Gtk.WrapMode.WORD)
         self.description_scrollable.set_child(self.description_text)
+
+        # Buttons to Cancel or Load
+        self.button_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,
+                                  spacing=10,
+                                  hexpand=True,
+                                  halign=Gtk.Align.END,
+                                  margin_top=5,
+                                  margin_bottom=5,
+                                  margin_start=10,
+                                  margin_end=10)
+        self.right_side_box.append(self.button_box)
+        self.cancel_button = Gtk.Button(label="Abbrechen", halign=Gtk.Align.END)
+        self.cancel_button.connect("clicked", lambda button, *args: self.destroy())
+        self.button_box.append(self.cancel_button)
+        self.confirm_button = Gtk.Button(label="Szenario laden", sensitive=False, halign=Gtk.Align.END)
+        self.confirm_button.connect("clicked", self._load_scenario)
+        self.button_box.append(self.confirm_button)
 
     def test(self):
         print("activated")
@@ -290,6 +308,8 @@ class ScenarioBrowser(ModalWindow):
                                        self)
             self.description_textbuffer.set_text("Konnte Beschreibung nicht laden")
 
+        self.confirm_button.set_sensitive(True)
+
     def _set_filter_popover(self, menu_button) -> None:
         """Create a popover for the filter menu button"""
         tag_list_box = Gtk.ListBox(show_separators=True,
@@ -334,8 +354,17 @@ class ScenarioBrowser(ModalWindow):
         self.description_textbuffer.set_text("")
         self.description_frame_label.set_text("")
         self.current_scenario_file = None
+        self.confirm_button.set_sensitive(False)
 
         while len(self.filetree_children) > 0:
             self.filetree_box.remove(self.filetree_children.pop())
 
         self._populate_filetree(self.top_level_dir)
+
+    def _load_scenario(self, *args):
+        """Load the selected scenario"""
+        if self.current_scenario_file is None:
+            return
+
+        self.load_file_callback(self.current_scenario_file)
+        self.destroy()
