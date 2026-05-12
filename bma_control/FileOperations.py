@@ -51,11 +51,12 @@ class FileOperations:
         with open(file_path, "r") as file_dict:
             # Load building information
             load_dict = json.load(file_dict)
-            file_extension = FileOperations.get_file_extension(file_path)
-            if file_extension not in ("building", "scenario"):
-                raise ValueError("Es können nur Dateien geladen werden, die auf .building oder .scenario enden")
 
-            return load_dict, file_extension
+        file_extension = FileOperations.get_file_extension(file_path)
+        if file_extension not in ("building", "scenario"):
+            raise ValueError("Es können nur Dateien geladen werden, die auf .building oder .scenario enden")
+
+        return load_dict, file_extension
 
     @staticmethod
     def get_building_config_for_scenario(scenario_file, scenario_load_dict, load_scenario_callback):
