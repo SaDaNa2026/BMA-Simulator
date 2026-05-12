@@ -105,7 +105,8 @@ class TagSelector(Gtk.Box):
         if tag_id not in self.available_tags_dict or tag_id in self.selected_tags_dict:
             return
 
-        self.selected_tags_dict[tag_id] = Model.sort_dict_by_key(self.available_tags_dict.pop(tag_id))
+        self.selected_tags_dict[tag_id] = self.available_tags_dict.pop(tag_id)
+        self.selected_tags_dict = Model.sort_dict_by_key(self.selected_tags_dict)
 
         tag_object = TagObject(tag_id, self.selected_tags_dict[tag_id], self._on_tag_remove_clicked)
         self.tag_box.append(tag_object)
@@ -117,7 +118,8 @@ class TagSelector(Gtk.Box):
     def _on_tag_remove_clicked(self, button, tag_object) -> None:
         """Remove the tag object and move the tag from selected_tags_dict to available_tags_dict if possible"""
         tag_id = tag_object.tag_id
-        self.available_tags_dict[tag_id] = Model.sort_dict_by_key(self.selected_tags_dict.pop(tag_id))
+        self.available_tags_dict[tag_id] = self.selected_tags_dict.pop(tag_id)
+        self.available_tags_dict = Model.sort_dict_by_key(self.available_tags_dict)
         self.tag_box.remove(tag_object)
         self.tag_object_list.remove(tag_object)
         if self.on_selected_tags_changed_callback:
@@ -133,7 +135,8 @@ class TagSelector(Gtk.Box):
         # Move selected tags and create tag objects
         for tag_id in selected_tag_ids_tuple:
             if tag_id in self.available_tags_dict.keys():
-                self.selected_tags_dict[tag_id] = Model.sort_dict_by_key(self.available_tags_dict.pop(tag_id))
+                self.selected_tags_dict[tag_id] = self.available_tags_dict.pop(tag_id)
+                self.selected_tags_dict = Model.sort_dict_by_key(self.selected_tags_dict)
 
                 tag_object = TagObject(tag_id, self.selected_tags_dict[tag_id], self._on_tag_remove_clicked)
                 self.tag_box.append(tag_object)
