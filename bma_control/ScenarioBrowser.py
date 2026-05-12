@@ -1,14 +1,12 @@
-import json
-from json import JSONDecodeError
-
 import gi
 gi.require_version('Gtk', '4.0')
 from gi.repository import Gtk, Gio
 from gi.repository.Gio import File
+from json import JSONDecodeError
 
 from FileOperations import FileOperations
 from ModalWindow import ModalWindow
-import Model
+from TagSelector import TagSelector
 
 
 class BuildingFrame(Gtk.Frame):
@@ -44,31 +42,15 @@ class BuildingFrame(Gtk.Frame):
             return 0
 
 
-class TagObject(Gtk.Frame):
-    def __init__(self, tag_id: int, tag_name: str, remove_callback):
-        super().__init__()
-        self.tag_id = tag_id
-        self.box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, margin_start=5)
-        self.set_child(self.box)
-        self.label = Gtk.Label(label=tag_name, opacity=0.9)
-        self.box.append(self.label)
-        self.remove_button = Gtk.Button(icon_name="window-close-symbolic", has_frame=False)
-        self.remove_button.connect("clicked", remove_callback, self)
-        self.box.append(self.remove_button)
-
-
 class ScenarioBrowser(ModalWindow):
     def __init__(self, parent, error_dialog_function, top_level_dir_path: str, tag_file_path: str, load_file_callback) -> None:
         """A window to browse through available scenarios grouped by building and view scenario descriptions.
         Filtering by tags is also available"""
-        super().__init__(parent, resizable=True, title="Szenario-Browser", default_width=800, default_height=500)
+        super().__init__(parent, resizable=True, title="Szenario-Browser", default_width=1000, default_height=600)
         self.connect("activate-focus", self.test)
         self.error_dialog_function = error_dialog_function
         self.top_level_dir = Gio.File.new_for_path(top_level_dir_path)
-        self.tag_file = Gio.File.new_for_path(tag_file_path)
         self.current_scenario_file: File | None = None
-        self.available_tags_dict: dict = self._load_tag_file()
-        self.selected_tags_dict: dict = {}
         self.filetree_children: list = []
         self.load_file_callback = load_file_callback
 
@@ -89,33 +71,13 @@ class ScenarioBrowser(ModalWindow):
                                     margin_top=5,
                                     spacing=5)
         self.filetree_scrollable.set_child(self.filetree_box)
-        self._populate_filetree(self.top_level_dir)
 
         self.right_side_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         self.main_box.append(self.right_side_box)
 
         # Add a box for management of filter tags
-        self.filter_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,
-                                  spacing=5,
-                                  margin_start=5,
-                                  margin_end=5)
-        self.right_side_box.append(self.filter_box)
-        self.tag_menu_button = Gtk.MenuButton(label="Filter",
-                                              margin_top=10,
-                                              margin_bottom=10)
-        self.tag_menu_button.set_create_popup_func(self._set_filter_popover)
-        self.filter_box.append(self.tag_menu_button)
-        self.filter_box.append(Gtk.Separator())
-        self.tag_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,
-                               spacing=10,
-                               margin_top=10,
-                               margin_bottom=10)
-        self.tag_box_scrollable = Gtk.ScrolledWindow(child=self.tag_box,
-                                                     vscrollbar_policy=Gtk.PolicyType.NEVER,
-                                                     hscrollbar_policy=Gtk.PolicyType.AUTOMATIC,
-                                                     hexpand=True,
-                                                     propagate_natural_width=True)
-        self.filter_box.append(self.tag_box_scrollable)
+        self.tag_selector = TagSelector(tag_file_path, error_dialog_function, self.reload_filetree)
+        self.right_side_box.append(self.tag_selector)
 
         # Prepare a frame for the scenario description
         self.description_frame = Gtk.Frame()
@@ -151,6 +113,8 @@ class ScenarioBrowser(ModalWindow):
         self.confirm_button = Gtk.Button(label="Szenario laden", sensitive=False, halign=Gtk.Align.END)
         self.confirm_button.connect("clicked", self._load_scenario)
         self.button_box.append(self.confirm_button)
+
+        self._populate_filetree(self.top_level_dir)
 
     def test(self):
         print("activated")
@@ -195,36 +159,11 @@ class ScenarioBrowser(ModalWindow):
         label = FileOperations.get_filename_without_extension(file_name)
         scenario_list = FileOperations.list_child_scenarios(directory)
 
-        filtered_scenarios = self._filter_scenario_list(scenario_list, self.selected_tags_dict)
+        filtered_scenarios = self._filter_scenario_list(scenario_list, self.tag_selector.selected_tags_dict)
         if len(filtered_scenarios) > 0:
             building_frame = BuildingFrame(label, filtered_scenarios, self._on_scenario_clicked)
             self.filetree_box.append(building_frame)
             self.filetree_children.append(building_frame)
-
-    def _load_tag_file(self) -> dict:
-        """Try to open and load the tag file. Display an error message if this fails"""
-        try:
-            tag_file_path = self.tag_file.get_path()
-            if not tag_file_path:
-                raise FileNotFoundError
-
-            with open(tag_file_path, "r") as tag_json:
-                tag_dict = json.load(tag_json)
-
-        except (FileNotFoundError, JSONDecodeError):
-            self.error_dialog_function("Tag file not found",
-                                       f"Make sure a json-formatted dictionary of tags and associated IDs to be "
-                                       f"used for scenario filtering is located at {self.tag_file.get_path()}.\n"
-                                       f"In the current state, scenario filtering will be unavailable.",
-                                       self)
-            tag_dict = {}
-
-        # Convert str keys to int
-        return_dict: dict = {}
-        for key in tag_dict.keys():
-            return_dict[int(key)] = tag_dict[key]
-
-        return return_dict
 
     def get_scenario_tag_ids(self, scenario_file: File) -> list[str]:
         """Returns a list of the tag_ids of the given scenario"""
@@ -309,45 +248,6 @@ class ScenarioBrowser(ModalWindow):
             self.description_textbuffer.set_text("Konnte Beschreibung nicht laden")
 
         self.confirm_button.set_sensitive(True)
-
-    def _set_filter_popover(self, menu_button) -> None:
-        """Create a popover for the filter menu button"""
-        tag_list_box = Gtk.ListBox(show_separators=True,
-                                   selection_mode=Gtk.SelectionMode.NONE)
-        for tag_id in self.available_tags_dict:
-            tag_button = Gtk.Button(label=str(self.available_tags_dict[tag_id]),
-                                    has_frame=False)
-            tag_button.connect("clicked", self._on_tag_clicked, tag_id)
-            tag_list_box.append(tag_button)
-
-        scrollable = Gtk.ScrolledWindow(child=tag_list_box,
-                                        vscrollbar_policy=Gtk.PolicyType.AUTOMATIC,
-                                        hscrollbar_policy=Gtk.PolicyType.NEVER,
-                                        max_content_height=300,
-                                        propagate_natural_height=True)
-        popover = Gtk.Popover(child=scrollable)
-        self.tag_menu_button.set_popover(popover)
-
-    def _on_tag_clicked(self, button, tag_id: int) -> None:
-        """Move the tag with the provided id from available_tags_dict to selected_tags_dict if possible.
-        Append a filter button to the filter box"""
-        if tag_id not in self.available_tags_dict or tag_id in self.selected_tags_dict:
-            return
-
-        self.selected_tags_dict[tag_id] = self.available_tags_dict.pop(tag_id)
-        self.selected_tags_dict = Model.sort_dict_by_key(self.selected_tags_dict)
-
-        tag_object = TagObject(tag_id, self.selected_tags_dict[tag_id], self._on_tag_remove_clicked)
-        self.tag_box.append(tag_object)
-        self.reload_filetree()
-
-    def _on_tag_remove_clicked(self, button, tag_object) -> None:
-        """Remove the tag object and move the tag from selected_tags_dict to available_tags_dict if possible"""
-        tag_id = tag_object.tag_id
-        self.available_tags_dict[tag_id] = self.selected_tags_dict.pop(tag_id)
-        self.available_tags_dict = Model.sort_dict_by_key(self.available_tags_dict)
-        self.tag_box.remove(tag_object)
-        self.reload_filetree()
 
     def reload_filetree(self) -> None:
         """Clear filetree and repopulate it with the current filter selection. Clear the textview and current_file too"""
