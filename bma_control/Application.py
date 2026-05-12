@@ -549,7 +549,8 @@ class App(Gtk.Application):
                                           self.window.circuit_dict,
                                           self.detector_action_group,
                                           self.model,
-                                          self.window.scenario_buffer)
+                                          self.window.scenario_buffer,
+                                          self.window.tag_selector.reset)
             self.clear_redo()
             self.clear_undo()
 

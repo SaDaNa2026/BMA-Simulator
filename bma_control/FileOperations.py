@@ -191,7 +191,12 @@ class FileOperations:
         print("File loaded successfully")
 
     @staticmethod
-    def apply_scenario(load_dict, circuit_dict, detector_action_group, model, scenario_description_textbuffer):
+    def apply_scenario(load_dict,
+                       circuit_dict,
+                       detector_action_group,
+                       model,
+                       scenario_description_textbuffer,
+                       tag_selector_reset):
         """Set all detectors listed in load_dict to active"""
         # Add extinguisher alarm support
         for number_list in load_dict["active_detector_list"]:
@@ -291,6 +296,14 @@ class FileOperations:
         model.set_history_time_mode(load_dict["settings"]["history_time_mode"])
         model.set_history_time_offset(load_dict["settings"]["history_time_offset"])
         model.set_history_time_absolute(tuple(load_dict["settings"]["history_time_absolute"]))
+
+        # Apply scenario tags
+        try:
+            tag_ids: tuple = tuple(load_dict["tag_ids"])
+        except KeyError:
+            tag_ids: tuple = ()
+
+        tag_selector_reset(tag_ids)
 
     @staticmethod
     def retrieve_save_file(dialog, result):

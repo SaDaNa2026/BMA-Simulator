@@ -33,14 +33,17 @@ class TagSelector(Gtk.Box):
         # Keep track of available and selected tags
         self.available_tags_dict: dict = self._load_tag_file(tag_file_path)
         self.selected_tags_dict: dict = {}
+        # Keep track of the tag objects in tag_box
+        self.tag_object_list: list = []
 
+        self.tag_file_path = tag_file_path
         self.error_dialog_function = error_dialog_function
         self.on_selected_tags_changed_callback = on_selected_tags_changed_callback
 
         self.tag_menu_button = Gtk.MenuButton(label="Filter-Tags",
                                               margin_top=10,
                                               margin_bottom=10)
-        self.tag_menu_button.set_create_popup_func(self._set_filter_popover)
+        self.tag_menu_button.set_create_popup_func(self._set_tags_popover)
         self.append(self.tag_menu_button)
         self.append(Gtk.Separator())
         self.tag_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,
@@ -54,7 +57,7 @@ class TagSelector(Gtk.Box):
                                                      propagate_natural_width=True)
         self.append(self.tag_box_scrollable)
 
-    def _set_filter_popover(self, *args) -> None:
+    def _set_tags_popover(self, *args) -> None:
         """Create a popover for the filter menu button"""
         self.tag_list_box = Gtk.ListBox(show_separators=True,
                                    selection_mode=Gtk.SelectionMode.NONE)
@@ -102,11 +105,11 @@ class TagSelector(Gtk.Box):
         if tag_id not in self.available_tags_dict or tag_id in self.selected_tags_dict:
             return
 
-        self.selected_tags_dict[tag_id] = self.available_tags_dict.pop(tag_id)
-        self.selected_tags_dict = Model.sort_dict_by_key(self.selected_tags_dict)
+        self.selected_tags_dict[tag_id] = Model.sort_dict_by_key(self.available_tags_dict.pop(tag_id))
 
         tag_object = TagObject(tag_id, self.selected_tags_dict[tag_id], self._on_tag_remove_clicked)
         self.tag_box.append(tag_object)
+        self.tag_object_list.append(tag_object)
         self.tag_list_box.remove(button.get_parent())
         if self.on_selected_tags_changed_callback:
             self.on_selected_tags_changed_callback()
@@ -114,8 +117,26 @@ class TagSelector(Gtk.Box):
     def _on_tag_remove_clicked(self, button, tag_object) -> None:
         """Remove the tag object and move the tag from selected_tags_dict to available_tags_dict if possible"""
         tag_id = tag_object.tag_id
-        self.available_tags_dict[tag_id] = self.selected_tags_dict.pop(tag_id)
-        self.available_tags_dict = Model.sort_dict_by_key(self.available_tags_dict)
+        self.available_tags_dict[tag_id] = Model.sort_dict_by_key(self.selected_tags_dict.pop(tag_id))
         self.tag_box.remove(tag_object)
+        self.tag_object_list.remove(tag_object)
         if self.on_selected_tags_changed_callback:
             self.on_selected_tags_changed_callback()
+
+    def reset(self, selected_tag_ids_tuple: tuple=()):
+        """Reload available tags from disk. Select all provided tag_ids if available"""
+        # Clear tag_box
+        while len(self.tag_object_list) > 1:
+            self.tag_box.remove(self.tag_object_list.pop())
+
+        self.available_tags_dict = self._load_tag_file(self.tag_file_path)
+        # Move selected tags and create tag objects
+        for tag_id in selected_tag_ids_tuple:
+            if tag_id in self.available_tags_dict.keys():
+                self.selected_tags_dict[tag_id] = Model.sort_dict_by_key(self.available_tags_dict.pop(tag_id))
+
+                tag_object = TagObject(tag_id, self.selected_tags_dict[tag_id], self._on_tag_remove_clicked)
+                self.tag_box.append(tag_object)
+                self.tag_object_list.append(tag_object)
+
+        self._set_tags_popover()
