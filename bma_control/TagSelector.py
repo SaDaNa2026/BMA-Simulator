@@ -21,7 +21,7 @@ class TagObject(Gtk.Frame):
 
 
 class TagSelector(Gtk.Box):
-    def __init__(self, tag_file_path: str, error_dialog_function, on_selected_tags_changed_callback):
+    def __init__(self, tag_file_path: str, error_dialog_function, on_selected_tags_changed_callback=None):
         """
         A box containing:
             1. a menubutton for selecting from a scrollable listbox of available tags
@@ -37,7 +37,7 @@ class TagSelector(Gtk.Box):
         self.error_dialog_function = error_dialog_function
         self.on_selected_tags_changed_callback = on_selected_tags_changed_callback
 
-        self.tag_menu_button = Gtk.MenuButton(label="Filter",
+        self.tag_menu_button = Gtk.MenuButton(label="Filter-Tags",
                                               margin_top=10,
                                               margin_bottom=10)
         self.tag_menu_button.set_create_popup_func(self._set_filter_popover)
@@ -108,7 +108,8 @@ class TagSelector(Gtk.Box):
         tag_object = TagObject(tag_id, self.selected_tags_dict[tag_id], self._on_tag_remove_clicked)
         self.tag_box.append(tag_object)
         self.tag_list_box.remove(button.get_parent())
-        self.on_selected_tags_changed_callback()
+        if self.on_selected_tags_changed_callback:
+            self.on_selected_tags_changed_callback()
 
     def _on_tag_remove_clicked(self, button, tag_object) -> None:
         """Remove the tag object and move the tag from selected_tags_dict to available_tags_dict if possible"""
@@ -116,4 +117,5 @@ class TagSelector(Gtk.Box):
         self.available_tags_dict[tag_id] = self.selected_tags_dict.pop(tag_id)
         self.available_tags_dict = Model.sort_dict_by_key(self.available_tags_dict)
         self.tag_box.remove(tag_object)
-        self.on_selected_tags_changed_callback()
+        if self.on_selected_tags_changed_callback:
+            self.on_selected_tags_changed_callback()
