@@ -20,13 +20,14 @@ from FBFWindow import FBFWindow
 from AboutWindow import AboutWindow
 from SettingsWindow import SettingsWindow
 from ScenarioBrowser import ScenarioBrowser
+from TagSelector import TagSelector
 
 
 class MainWindow(Gtk.ApplicationWindow):
     """Main Window of the application. Displays Detectors grouped in circuits as well as menus to access all
     application functionality and Consoles to print information."""
 
-    def __init__(self, edit_action_group, hidden_action_group, detector_action_group, *args, **kwargs):
+    def __init__(self, edit_action_group, hidden_action_group, detector_action_group, tag_file_path, *args, **kwargs):
         super().__init__(*args, **kwargs, maximized=True)
         self.set_title("BMA-Simulator")
 
@@ -62,12 +63,16 @@ class MainWindow(Gtk.ApplicationWindow):
         self.main_box.set_sort_func(self.sort_circuits, None)
         self.main_scrolled_window.set_child(self.main_box)
 
+        # Right side of the paned for scenario description and tag selection
+        self.right_side_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        self.h_paned.set_end_child(self.right_side_box)
+
         # Console to display the scenario description
         self.scenario_frame = Gtk.Frame(label="Szenariobeschreibung",
                                         hexpand=False,
                                         vexpand=True,
-                                        width_request=300)
-        self.h_paned.set_end_child(self.scenario_frame)
+                                        width_request=400)
+        self.right_side_box.append(self.scenario_frame)
         self.scenario_scrolled_window = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.AUTOMATIC,
                                                            vscrollbar_policy=Gtk.PolicyType.AUTOMATIC)
         self.scenario_frame.set_child(self.scenario_scrolled_window)
@@ -77,6 +82,10 @@ class MainWindow(Gtk.ApplicationWindow):
                                               buffer=self.scenario_buffer,
                                               wrap_mode=Gtk.WrapMode.WORD)
         self.scenario_scrolled_window.set_child(self.scenario_textview)
+
+        # Tag selector to assign tags to the scenario
+        self.tag_selector = TagSelector(tag_file_path, self.show_error_alert)
+        self.right_side_box.append(self.tag_selector)
 
         # Consoles that display information about active and disabled detectors
         self.console_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, homogeneous=True)

@@ -166,7 +166,8 @@ class App(Gtk.Application):
         # Instantiate the main window, starting the GUI
         self.window = MainWindow(edit_action_group=self.edit_action_group,
                                  hidden_action_group=self.hidden_action_group,
-                                 detector_action_group=self.detector_action_group)
+                                 detector_action_group=self.detector_action_group,
+                                 tag_file_path=TAG_FILE_PATH)
 
     def _init_gpio(self) -> None:
         """Set up all GPIO devices"""
