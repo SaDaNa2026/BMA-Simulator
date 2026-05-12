@@ -132,6 +132,7 @@ class TagSelector(Gtk.Box):
             self.tag_box.remove(self.tag_object_list.pop())
 
         self.available_tags_dict = self._load_tag_file(self.tag_file_path)
+        self.selected_tags_dict.clear()
         # Move selected tags and create tag objects
         for tag_id in selected_tag_ids_tuple:
             if tag_id in self.available_tags_dict.keys():
