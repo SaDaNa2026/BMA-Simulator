@@ -8,6 +8,7 @@ import os
 import subprocess
 import sys
 import gpiozero
+from pathlib import Path
 
 import gi
 gi.require_version('Gtk', '4.0')
@@ -28,10 +29,11 @@ from PhysicalDetector import PhysicalDetector
 
 # -----------------------------------------------CONSTANTS--------------------------------------------------------------
 # Set the default path that should show up when a file chooser dialog is opened
-DEFAULT_FILE_PATH = "/home/lfs-bma/BMA-Dateien"
+home_dir = str(Path.home())
+DEFAULT_FILE_PATH = home_dir + "/BMA-Dateien"
 
 # Set the path to the file containing the list of available tags
-TAG_FILE_PATH = "/home/lfs-bma/BMA-Dateien/.tags"
+TAG_FILE_PATH = home_dir + "/BMA-Dateien/.tags"
 
 # Set the application used to view HELP.md
 MARKDOWN_VIEWER: str = "okular"
