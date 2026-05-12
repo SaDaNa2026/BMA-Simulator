@@ -507,6 +507,7 @@ class App(Gtk.Application):
                 self.clear_alarms()
                 self.delete_all()
                 FileOperations.load_building_config(self.model, load_dict, self.circuit_ops.add, self.detector_ops.add)
+                self.window.tag_selector.reset()
                 self.clear_undo()
                 self.clear_redo()
                 self.print_detector_state()
