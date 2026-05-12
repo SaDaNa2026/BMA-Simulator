@@ -144,10 +144,12 @@ class MainWindow(Gtk.ApplicationWindow):
         commit_list_window = CommitListWindow(self, directory, commit_list, rollback_callback)
         commit_list_window.show()
 
-    def show_error_alert(self, error_message, error_detail):
+    def show_error_alert(self, error_message, error_detail, parent=None):
         """Display an error alert."""
+        if parent is None:
+            parent = self
         error_alert = Gtk.AlertDialog(message=error_message, detail=error_detail, modal=True)
-        error_alert.show(self)
+        error_alert.show(parent)
 
     def show_define_circuit_window(self, create_circuit_callback):
         self.define_circuit_window = DefineCircuitWindow(create_circuit_callback, self)
