@@ -396,7 +396,7 @@ class FileOperations:
 
 
     @staticmethod
-    def create_scenario_save_dict(model, scenario_description: str) -> dict:
+    def create_scenario_save_dict(model, scenario_description: str, selected_tag_ids: list) -> dict:
         """Create a dictionary that contains a list of active detectors and a description."""
         save_dict = {"active_detector_list": model.get_active_detectors(),
                      "disabled_detector_list": model.get_disabled_detectors(),
@@ -408,5 +408,6 @@ class FileOperations:
                                   "history_time_mode": model.get_history_time_mode(),
                                   "history_time_offset": model.get_history_time_offset(),
                                   "history_time_absolute": model.get_history_time_absolute()},
-                     "scenario_description": scenario_description}
+                     "scenario_description": scenario_description,
+                     "tag_ids": selected_tag_ids}
         return save_dict

@@ -446,7 +446,8 @@ class App(Gtk.Application):
             start = self.window.scenario_buffer.get_start_iter()
             end = self.window.scenario_buffer.get_end_iter()
             scenario_description = self.window.scenario_buffer.get_text(start, end)
-            save_dict = FileOperations.create_scenario_save_dict(self.model, scenario_description)
+            selected_tags_list = list(self.window.tag_selector.selected_tags_dict.keys())
+            save_dict = FileOperations.create_scenario_save_dict(self.model, scenario_description, selected_tags_list)
 
         else:
             self.window.show_error_alert("Speichern fehlgeschlagen", "Unbekannter Fehler mit der Dateiendung")
