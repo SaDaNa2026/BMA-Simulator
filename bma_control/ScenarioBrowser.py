@@ -10,14 +10,26 @@ from TagSelector import TagSelector
 
 
 class BuildingFrame(Gtk.Frame):
-    def __init__(self, label: str, scenario_files: list[File], on_scenario_clicked_callback) -> None:
+    def __init__(self,
+                 label: str,
+                 scenario_files: list[File],
+                 on_scenario_clicked_callback,
+                 error_dialog_function,
+                 tag_selector) -> None:
         super().__init__(label=label,
                          margin_start=5,
                          margin_end=5)
+        self.error_dialog_function = error_dialog_function
+        self.tag_selector = tag_selector
+        self.vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        self.set_child(self.vbox)
+        self.separator = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
+        self.vbox.append(self.separator)
         self.list_box = Gtk.ListBox(selection_mode=Gtk.SelectionMode.NONE,
                                     show_separators=True)
         self.list_box.set_sort_func(self._sort_scenarios)
-        self.set_child(self.list_box)
+        self.list_box.set_filter_func(self._filter_scenarios)
+        self.vbox.append(self.list_box)
         for scenario in scenario_files:
             scenario_path = scenario.get_path()
             if not scenario_path:
@@ -27,6 +39,7 @@ class BuildingFrame(Gtk.Frame):
             scenario_button = Gtk.Button(label=label,
                                          has_frame=False)
             scenario_button.connect("clicked", on_scenario_clicked_callback, scenario)
+            scenario_button.scenario_file = scenario
             self.list_box.append(scenario_button)
 
     def _sort_scenarios(self, child1, child2):
@@ -41,36 +54,87 @@ class BuildingFrame(Gtk.Frame):
         else:
             return 0
 
+    def get_scenario_tag_ids(self, scenario_file: File) -> list[str]:
+        """Returns a list of the tag_ids of the given scenario"""
+        try:
+            open_value = FileOperations.open_file(scenario_file)
+        except JSONDecodeError:
+            self.error_dialog_function("Szenariodatei invalide",
+                                       f"Stellen Sie sicher, dass {scenario_file.get_path()} dem "
+                                       f"JSON-Standard entspricht",
+                                       self.get_parent())
+            return []
+
+        if open_value is None:
+            return []
+        load_dict = open_value[0]
+
+        # Get tag_ids. Return an empty list if the key does not exist
+        try:
+            tag_id_list = load_dict["tag_ids"]
+        except KeyError:
+            tag_id_list = []
+
+        return tag_id_list
+
+
+    def _filter_scenarios(self, row) -> bool:
+        """Filter function for the scenarios in the listbox. Return True if the scenario contains all required tags"""
+        scenario = row.get_child().scenario_file
+        scenario_tags = self.get_scenario_tag_ids(scenario)
+
+        return all(
+            key in scenario_tags
+            for key in self.tag_selector.selected_tags_dict.keys()
+        )
+
+    def contains_visible_scenarios(self) -> bool:
+        """Check if list_box contains at least one scenario matching the filter"""
+        for row in self.list_box:
+            if self._filter_scenarios(row):
+                return True
+
+        return False
+
 
 class ScenarioBrowser(ModalWindow):
     def __init__(self, parent, error_dialog_function, top_level_dir_path: str, tag_file_path: str, load_file_callback) -> None:
         """A window to browse through available scenarios grouped by building and view scenario descriptions.
         Filtering by tags is also available"""
         super().__init__(parent, resizable=True, title="Szenario-Browser", default_width=1000, default_height=600)
-        self.connect("activate-focus", self.test)
         self.error_dialog_function = error_dialog_function
         self.top_level_dir = Gio.File.new_for_path(top_level_dir_path)
         self.current_scenario_file: File | None = None
-        self.filetree_children: list = []
         self.load_file_callback = load_file_callback
 
         self.main_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
         self.set_child(self.main_box)
 
-        # Draw the file tree view in the left of the window
+        # Add the file tree view in the left of the window
         self.filetree_frame = Gtk.Frame()
         self.filetree_frame_label = Gtk.Label()
         self.filetree_frame_label.set_markup("<span size='large'>Verfügbare Szenarien</span>")
         self.filetree_frame.set_label_widget(self.filetree_frame_label)
         self.main_box.append(self.filetree_frame)
+        self.filetree_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        self.filetree_frame.set_child(self.filetree_box)
+        self.separator = Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL)
+        self.filetree_box.append(self.separator)
+        # Search entry for filtering of building names
+        self.search_entry = Gtk.SearchEntry(placeholder_text="Gebäudename...")
+        self.search_entry.connect("search-changed", self._on_search_changed)
+        self.filetree_box.append(self.search_entry)
+        # Scrollable ListBox for the BuildingFrames
         self.filetree_scrollable = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER,
                                                       vscrollbar_policy=Gtk.PolicyType.AUTOMATIC,
                                                       vexpand=True)
-        self.filetree_frame.set_child(self.filetree_scrollable)
-        self.filetree_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,
-                                    margin_top=5,
-                                    spacing=5)
-        self.filetree_scrollable.set_child(self.filetree_box)
+        self.filetree_box.append(self.filetree_scrollable)
+        self.filetree_listbox = Gtk.ListBox(show_separators=False,
+                                            selection_mode=Gtk.SelectionMode.NONE,
+                                            margin_top=5)
+        self.filetree_listbox.set_sort_func(self._sort_filetree)
+        self.filetree_listbox.set_filter_func(self._filter_filetree)
+        self.filetree_scrollable.set_child(self.filetree_listbox)
 
         self.right_side_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         self.main_box.append(self.right_side_box)
@@ -116,8 +180,36 @@ class ScenarioBrowser(ModalWindow):
 
         self._populate_filetree(self.top_level_dir)
 
-    def test(self):
-        print("activated")
+    def _sort_filetree(self, child1, child2) -> int:
+        """Sorting function for the building frames inside filetree_listbox"""
+        building_label_1 = child1.get_child().get_label()
+        building_label_2 = child2.get_child().get_label()
+
+        if building_label_1 < building_label_2:
+            return -1
+        elif building_label_1 > building_label_2:
+            return 1
+        else:
+            return 0
+
+    def _filter_filetree(self, row) -> bool:
+        """Filter function for the BuildingFrames inside filetree_listbox"""
+        building_frame = row.get_child()
+        building_frame.list_box.invalidate_filter()
+
+        search_text = self.search_entry.get_text().lower()
+        if not search_text:
+            text_found = True
+        else:
+            # Frame is the child of the ListBoxRow. Convert the label to lowercase for case-insensitive filtering
+            frame_label = building_frame.get_label().lower()
+            text_found = search_text in frame_label
+
+        return text_found and building_frame.contains_visible_scenarios()
+
+    def _on_search_changed(self, entry) -> None:
+        """Trigger refiltering when the search is changed"""
+        self.filetree_listbox.invalidate_filter()
 
     def _populate_filetree(self, directory: File) -> None:
         """Recursively search directories for building files. Add a directory frame with all corresponding scenarios
@@ -159,51 +251,12 @@ class ScenarioBrowser(ModalWindow):
         label = FileOperations.get_filename_without_extension(file_name)
         scenario_list = FileOperations.list_child_scenarios(directory)
 
-        filtered_scenarios = self._filter_scenario_list(scenario_list, self.tag_selector.selected_tags_dict)
-        if len(filtered_scenarios) > 0:
-            building_frame = BuildingFrame(label, filtered_scenarios, self._on_scenario_clicked)
-            self.filetree_box.append(building_frame)
-            self.filetree_children.append(building_frame)
-
-    def get_scenario_tag_ids(self, scenario_file: File) -> list[str]:
-        """Returns a list of the tag_ids of the given scenario"""
-        try:
-            open_value = FileOperations.open_file(scenario_file)
-        except JSONDecodeError:
-            self.error_dialog_function("Szenariodatei invalide",
-                                       f"Stellen Sie sicher, dass {scenario_file.get_path()} dem "
-                                       f"JSON-Standard entspricht",
-                                       self)
-            return []
-
-        if open_value is None:
-            return []
-        load_dict = open_value[0]
-
-        # Get tag_ids. Return an empty list if the key does not exist
-        try:
-            tag_id_list = load_dict["tag_ids"]
-        except KeyError:
-            tag_id_list = []
-
-        return tag_id_list
-
-
-    def _filter_scenario_list(self, scenario_list: list[File], tags_dict: dict) -> list[File]:
-        """Remove scenarios that don't match the filter criteria"""
-        return_list: list = []
-        for scenario in scenario_list:
-            not_found = False
-            scenario_tags = self.get_scenario_tag_ids(scenario)
-            # Iterate over provided keys. Only append scenario to return_list if it contains all keys
-            for key in tags_dict.keys():
-                if key not in scenario_tags:
-                    not_found = True
-                    break
-            if not not_found:
-                return_list.append(scenario)
-
-        return return_list
+        building_frame = BuildingFrame(label,
+                                       scenario_list,
+                                       self._on_scenario_clicked,
+                                       self.error_dialog_function,
+                                       self.tag_selector)
+        self.filetree_listbox.append(building_frame)
 
     def _on_scenario_clicked(self, button, scenario_file: File) -> None:
         """Set the current scenario to the provided one and call the function to load the description"""
@@ -256,10 +309,7 @@ class ScenarioBrowser(ModalWindow):
         self.current_scenario_file = None
         self.confirm_button.set_sensitive(False)
 
-        while len(self.filetree_children) > 0:
-            self.filetree_box.remove(self.filetree_children.pop())
-
-        self._populate_filetree(self.top_level_dir)
+        self.filetree_listbox.invalidate_filter()
 
     def _load_scenario(self, *args):
         """Load the selected scenario"""
