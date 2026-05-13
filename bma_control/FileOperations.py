@@ -345,17 +345,30 @@ class FileOperations:
             repo.index.commit(message or "Update files")
 
     @staticmethod
-    def get_commits_for_dir(directory, recursion_limit):
+    def get_commits_for_dir(directory: File, recursion_limit: File):
         """Returns a list of all commits for the provided directory containing tuples with commit date and message.
         Recursively tries parent directories until the provided limit (or the home directory) is reached.
         Returns None if the directory is not a git repository."""
+        # Check for valid syntax
+        if directory is None:
+            return None
+        directory_path = directory.get_path()
+        if directory_path is None:
+            return None
+
         repo = None
-        while (not (directory == Path.home() or directory == recursion_limit.get_parent())) and repo is None:
+        while (not (directory_path == Path.home() or directory == recursion_limit.get_parent())) and repo is None:
             try:
-                print(directory)
-                repo = Repo(directory)
+                print(directory_path)
+                repo = Repo(directory_path)
             except InvalidGitRepositoryError:
+                # Change into parent directory. Return None if that fails
                 directory = directory.get_parent()
+                if directory is None:
+                    return None
+                directory_path = directory.get_path()
+                if directory_path is None:
+                    return None
 
         if repo is None:
             return None
