@@ -14,6 +14,7 @@ import gi
 gi.require_version('Gtk', '4.0')
 gi.require_version('GLib', '2.0')
 from gi.repository import Gtk, Gio, GLib, Gdk
+from gi.repository.Gio import File
 from json import JSONDecodeError
 
 from Operations import DetectorOps, CircuitOps, BuildingOps
@@ -73,7 +74,7 @@ class App(Gtk.Application):
         self.model = BuildingModel(building_description=DEFAULT_BUILDING_DESCRIPTION, permanent_detectors=permanent_detectors)
 
         # Create a placeholder to memorize opened files
-        self.last_file = Gio.File.new_for_path(DEFAULT_FILE_PATH)
+        self.last_file: File = Gio.File.new_for_path(DEFAULT_FILE_PATH)
 
         # Keep track if the reset button has been pressed. This is necessary to check if the alarm LED needs to light up
         # if there are detectors in the history. Resets when a new file is loaded
@@ -779,6 +780,7 @@ class App(Gtk.Application):
             action.set_state(GLib.Variant.new_boolean(False))
             # Deactivate protected actions
             self._set_actions_enabled(("save_scenario", "save_building", "rollback"), False)
+            self.window.save_menubutton.set_visible(False)
         else:
             if UNLOCK_CODE is None:
                 self.confirm_unlock(action, None)
@@ -791,6 +793,7 @@ class App(Gtk.Application):
             unlock_action.set_state(GLib.Variant.new_boolean(True))
             # Activate protected actions
             self._set_actions_enabled(("save_scenario", "save_building", "rollback"), True)
+            self.window.save_menubutton.set_visible(True)
             return True
         else:
             return False

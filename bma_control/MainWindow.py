@@ -9,7 +9,7 @@ gi.require_version('Gtk', '4.0')
 from gi.repository import Gtk
 from functools import partial
 
-from Menus import PrimaryMenu, DataMenu, EditMenu
+from Menus import PrimaryMenu, SaveMenu, OpenMenu, EditMenu
 from FileOpenDialog import FileOpenDialog
 from FileSaveDialog import FileSaveDialog
 from DefineObjectWindows import DefineCircuitWindow, DefineDetectorWindow
@@ -109,10 +109,15 @@ class MainWindow(Gtk.ApplicationWindow):
                                                  primary=True)
         self.header.pack_start(self.primary_menubutton)
 
-        # MenuButton to handle data operations
-        self.data_menu = DataMenu()
-        self.data_menubutton = Gtk.MenuButton(label="Datei", menu_model=self.data_menu)
-        self.header.pack_start(self.data_menubutton)
+        # MenuButton to handle save operations
+        self.save_menu = SaveMenu()
+        self.save_menubutton = Gtk.MenuButton(label="Speicherfunktionen", menu_model=self.save_menu, visible=False)
+        self.header.pack_start(self.save_menubutton)
+
+        # MenuButton to handle open operations
+        self.open_menu = OpenMenu()
+        self.open_menubutton = Gtk.MenuButton(label="Öffnen", menu_model=self.open_menu)
+        self.header.pack_start(self.open_menubutton)
 
         # MenuButton for the edit menu
         self.edit_menu = EditMenu()
