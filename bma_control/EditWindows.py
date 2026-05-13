@@ -12,7 +12,7 @@ from DescriptionBox import DescriptionBox
 
 class EditWindow(ModalWindow):
     """Base class for a window that lets the user edit a description."""
-    def __init__(self, edit_callback, parent, title, default_text: str="", max_length: int | None=None, description_box_label: str="Beschreibung", **kwargs):
+    def __init__(self, edit_callback, parent, title, default_text: str="", max_length: int | None=None, description_box_label: str="Beschreibung:", **kwargs):
         super().__init__(parent, default_width=350, default_height= 100, title=title, **kwargs)
 
         self.main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,
@@ -127,9 +127,11 @@ class CodeInputWindow(EditWindow):
         protected functionality. It should return True to signal success and False to signal a wrong pin."""
         super().__init__(lambda button, *args: self.handle_edit(confirm_callback, unlock_action),
                          parent,
-                         "PIN eingeben")
+                         "PIN eingeben",
+                         description_box_label="PIN:")
 
         self.description_box.description_entry.set_visibility(False)
+        self.description_box.set_halign(Gtk.Align.CENTER)
 
     def handle_edit(self, confirm_callback, unlock_action):
         """Get the pin entry and pass it to confirm_callback.
