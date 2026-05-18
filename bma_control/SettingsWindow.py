@@ -11,6 +11,7 @@ gi.require_version('Gio', '2.0')
 from gi.repository import Gtk, Gio, GLib
 
 from ModalWindow import ModalWindow
+from ConfirmationBox import ConfirmationBox
 
 
 class HistoryTimeFrame(Gtk.Frame):
@@ -161,25 +162,12 @@ class SettingsWindow(ModalWindow):
         self.list_box.append(self.flash_enabled_frame)
 
         # Box with buttons to cancel, apply or confirm
-        self.button_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,
-                                  spacing=10,
-                                  margin_start=50,
-                                  margin_end=5,
-                                  margin_top=5,
-                                  margin_bottom=5)
-        self.main_box.append(self.button_box)
-
-        self.cancel_button = Gtk.Button(label="Abbrechen", halign=Gtk.Align.END)
-        self.cancel_button.connect("clicked", lambda button, *args: self.destroy())
-        self.button_box.append(self.cancel_button)
+        self.confirmation_box = ConfirmationBox(self.destroy, self.on_confirm_clicked)
+        self.main_box.append(self.confirmation_box)
 
         self.apply_button = Gtk.Button(label="Anwenden", halign=Gtk.Align.END)
         self.apply_button.connect("clicked", lambda button, *args: self.on_apply_clicked())
-        self.button_box.append(self.apply_button)
-
-        self.confirm_button = Gtk.Button(label="OK", halign=Gtk.Align.END)
-        self.confirm_button.connect("clicked", lambda button, *args: self.on_confirm_clicked())
-        self.button_box.append(self.confirm_button)
+        self.confirmation_box.insert_child_after(self.apply_button, self.confirmation_box.cancel_button)
 
     def on_history_time_mode_changed(self, action, parameter, *args):
         action.set_state(parameter)

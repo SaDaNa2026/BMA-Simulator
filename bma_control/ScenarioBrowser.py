@@ -7,6 +7,7 @@ from json import JSONDecodeError
 from FileOperations import FileOperations
 from ModalWindow import ModalWindow
 from TagSelector import TagSelector
+from ConfirmationBox import ConfirmationBox
 
 
 class BuildingFrame(Gtk.Frame):
@@ -162,21 +163,9 @@ class ScenarioBrowser(ModalWindow):
         self.description_scrollable.set_child(self.description_text)
 
         # Buttons to Cancel or Load
-        self.button_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,
-                                  spacing=10,
-                                  hexpand=True,
-                                  halign=Gtk.Align.END,
-                                  margin_top=5,
-                                  margin_bottom=5,
-                                  margin_start=10,
-                                  margin_end=10)
-        self.right_side_box.append(self.button_box)
-        self.cancel_button = Gtk.Button(label="Abbrechen", halign=Gtk.Align.END)
-        self.cancel_button.connect("clicked", lambda button, *args: self.destroy())
-        self.button_box.append(self.cancel_button)
-        self.confirm_button = Gtk.Button(label="Szenario laden", sensitive=False, halign=Gtk.Align.END)
-        self.confirm_button.connect("clicked", self._load_scenario)
-        self.button_box.append(self.confirm_button)
+        self.confirmation_box = ConfirmationBox(self.destroy, self._load_scenario, "Szenario laden")
+        self.right_side_box.append(self.confirmation_box)
+        self.confirmation_box.confirm_button.set_sensitive(False)
 
         self._populate_filetree(self.top_level_dir)
 
@@ -300,18 +289,18 @@ class ScenarioBrowser(ModalWindow):
                                        self)
             self.description_textbuffer.set_text("Konnte Beschreibung nicht laden")
 
-        self.confirm_button.set_sensitive(True)
+        self.confirmation_box.confirm_button.set_sensitive(True)
 
     def reload_filetree(self) -> None:
         """Clear filetree and repopulate it with the current filter selection. Clear the textview and current_file too"""
         self.description_textbuffer.set_text("")
         self.description_frame_label.set_text("")
         self.current_scenario_file = None
-        self.confirm_button.set_sensitive(False)
+        self.confirmation_box.confirm_button.set_sensitive(False)
 
         self.filetree_listbox.invalidate_filter()
 
-    def _load_scenario(self, *args):
+    def _load_scenario(self):
         """Load the selected scenario"""
         if self.current_scenario_file is None:
             return

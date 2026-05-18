@@ -9,6 +9,7 @@ gi.require_version('Gtk', '4.0')
 from gi.repository import Gtk
 from datetime import datetime
 from ModalWindow import ModalWindow
+from ConfirmationBox import ConfirmationBox
 
 
 class ConfirmationAlert(Gtk.AlertDialog):
@@ -91,18 +92,10 @@ class CommitListWindow(ModalWindow):
             index += 1
 
         # Buttons to cancel or confirm
-        self.confirmation_box = Gtk.Box(halign=Gtk.Align.END, spacing=10)
+        self.confirmation_box = ConfirmationBox(self.destroy, self.on_rollback_clicked, "Wiederherstellen")
         self.main_box.append(self.confirmation_box)
 
-        self.cancel_button = Gtk.Button(label="Abbrechen", halign=Gtk.Align.END)
-        self.cancel_button.connect("clicked", lambda button, *args: self.destroy())
-        self.confirmation_box.append(self.cancel_button)
-
-        self.confirm_button = Gtk.Button(label="Wiederherstellen", halign=Gtk.Align.END)
-        self.confirm_button.connect("clicked", self._on_rollback_clicked)
-        self.confirmation_box.append(self.confirm_button)
-
-    def _on_rollback_clicked(self, *args):
+    def on_rollback_clicked(self):
         # Show an alert to inform the user that they are about to irreversibly roll back
         self.confirmation_alert = Gtk.AlertDialog(message="Dateistand wiederherstellen",
                                              detail=f"Wenn Sie fortfahren, gehen alle Änderungen\n"
