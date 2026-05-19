@@ -357,9 +357,8 @@ class FileOperations:
             return None
 
         repo = None
-        while (not (directory_path == Path.home() or directory == recursion_limit.get_parent())) and repo is None:
+        while (not (directory_path == Path.home() or directory_path == recursion_limit.get_path())) and repo is None:
             try:
-                print(directory_path)
                 repo = Repo(directory_path)
             except InvalidGitRepositoryError:
                 # Change into parent directory. Return None if that fails
