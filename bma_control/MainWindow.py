@@ -21,6 +21,7 @@ from AboutWindow import AboutWindow
 from SettingsWindow import SettingsWindow
 from ScenarioBrowser import ScenarioBrowser
 from TagSelector import TagSelector
+from TagDefinitionWindow import TagDefinitionWindow
 
 
 class MainWindow(Gtk.ApplicationWindow):
@@ -196,6 +197,10 @@ class MainWindow(Gtk.ApplicationWindow):
     def show_scenario_browser(self, top_level_dir_path: str, tag_file_path: str, load_file_callback) -> None:
         self.scenario_browser = ScenarioBrowser(self, self.show_error_alert, top_level_dir_path, tag_file_path, load_file_callback)
         self.scenario_browser.present()
+
+    def show_tag_definition_window(self, tag_file_path: str) -> None:
+        self.tag_definition_window = TagDefinitionWindow(self, tag_file_path, self.show_error_alert)
+        self.tag_definition_window.show()
 
     def sort_circuits(self, child1, child2, user_data) -> int:
         """Sorting function for the circuits inside main_box."""

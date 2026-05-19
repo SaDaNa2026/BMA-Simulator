@@ -93,6 +93,7 @@ class App(Gtk.Application):
                               ("save_scenario", self.on_save_clicked, None),
                               ("open", self.on_open_clicked, None),
                               ("launch_scenario_browser", self.on_launch_scenario_browser_clicked, None),
+                              ("define_tags", self.on_define_tags_clicked, None),
                               ("rollback", self.on_rollback_clicked, None),
                               ("edit_mode", None, None, "false", self.on_edit_mode_clicked),
                               ("undo", self.on_undo_clicked, None),
@@ -119,7 +120,7 @@ class App(Gtk.Application):
         self.add_action_entries(app_action_entries, None)
 
         # Disable protected actions
-        self._set_actions_enabled(("save_scenario", "save_building", "rollback"), False)
+        self._set_actions_enabled(("save_scenario", "save_building", "rollback", "define_tags"), False)
 
         # Disable undo and redo actions (will be enabled when the respective stack has entries)
         self._set_actions_enabled(("undo", "redo"), False)
@@ -582,9 +583,16 @@ class App(Gtk.Application):
         """Present a scenario browser window"""
         self.window.show_scenario_browser(DEFAULT_FILE_PATH, TAG_FILE_PATH, self.load_file)
 
+    def on_define_tags_clicked(self, *args) -> None:
+        """Present a tag definition window"""
+        self.window.show_tag_definition_window(TAG_FILE_PATH)
+
     def on_rollback_clicked(self, *args) -> None:
         """Present a list of all commits returned by the commit getter function"""
         directory = self.last_file.get_parent()
+        if directory is None:
+            return
+
         commit_list = FileOperations.get_commits_for_dir(directory, Gio.File.new_for_path(DEFAULT_FILE_PATH))
 
         # Display an error if the directory is not a repository
@@ -779,7 +787,7 @@ class App(Gtk.Application):
         if old_state:
             action.set_state(GLib.Variant.new_boolean(False))
             # Deactivate protected actions
-            self._set_actions_enabled(("save_scenario", "save_building", "rollback"), False)
+            self._set_actions_enabled(("save_scenario", "save_building", "rollback", "define_tags"), False)
             self.window.save_menubutton.set_visible(False)
         else:
             if UNLOCK_CODE is None:
@@ -792,7 +800,7 @@ class App(Gtk.Application):
         if code == UNLOCK_CODE:
             unlock_action.set_state(GLib.Variant.new_boolean(True))
             # Activate protected actions
-            self._set_actions_enabled(("save_scenario", "save_building", "rollback"), True)
+            self._set_actions_enabled(("save_scenario", "save_building", "rollback", "define_tags"), True)
             self.window.save_menubutton.set_visible(True)
             return True
         else:

@@ -34,8 +34,9 @@ class SaveMenu(TupleAddMenu):
     """Menu model for the "Save" MenuButton in the header bar"""
 
     def __init__(self):
-        super().__init__((("Gebäudekonfiguration speichern...", "app.save_building"),
-                          ("Szenario speichern...", "app.save_scenario"),
+        super().__init__((("Gebäudekonfiguration speichern.", "app.save_building"),
+                          ("Szenario speichern", "app.save_scenario"),
+                          ("Szenario-Tags verwalten...", "app.define_tags"),
                           ("Dateistand wiederherstellen...", "app.rollback")))
 
 
