@@ -184,7 +184,7 @@ class MainWindow(Gtk.ApplicationWindow):
 
     def show_about_window(self):
         self.about_window = AboutWindow(self)
-        self.about_window.show()
+        self.about_window.present()
 
     def show_code_input_window(self, confirm_callback, unlock_action):
         self.code_input_window = CodeInputWindow(confirm_callback, self, unlock_action)
@@ -192,7 +192,7 @@ class MainWindow(Gtk.ApplicationWindow):
 
     def show_settings_window(self, model, refresh_lcd, update_leds, print_detector_state):
         self.settings_window = SettingsWindow(self, model, refresh_lcd, update_leds, print_detector_state)
-        self.settings_window.show()
+        self.settings_window.present()
 
     def show_scenario_browser(self, top_level_dir_path: str, tag_file_path: str, load_file_callback) -> None:
         self.scenario_browser = ScenarioBrowser(self, self.show_error_alert, top_level_dir_path, tag_file_path, load_file_callback)
@@ -200,7 +200,7 @@ class MainWindow(Gtk.ApplicationWindow):
 
     def show_tag_definition_window(self, tag_file_path: str) -> None:
         self.tag_definition_window = TagDefinitionWindow(self, tag_file_path, self.show_error_alert)
-        self.tag_definition_window.show()
+        self.tag_definition_window.present()
 
     def sort_circuits(self, child1, child2, user_data) -> int:
         """Sorting function for the circuits inside main_box."""
