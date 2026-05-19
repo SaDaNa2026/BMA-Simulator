@@ -199,7 +199,7 @@ class MainWindow(Gtk.ApplicationWindow):
         self.scenario_browser.present()
 
     def show_tag_definition_window(self, tag_file_path: str) -> None:
-        self.tag_definition_window = TagDefinitionWindow(self, tag_file_path, self.show_error_alert)
+        self.tag_definition_window = TagDefinitionWindow(self, tag_file_path, self.show_error_alert, self.tag_selector)
         self.tag_definition_window.present()
 
     def sort_circuits(self, child1, child2, user_data) -> int:

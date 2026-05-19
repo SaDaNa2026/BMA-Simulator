@@ -9,7 +9,7 @@ import Model
 
 
 class TagObject(Gtk.Frame):
-    def __init__(self, tag_id: int, tag_name: str, remove_callback):
+    def __init__(self, tag_id: str, tag_name: str, remove_callback):
         super().__init__()
         self.tag_id = tag_id
         self.box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, margin_start=5)
@@ -62,10 +62,13 @@ class TagSelector(Gtk.Box):
         """Create a popover for the filter menu button"""
         self.tag_list_box = Gtk.ListBox(show_separators=True,
                                         selection_mode=Gtk.SelectionMode.NONE)
+        self.tag_list_box.set_sort_func(self._sort_tags)
         for tag_id in self.available_tags_dict:
-            tag_button = Gtk.Button(label=str(self.available_tags_dict[tag_id]),
+            tag_values = self.available_tags_dict[tag_id]
+            tag_button = Gtk.Button(label=str(tag_values[1]),
                                     has_frame=False)
             tag_button.connect("clicked", self._on_add_tag_clicked, tag_id)
+            tag_button.list_index = tag_values[0]
             self.tag_list_box.append(tag_button)
 
         scrollable = Gtk.ScrolledWindow(child=self.tag_list_box,
@@ -75,6 +78,18 @@ class TagSelector(Gtk.Box):
                                         propagate_natural_height=True)
         popover = Gtk.Popover(child=scrollable)
         self.tag_menu_button.set_popover(popover)
+
+    def _sort_tags(self, child1, child2):
+        """Sorting function for the tags in the listbox"""
+        tag1 = child1.get_child()
+        tag2 = child2.get_child()
+
+        if tag1.list_index < tag2.list_index:
+            return -1
+        elif tag1.list_index > tag2.list_index:
+            return 1
+        else:
+            return 0
 
     def _load_tag_file(self, tag_file_path: str) -> dict:
         """Try to open and load the tag file. Display an error message if this fails"""
@@ -93,14 +108,11 @@ class TagSelector(Gtk.Box):
                           self.get_parent())
             tag_dict = {}
 
-        # Convert str keys to int
-        return_dict: dict = {}
-        for key in tag_dict.keys():
-            return_dict[int(key)] = tag_dict[key]
+        return_dict = self.cleanse_tag_dict(tag_dict)
 
         return return_dict
 
-    def _on_add_tag_clicked(self, button, tag_id: int) -> None:
+    def _on_add_tag_clicked(self, button, tag_id: str) -> None:
         """Move the tag with the provided id from available_tags_dict to selected_tags_dict if possible.
         Append a filter button to the filter box"""
         if tag_id not in self.available_tags_dict or tag_id in self.selected_tags_dict:
@@ -109,7 +121,7 @@ class TagSelector(Gtk.Box):
         self.selected_tags_dict[tag_id] = self.available_tags_dict.pop(tag_id)
         self.selected_tags_dict = Model.sort_dict_by_key(self.selected_tags_dict)
 
-        tag_object = TagObject(tag_id, self.selected_tags_dict[tag_id], self._on_tag_remove_clicked)
+        tag_object = TagObject(tag_id, self.selected_tags_dict[tag_id][1], self._on_tag_remove_clicked)
         self.tag_box.append(tag_object)
         self.tag_object_list.append(tag_object)
         self.tag_list_box.remove(button.get_parent())
@@ -140,8 +152,33 @@ class TagSelector(Gtk.Box):
                 self.selected_tags_dict[tag_id] = self.available_tags_dict.pop(tag_id)
                 self.selected_tags_dict = Model.sort_dict_by_key(self.selected_tags_dict)
 
-                tag_object = TagObject(tag_id, self.selected_tags_dict[tag_id], self._on_tag_remove_clicked)
+                tag_object = TagObject(tag_id, self.selected_tags_dict[tag_id][1], self._on_tag_remove_clicked)
                 self.tag_box.append(tag_object)
                 self.tag_object_list.append(tag_object)
 
         self._set_tags_popover()
+
+    def cleanse_tag_dict(self, tag_dict: dict) -> dict:
+        """Remove all key-value pairs in tag_dict with invalid syntax and return the resulting dict"""
+        return_dict: dict = {}
+        for tag_id in tag_dict.keys():
+            if not type(tag_id) == str:
+                continue
+
+            tag_values = tag_dict[tag_id]
+
+            if not type(tag_values) == list:
+                continue
+
+            if not len(tag_values) == 2:
+                continue
+
+            if not type(tag_values[0]) == int:
+                continue
+
+            if not type(tag_values[1]) == str:
+                continue
+
+            return_dict[tag_id] = tag_values
+
+        return return_dict

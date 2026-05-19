@@ -38,13 +38,15 @@ class TagBox(Gtk.Box):
 
 
 class TagDefinitionWindow(ModalWindow):
-    def __init__(self, parent, tag_file_path: str, error_dialog_function) -> None:
+    def __init__(self, parent, tag_file_path: str, error_dialog_function, tag_selector) -> None:
         """A Window for editing the tag file"""
         super().__init__(parent, title="Szenario-Tags verwalten")
         # Set the random seed for ID generation when tags are added
         random.seed(time())
 
         self.tag_file_path = tag_file_path
+        self.tag_selector = tag_selector
+
         self.main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         self.set_child(self.main_box)
 
@@ -90,8 +92,16 @@ class TagDefinitionWindow(ModalWindow):
             tag_values = tag_dict[tag_id]
             if not type(tag_values) == list:
                 error_dialog_function("Falsches Tag-Format",
-                                      f"Tag-ID {tag_id} entspricht nicht einer Liste. Folgendes Format muss "
-                                      f"eingehalten werden: 'Tag-ID': [list_index, tag_name]\n"
+                                      f"Tag-ID {tag_id} entspricht nicht einer Liste. Folgendes Format "
+                                      f"muss eingehalten werden: 'Tag-ID': [list_index, tag_name]\n"
+                                      f"Tag-Datei: {tag_file_path}",
+                                      self)
+                continue
+
+            if not len(tag_values) == 2:
+                error_dialog_function("Falsches Tag-Format",
+                                      f"Tag-ID {tag_id} entspricht nicht einer Liste mit 2 Einträgen. Folgendes Format "
+                                      f"muss eingehalten werden: 'Tag-ID': [list_index, tag_name]\n"
                                       f"Tag-Datei: {tag_file_path}",
                                       self)
                 continue
@@ -240,3 +250,7 @@ class TagDefinitionWindow(ModalWindow):
 
         with open(self.tag_file_path, "w") as tag_file:
             json.dump(save_dict, tag_file, indent=4)
+
+        # Reset the tag selector in the main window
+        selected_tag_ids = tuple(self.tag_selector.selected_tags_dict.keys())
+        self.tag_selector.reset(selected_tag_ids)
