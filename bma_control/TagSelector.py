@@ -1,6 +1,7 @@
 import gi
+
 gi.require_version('Gtk', '4.0')
-from gi.repository import Gtk
+from gi.repository import Gtk, GLib
 import json
 from json import JSONDecodeError
 
@@ -15,7 +16,7 @@ class TagObject(Gtk.Frame):
         self.set_child(self.box)
         self.label = Gtk.Label(label=tag_name, opacity=0.9)
         self.box.append(self.label)
-        self.remove_button = Gtk.Button(icon_name="window-close-symbolic", has_frame=False)
+        self.remove_button = Gtk.Button(icon_name="process-stop-symbolic", has_frame=False)
         self.remove_button.connect("clicked", remove_callback, self)
         self.box.append(self.remove_button)
 
@@ -27,9 +28,10 @@ class TagSelector(Gtk.Box):
             1. a menubutton for selecting from a scrollable listbox of available tags
             2. a horizontal scrollable list of selected tags, each with a button to remove that tag"""
         super().__init__(orientation=Gtk.Orientation.HORIZONTAL,
-                       spacing=5,
-                       margin_start=5,
-                       margin_end=5)
+                         spacing=5,
+                         margin_start=5,
+                         margin_end=5)
+        self.error_dialog_function = error_dialog_function
         # Keep track of available and selected tags
         self.available_tags_dict: dict = self._load_tag_file(tag_file_path)
         self.selected_tags_dict: dict = {}
@@ -37,7 +39,6 @@ class TagSelector(Gtk.Box):
         self.tag_object_list: list = []
 
         self.tag_file_path = tag_file_path
-        self.error_dialog_function = error_dialog_function
         self.on_selected_tags_changed_callback = on_selected_tags_changed_callback
 
         self.tag_menu_button = Gtk.MenuButton(label="Filter-Tags",
@@ -60,7 +61,7 @@ class TagSelector(Gtk.Box):
     def _set_tags_popover(self, *args) -> None:
         """Create a popover for the filter menu button"""
         self.tag_list_box = Gtk.ListBox(show_separators=True,
-                                   selection_mode=Gtk.SelectionMode.NONE)
+                                        selection_mode=Gtk.SelectionMode.NONE)
         for tag_id in self.available_tags_dict:
             tag_button = Gtk.Button(label=str(self.available_tags_dict[tag_id]),
                                     has_frame=False)
@@ -85,11 +86,11 @@ class TagSelector(Gtk.Box):
                 tag_dict = json.load(tag_json)
 
         except (FileNotFoundError, JSONDecodeError):
-            self.error_dialog_function("Tag file not found",
-                                       f"Make sure a json-formatted dictionary of tags and associated IDs to be "
-                                       f"used for scenario filtering is located at {tag_file_path}.\n"
-                                       f"In the current state, scenario filtering will be unavailable.",
-                                       self.get_parent())
+            GLib.idle_add(self.error_dialog_function, "Tag-Datei nicht gefunden",
+                          f"Stellen Sie sicher, dass unter {tag_file_path} eine JSON-Datei im Format "
+                          f"'Tag-ID': [list_index, tag_description] vorhanden ist.\n"
+                          f"Im aktuellen Zustand kann nicht nach Szenario-Tags gefiltert werden.",
+                          self.get_parent())
             tag_dict = {}
 
         # Convert str keys to int
@@ -125,7 +126,7 @@ class TagSelector(Gtk.Box):
         if self.on_selected_tags_changed_callback:
             self.on_selected_tags_changed_callback()
 
-    def reset(self, selected_tag_ids_tuple: tuple=()):
+    def reset(self, selected_tag_ids_tuple: tuple = ()):
         """Reload available tags from disk. Select all provided tag_ids if available"""
         # Clear tag_box
         while len(self.tag_object_list) > 0:
