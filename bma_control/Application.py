@@ -43,7 +43,7 @@ MARKDOWN_VIEWER: str = "okular"
 DEFAULT_BUILDING_DESCRIPTION = "BMA-Simulator\nLFS-BW"
 
 # Set a pin that is needed to be put in to activate potentially destructive actions (saving and rolling back)
-UNLOCK_CODE: str | None = None #"124440"
+UNLOCK_CODE: str | None = "124440"
 
 # Define permanent detectors that should always be available and never change their description. This can be used
 #   for physical detectors connected to the GPIO pins or hidden detectors for internal use. They will not be visible
