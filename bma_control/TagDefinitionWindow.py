@@ -1,14 +1,21 @@
 import random
 from time import time
+from enum import Enum
 
 import gi
 gi.require_version('Gtk', '4.0')
-from gi.repository import Gtk, GLib
+from gi.repository import Gtk, GLib, Gio
 
 import json
 from json import JSONDecodeError
 from ModalWindow import ModalWindow
 from ConfirmationBox import ConfirmationBox
+
+
+class ActionType(Enum):
+    DO = 1
+    UNDO = 2
+    REDO = 3
 
 
 class TagBox(Gtk.Box):
@@ -47,6 +54,37 @@ class TagDefinitionWindow(ModalWindow):
         self.tag_file_path = tag_file_path
         self.tag_selector = tag_selector
 
+        # Set up undo/redo actions
+        self.undo_stack: list = []
+        self.redo_stack: list = []
+
+        action_entries = [("undo", self.undo, None),
+                          ("redo", self.redo, None)]
+        self.actions = Gio.SimpleActionGroup.new()
+        self.actions.add_action_entries(action_entries)
+        self.insert_action_group("tag_actions", self.actions)
+        
+        # Disable undo/redo actions until entries are pushed to the respective stack
+        for name in self.actions.list_actions():
+            action = self.actions.lookup_action(name)
+            if isinstance(action, Gio.SimpleAction):
+                action.set_enabled(False)
+
+        self.undo_shortcut = Gtk.Shortcut(action=Gtk.NamedAction.new("tag_actions.undo"),
+                                          trigger=Gtk.ShortcutTrigger.parse_string("<Ctrl>Z"))
+        self.add_shortcut(self.undo_shortcut)
+        self.redo_shortcut = Gtk.Shortcut(action=Gtk.NamedAction.new("tag_actions.redo"),
+                                          trigger=Gtk.ShortcutTrigger.parse_string("<Ctrl><Shift>Z|<Ctrl>Y"))
+        self.add_shortcut(self.redo_shortcut)
+
+        self.header = Gtk.HeaderBar()
+        self.set_titlebar(self.header)
+
+        self.undo_button = Gtk.Button(icon_name="edit-undo-symbolic", action_name="tag_actions.undo", tooltip_text="Undo")
+        self.header.pack_start(self.undo_button)
+        self.redo_button = Gtk.Button(icon_name="edit-redo-symbolic", action_name="tag_actions.redo", tooltip_text="Redo")
+        self.header.pack_start(self.redo_button)
+
         self.main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         self.set_child(self.main_box)
 
@@ -61,7 +99,7 @@ class TagDefinitionWindow(ModalWindow):
                                                   vscrollbar_policy=Gtk.PolicyType.AUTOMATIC,
                                                   max_content_height=600,
                                                   propagate_natural_height=True,
-                                                  margin_bottom=20)
+                                                  margin_bottom=10)
         self.main_box.append(self.scrolled_window)
 
         try:
@@ -181,7 +219,7 @@ class TagDefinitionWindow(ModalWindow):
             tag_box.list_index = number_list.index(old_list_index)
 
 
-    def move_tag(self, button, direction: str) -> None:
+    def move_tag(self, button, direction: str, action_type: ActionType = ActionType.DO) -> None:
         """Move the tag box which is the parent of the clicked button in the specified direction, if possible"""
         tag_box = button.get_parent()
         old_list_index = tag_box.list_index
@@ -190,11 +228,13 @@ class TagDefinitionWindow(ModalWindow):
                 if tag_box.list_index == 0:
                     return
                 tag_box.list_index -= 1
+                reverse_direction = "down"
 
             case "down":
                 if not any(tag_box.list_index < other_tag.list_index for other_tag in self.tag_boxes):
                     return
                 tag_box.list_index += 1
+                reverse_direction = "up"
 
             case _:
                 return
@@ -208,19 +248,49 @@ class TagDefinitionWindow(ModalWindow):
 
         self.listbox.invalidate_sort()
 
-    def delete_tag(self, button) -> None:
+        match action_type:
+            case ActionType.DO:
+                self.append_undo((self.move_tag, (button, reverse_direction)))
+                self.clear_redo()
+            case ActionType.UNDO:
+                self.append_redo((self.move_tag, (button, reverse_direction)))
+            case ActionType.REDO:
+                self.append_undo((self.move_tag, (button, reverse_direction)))
+
+    def delete_tag(self, button, action_type: ActionType = ActionType.DO) -> None:
         """Remove the tag box which is the parent of the clicked button"""
         tag_box = button.get_parent()
+
+        # Get data for undo
+        tag_id = tag_box.tag_id
+        list_index = tag_box.list_index
+        text = tag_box.entry.get_text()
+
+        # Remove tag_box
         self.tag_boxes.remove(tag_box)
         listbox_row = tag_box.get_parent()
         self.listbox.remove(listbox_row)
         self.make_list_indexes_continuous()
         self.listbox.invalidate_sort()
 
-    def add_tag(self, list_index: int | None = None) -> None:
-        """Add a tag, optionally at the specified index (if possible)"""
-        # Generate a random tag_id
-        tag_id = str(random.randint(1000000000, 9999999999))
+        match action_type:
+            case ActionType.DO:
+                self.append_undo((self.add_tag, (tag_id, list_index, text)))
+                self.clear_redo()
+            case ActionType.UNDO:
+                self.append_redo((self.add_tag, (tag_id, list_index, text)))
+            case ActionType.REDO:
+                self.append_undo((self.add_tag, (tag_id, list_index, text)))
+
+    def add_tag(self,
+                tag_id: str | None = None,
+                list_index: int | None = None,
+                text: str = "",
+                action_type: ActionType = ActionType.DO) -> None:
+        """Add a tag, optionally with the specified tag_id and index (if possible)"""
+        if tag_id is None:
+            # Generate a random tag_id
+            tag_id = str(random.randint(1000000000, 9999999999))
 
         # Verify this tag_id does not already exist
         while any(tag_id == tag_box.tag_id for tag_box in self.tag_boxes):
@@ -237,10 +307,19 @@ class TagDefinitionWindow(ModalWindow):
             if tag_box.list_index >= list_index:
                 tag_box.list_index += 1
 
-        tag_box = TagBox(tag_id, list_index, "", self.move_tag, self.delete_tag)
+        tag_box = TagBox(tag_id, list_index, text, self.move_tag, self.delete_tag)
         self.listbox.append(tag_box)
         self.tag_boxes.append(tag_box)
         self.listbox.invalidate_sort()
+
+        match action_type:
+            case ActionType.DO:
+                self.append_undo((self.delete_tag, (tag_box.remove_button,)))
+                self.clear_redo()
+            case ActionType.UNDO:
+                self.append_redo((self.delete_tag, (tag_box.remove_button,)))
+            case ActionType.REDO:
+                self.append_undo((self.delete_tag, (tag_box.remove_button,)))
 
     def write_changes(self):
         """Write the current configuration to disk"""
@@ -254,3 +333,46 @@ class TagDefinitionWindow(ModalWindow):
         # Reset the tag selector in the main window
         selected_tag_ids = tuple(self.tag_selector.selected_tags_dict.keys())
         self.tag_selector.reset(selected_tag_ids)
+
+    def undo(self, *args):
+        """Pop last entry off the undo stack and execute it"""
+        if len(self.undo_stack) > 0:
+            action_tuple = self.undo_stack.pop()
+            action_tuple[0](*action_tuple[1], ActionType.UNDO)
+
+        if len(self.undo_stack) == 0:
+            undo_action = self.actions.lookup_action("undo")
+            if isinstance(undo_action, Gio.SimpleAction):
+                undo_action.set_enabled(False)
+
+    def redo(self, *args):
+        """Pop last entry off the redo stack and execute it"""
+        if len(self.redo_stack) > 0:
+            action_tuple = self.redo_stack.pop()
+            action_tuple[0](*action_tuple[1], ActionType.REDO)
+
+        if len(self.redo_stack) == 0:
+            redo_action = self.actions.lookup_action("redo")
+            if isinstance(redo_action, Gio.SimpleAction):
+                redo_action.set_enabled(False)
+
+    def append_undo(self, entry: tuple) -> None:
+        """Append the given entry to the undo stack and enable the undo action"""
+        self.undo_stack.append(entry)
+        undo_action = self.actions.lookup_action("undo")
+        if isinstance(undo_action, Gio.SimpleAction):
+            undo_action.set_enabled(True)
+
+    def append_redo(self, entry: tuple) -> None:
+        """Append the given entry to the redo stack and enable the redo action"""
+        self.redo_stack.append(entry)
+        redo_action = self.actions.lookup_action("redo")
+        if isinstance(redo_action, Gio.SimpleAction):
+            redo_action.set_enabled(True)
+
+    def clear_redo(self) -> None:
+        """Clear the undo stack"""
+        self.redo_stack.clear()
+        redo_action = self.actions.lookup_action("redo")
+        if isinstance(redo_action, Gio.SimpleAction):
+            redo_action.set_enabled(False)
