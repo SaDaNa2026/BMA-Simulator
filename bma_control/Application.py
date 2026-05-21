@@ -271,7 +271,7 @@ class App(Gtk.Application):
 
         self.load_file(files[0])
 
-    def on_shutdown(self, app) -> None:
+    def do_shutdown(self) -> None:
         """Clean up the hardware interface when the application is closed"""
         self.lcd.clear()
         self.led_fat.shutdown()
