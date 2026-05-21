@@ -13,5 +13,11 @@ project_directory="/foo/bar/BMA-Simulator"
 
 cd  $project_directory || (echo "Starting bma_control failed: Unable to open specified project directory $project_directory"; exit)
 source .venv/bin/activate
-python ./bma_control
+
+if [ -z "$1" ]; then
+  python ./bma_control
+else
+  python ./bma_control "$1"
+fi
+
 cd ~ || exit
