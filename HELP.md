@@ -21,8 +21,10 @@ und welche LEDs am FBF aktiv sind.
   * [Auslösen von Meldern](#auslösen-von-meldern)
   * [Dateistruktur](#dateistruktur)
     * [Öffnen von Dateien](#öffnen-von-dateien)
+    * [Szenario-Browser](#szenario-browser)
     * [Geschützte Dateioperationen](#geschützte-dateioperationen)
       * [Speichern](#speichern)
+      * [Szenario-Tags verwalten](#szenario-tags-verwalten)
       * [Dateistand wiederherstellen](#dateistand-wiederherstellen)
   * [Bearbeitungsmodus](#bearbeitungsmodus)
     * [Button "Bearbeiten"](#button-bearbeiten)
@@ -54,8 +56,8 @@ Die Benutzeroberfläche ist grundsätzlich in vier Bereiche gegliedert:
 - Kopfleiste: Menüs für Aktionen, die die ganze Anwendung betreffen.
 - Fußleiste: Informationen über ausgelöste, abgeschaltete und in der Historie befindliche Melder. 
     Die Reihenfolge der Anzeige entspricht der auf dem FAT.
-- Rechte Seitenleiste: Anzeige bzw. Bearbeitung der Szenariobeschreibung. Die Seitenleiste kann durch
-    Greifen und Ziehen des linken Rands in der Breite verändert werden.
+- Rechte Seitenleiste: Anzeige bzw. Bearbeitung der Szenariobeschreibung und der Filter-Tags für das Szenario. 
+    Die Seitenleiste kann durch Greifen und Ziehen des linken Rands in der Breite verändert werden.
 - Zentrale Arbeitsfläche: Anzeige aller Meldergruppen und Melder mit Auslöseschaltern.
 
 ## Auslösen von Meldern
@@ -72,20 +74,28 @@ Informationen zur Abschaltung von Meldern finden sich im Abschnitt Bearbeitungsm
 
 ## Dateistruktur
 
-Alle Ordner und Dateien für diese Anwendung müssen sich im Ordner "/home/lfs-bma/BMA-Dateien" befinden. Dieser ist auch
-standardmäßig in den Dialogen zum Öffnen bzw. Speichern einer Datei ausgewählt.
+Alle Ordner und Dateien für diese Anwendung müssen sich im Ordner "~/BMA-Dateien" befinden. Dieser ist auch
+standardmäßig in den Dialogen zum Öffnen bzw. Speichern einer Datei ausgewählt. 
+"~" steht hierbei für das Home-Verzeichnis des am Rechner angemeldeten Benutzers, also z.B. "/home/lfs-bma".
 
 Für jedes Gebäude ist ein eigener Ordner (Gebäudeordner) anzulegen, in dem die Gebäudekonfiguration und alle 
 dazugehörigen Szenarien gespeichert werden. Für Szenarien können auch beliebig viele Unterordner im Gebäudeordner
 angelegt werden. In jedem Gebäudeordner muss genau eine Gebäudekonfiguration liegen. 
 Ansonsten ist die Zuordnung eines Szenarios zur Konfiguration beim Laden nicht eindeutig und 
-es wird eine Fehlermeldung angezeigt. 
-
+es wird eine Fehlermeldung angezeigt.
 Gebäudekonfigurationen haben die Dateiendung ".building", Szenarien ".scenario". 
+
+Für das Filtern nach vorgegebenen Tags im Szenario-Browser wird die Datei "~/BMA-Dateien/.tags" benötigt.
+Da der Dateiname mit einem Punkt beginnt, ist diese Datei im Dateiexplorer standardmäßig unsichtbar.
+Falls .tags nicht vorhanden ist oder invaliden Syntax enthält, wird beim Start des Szenario-Browsers eine 
+entsprechende Fehlermeldung angezeigt und das Filtern nach Tags ist nicht verfügbar. Es können dann ebenfalls keine 
+neuen Tags zu Szenarien hinzugefügt werden, die bestehenden Tags bleiben allerdings erhalten. 
+Für Informationen zum Bearbeiten der verfügbaren Tags bitte den Abschnitt "Szenario-Tags verwalten" lesen.
 
 Beispiel für eine mögliche Dateistruktur (Ordner sind normal gesetzt, Dateien kursiv):
 
 - BMA-Dateien
+    - *.tags*
     - Gebäude_1
       - *Gebäude_1.building*
       - *Szenario_1.scenario*
@@ -99,6 +109,26 @@ Beispiel für eine mögliche Dateistruktur (Ordner sind normal gesetzt, Dateien 
 Zum Laden von vorkonfigurierten Gebäuden oder Szenarien kann die entsprechende Funktion 
 unter dem Button "Datei" ausgewählt werden oder mit dem Tastenkürzel Strg+O aktiviert werden. 
 Das Laden eines Szenarios lädt automatisch die entsprechende Gebäudekonfiguration.
+
+### Szenario-Browser
+
+Um schnell und einfach passende Szenarios für die eigenen Anforderungen zu finden, gibt es den Szenario-Browser. 
+Er lässt sich über das Öffnen-Menü in der Kopfleiste oder die Tastenkombination Strg+F starten und dient dazu, 
+Szenarien nach Gebäude und Kategorie (Tags) gefiltert anzuzeigen und zu laden.
+
+Die Benutzeroberfläche des Szenario-Browsers ist in drei Bereiche aufgeteilt: 
+
+- **Verfügbare Szenarien:** In der linken Seitenleiste werden nach Gebäude gruppiert alle Szenarien angezeigt, 
+    die den ausgewählten Filtern entsprechen. Die SUchleiste dient dazu, nach Gebäudename zu filtern. 
+    Ein Klick auf einen angezeigten Szenario-Namen wählt das entsprechende Szenario aus.
+- **Filter-Tags:** Am oberen Rand lässt sich mit dem Button "Filter-Tags" ein Menü ausklappen, in dem alle verfügbaren 
+    Tags angezeigt werden. Daraus lassen sich beliebig viele auswählen, welche dann rechts neben dem Button aufgelistet 
+    werden. Durch Klicken auf das X neben dem Tag lässt sich der entsprechende Tag wieder aus der Auswahl entfernen. 
+    In den verfügbaren Szenarien werden nur solche angezeigt, die allen gewählten Tags entsprechen.
+- **Szenario-Beschreibung:** Die Beschreibung des ausgewählten Szenarios wird in der Mitte des Fensters angezeigt.
+
+Das aktuell ausgewählte Szenario kann über den Button "Szenario laden" geladen werden. 
+Der Szenario-Browser schließt sich dann automatisch.
 
 ### Geschützte Dateioperationen
 
@@ -120,6 +150,30 @@ Bei Veränderungen an einer Datei ist derselbe Dateiname wie zuvor zu wählen un
 dass eine gleichnamige Datei bereits existiert, mit "Ersetzen" zu bestätigen. 
 Die Dateiendung ist bereits entsprechend der vorherigen Auswahl korrekt eingestellt; 
 manuelle Veränderungen der Dateiendung lassen den Speichervorgang fehlschlagen.
+
+#### Szenario-Tags verwalten
+
+Das Tag-System funktioniert folgendermaßen: Jeder Tag besitzt eine individuelle ID. Wenn einem Szenario Tags 
+zugewiesen werden, so werden die entsprechenden Tag-IDs in der Szenario-Datei gespeichert. Dadurch ist es möglich, 
+einen Tag nachträglich umzubenennen, ohne dass er manuell jedem entsprechenden Szenario erneut zugewiesen werden muss. 
+Diese Funktionsweise hat aber auch zur Folge, dass zwei Tags mit demselben Namen als separate Tags gehandhabt werden. 
+Das Löschen eines vorhandenen Tags mit anschließendem manuellen Hinzufügen (nicht Undo) eines Tags mit demselben Namen 
+führt also dazu, dass der Tag in den entsprechenden Szenarien nicht mehr gefunden wird.
+
+Mit der Funktion "Szenario-Tags verwalten" lässt sich die Tag-Datei sicher bearbeiten. 
+Folgende Aktionen stehen zur Verfügung:
+
+- **Neue Tags hinzufügen:** Ganz unten in der Liste der Tags befindet sich ein Button zum Hinzufügen eines neuen Tags.
+    Hierdurch wird ein neuer Tag mit leerem Namen hinzugefügt.
+- **Tags löschen:** Ein Tag kann gelöscht werden, indem das x-Symbol ganz rechts in der jeweiligen Zeile angeklickt wird.
+- **Tags umbenennen:** Dazu einfach in das entsprechende Textfeld klicken und den Namen ändern. Bitte nicht allzu 
+    lange Namen vergeben, damit die Tags sauber dargestellt werden können.
+- **Reihenfolge ändern:** Über die Buttons mit Pfeil nach oben bzw. unten kann der jeweilige Tag in der Liste verschoben 
+    werden. Es empfiehlt sich, Tags thematisch anzuordnen.
+- **Speichern:** Ein Klick auf diese Schaltfläche schreibt die aktuelle Konfiguration in die Tag-Datei.
+
+Alle Aktionen außer dem Umbenennen lassen sich über die Schaltflächen in der Kopfleiste des Fensters oder die 
+entsprechenden Tastenkürzel (siehe Abschnitt "Tastenkürzel") rückgängig machen und wiederherstellen.
 
 #### Dateistand wiederherstellen
 
@@ -236,6 +290,7 @@ Hier eine Übersicht aller Tastenkürzel:
 - Strg+G: Gebäudekonfiguration speichern
 - Strg+S: Szenario speichern
 - Strg+O: Datei öffnen (Gebäudekonfiguration / Szenario)
+- Strg+F: Szenario-Browser starten
 - Strg+E: Bearbeitungsmodus aktivieren
 - Strg+Z: Letzte Änderung rückgängig machen
 - Strg+Umschalt+Z / Strg+Y: Letzte rückgängig gemachte Änderung wiederherstellen
