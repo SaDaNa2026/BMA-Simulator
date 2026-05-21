@@ -9,7 +9,7 @@ gi.require_version('Gtk', '4.0')
 from gi.repository import Gtk
 from functools import partial
 
-from Menus import PrimaryMenu, DataMenu, EditMenu
+from Menus import PrimaryMenu, SaveMenu, OpenMenu, EditMenu
 from FileOpenDialog import FileOpenDialog
 from FileSaveDialog import FileSaveDialog
 from DefineObjectWindows import DefineCircuitWindow, DefineDetectorWindow
@@ -19,13 +19,16 @@ from Console import Console
 from FBFWindow import FBFWindow
 from AboutWindow import AboutWindow
 from SettingsWindow import SettingsWindow
+from ScenarioBrowser import ScenarioBrowser
+from TagSelector import TagSelector
+from TagDefinitionWindow import TagDefinitionWindow
 
 
 class MainWindow(Gtk.ApplicationWindow):
     """Main Window of the application. Displays Detectors grouped in circuits as well as menus to access all
     application functionality and Consoles to print information."""
 
-    def __init__(self, edit_action_group, hidden_action_group, detector_action_group, *args, **kwargs):
+    def __init__(self, edit_action_group, hidden_action_group, detector_action_group, tag_file_path, *args, **kwargs):
         super().__init__(*args, **kwargs, maximized=True)
         self.set_title("BMA-Simulator")
 
@@ -61,12 +64,16 @@ class MainWindow(Gtk.ApplicationWindow):
         self.main_box.set_sort_func(self.sort_circuits, None)
         self.main_scrolled_window.set_child(self.main_box)
 
+        # Right side of the paned for scenario description and tag selection
+        self.right_side_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        self.h_paned.set_end_child(self.right_side_box)
+
         # Console to display the scenario description
         self.scenario_frame = Gtk.Frame(label="Szenariobeschreibung",
                                         hexpand=False,
                                         vexpand=True,
-                                        width_request=300)
-        self.h_paned.set_end_child(self.scenario_frame)
+                                        width_request=400)
+        self.right_side_box.append(self.scenario_frame)
         self.scenario_scrolled_window = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.AUTOMATIC,
                                                            vscrollbar_policy=Gtk.PolicyType.AUTOMATIC)
         self.scenario_frame.set_child(self.scenario_scrolled_window)
@@ -76,6 +83,10 @@ class MainWindow(Gtk.ApplicationWindow):
                                               buffer=self.scenario_buffer,
                                               wrap_mode=Gtk.WrapMode.WORD)
         self.scenario_scrolled_window.set_child(self.scenario_textview)
+
+        # Tag selector to assign tags to the scenario
+        self.tag_selector = TagSelector(tag_file_path, self.show_error_alert)
+        self.right_side_box.append(self.tag_selector)
 
         # Consoles that display information about active and disabled detectors
         self.console_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, homogeneous=True)
@@ -94,13 +105,20 @@ class MainWindow(Gtk.ApplicationWindow):
 
         # Primary menu
         self.primary_menu = PrimaryMenu()
-        self.primary_menubutton = Gtk.MenuButton(icon_name="open-menu-symbolic", menu_model=self.primary_menu)
+        self.primary_menubutton = Gtk.MenuButton(icon_name="open-menu-symbolic",
+                                                 menu_model=self.primary_menu,
+                                                 primary=True)
         self.header.pack_start(self.primary_menubutton)
 
-        # MenuButton to handle data operations
-        self.data_menu = DataMenu()
-        self.data_menubutton = Gtk.MenuButton(label="Datei", menu_model=self.data_menu)
-        self.header.pack_start(self.data_menubutton)
+        # MenuButton to handle save operations
+        self.save_menu = SaveMenu()
+        self.save_menubutton = Gtk.MenuButton(label="Speicherfunktionen", menu_model=self.save_menu, visible=False)
+        self.header.pack_start(self.save_menubutton)
+
+        # MenuButton to handle open operations
+        self.open_menu = OpenMenu()
+        self.open_menubutton = Gtk.MenuButton(label="Öffnen", menu_model=self.open_menu)
+        self.header.pack_start(self.open_menubutton)
 
         # MenuButton for the edit menu
         self.edit_menu = EditMenu()
@@ -141,10 +159,12 @@ class MainWindow(Gtk.ApplicationWindow):
         commit_list_window = CommitListWindow(self, directory, commit_list, rollback_callback)
         commit_list_window.show()
 
-    def show_error_alert(self, error_message, error_detail):
+    def show_error_alert(self, error_message, error_detail, parent=None):
         """Display an error alert."""
+        if parent is None:
+            parent = self
         error_alert = Gtk.AlertDialog(message=error_message, detail=error_detail, modal=True)
-        error_alert.show(self)
+        error_alert.show(parent)
 
     def show_define_circuit_window(self, create_circuit_callback):
         self.define_circuit_window = DefineCircuitWindow(create_circuit_callback, self)
@@ -164,7 +184,7 @@ class MainWindow(Gtk.ApplicationWindow):
 
     def show_about_window(self):
         self.about_window = AboutWindow(self)
-        self.about_window.show()
+        self.about_window.present()
 
     def show_code_input_window(self, confirm_callback, unlock_action):
         self.code_input_window = CodeInputWindow(confirm_callback, self, unlock_action)
@@ -172,7 +192,15 @@ class MainWindow(Gtk.ApplicationWindow):
 
     def show_settings_window(self, model, refresh_lcd, update_leds, print_detector_state):
         self.settings_window = SettingsWindow(self, model, refresh_lcd, update_leds, print_detector_state)
-        self.settings_window.show()
+        self.settings_window.present()
+
+    def show_scenario_browser(self, top_level_dir_path: str, tag_file_path: str, load_file_callback) -> None:
+        self.scenario_browser = ScenarioBrowser(self, self.show_error_alert, top_level_dir_path, tag_file_path, load_file_callback)
+        self.scenario_browser.present()
+
+    def show_tag_definition_window(self, tag_file_path: str) -> None:
+        self.tag_definition_window = TagDefinitionWindow(self, tag_file_path, self.show_error_alert, self.tag_selector)
+        self.tag_definition_window.present()
 
     def sort_circuits(self, child1, child2, user_data) -> int:
         """Sorting function for the circuits inside main_box."""

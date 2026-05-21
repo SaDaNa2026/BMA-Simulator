@@ -8,11 +8,13 @@ import os
 import subprocess
 import sys
 import gpiozero
+from pathlib import Path
 
 import gi
 gi.require_version('Gtk', '4.0')
 gi.require_version('GLib', '2.0')
 from gi.repository import Gtk, Gio, GLib, Gdk
+from gi.repository.Gio import File
 from json import JSONDecodeError
 
 from Operations import DetectorOps, CircuitOps, BuildingOps
@@ -28,7 +30,11 @@ from PhysicalDetector import PhysicalDetector
 
 # -----------------------------------------------CONSTANTS--------------------------------------------------------------
 # Set the default path that should show up when a file chooser dialog is opened
-DEFAULT_FILE_PATH = "/home/lfs-bma/BMA-Dateien"
+home_dir = str(Path.home())
+DEFAULT_FILE_PATH = home_dir + "/BMA-Dateien"
+
+# Set the path to the file containing the list of available tags
+TAG_FILE_PATH = home_dir + "/BMA-Dateien/.tags"
 
 # Set the application used to view HELP.md
 MARKDOWN_VIEWER: str = "okular"
@@ -68,7 +74,7 @@ class App(Gtk.Application):
         self.model = BuildingModel(building_description=DEFAULT_BUILDING_DESCRIPTION, permanent_detectors=permanent_detectors)
 
         # Create a placeholder to memorize opened files
-        self.last_file = Gio.File.new_for_path(DEFAULT_FILE_PATH)
+        self.last_file: File = Gio.File.new_for_path(DEFAULT_FILE_PATH)
 
         # Keep track if the reset button has been pressed. This is necessary to check if the alarm LED needs to light up
         # if there are detectors in the history. Resets when a new file is loaded
@@ -86,6 +92,8 @@ class App(Gtk.Application):
         app_action_entries = [("save_building", self.on_save_clicked, None),
                               ("save_scenario", self.on_save_clicked, None),
                               ("open", self.on_open_clicked, None),
+                              ("launch_scenario_browser", self.on_launch_scenario_browser_clicked, None),
+                              ("define_tags", self.on_define_tags_clicked, None),
                               ("rollback", self.on_rollback_clicked, None),
                               ("edit_mode", None, None, "false", self.on_edit_mode_clicked),
                               ("undo", self.on_undo_clicked, None),
@@ -112,7 +120,7 @@ class App(Gtk.Application):
         self.add_action_entries(app_action_entries, None)
 
         # Disable protected actions
-        self._set_actions_enabled(("save_scenario", "save_building", "rollback"), False)
+        self._set_actions_enabled(("save_scenario", "save_building", "rollback", "define_tags"), False)
 
         # Disable undo and redo actions (will be enabled when the respective stack has entries)
         self._set_actions_enabled(("undo", "redo"), False)
@@ -141,6 +149,7 @@ class App(Gtk.Application):
             ("app.save_building", ["<Ctrl>G"]),
             ("app.save_scenario", ["<Ctrl>S"]),
             ("app.open", ["<Ctrl>O"]),
+            ("app.launch_scenario_browser", ["<Ctrl>F"]),
             ("app.edit_mode", ["<Ctrl>E"]),
             ("app.undo", ["<Ctrl>Z"]),
             ("app.redo", ["<Ctrl><Shift>Z", "<Ctrl>Y"]),
@@ -159,7 +168,8 @@ class App(Gtk.Application):
         # Instantiate the main window, starting the GUI
         self.window = MainWindow(edit_action_group=self.edit_action_group,
                                  hidden_action_group=self.hidden_action_group,
-                                 detector_action_group=self.detector_action_group)
+                                 detector_action_group=self.detector_action_group,
+                                 tag_file_path=TAG_FILE_PATH)
 
     def _init_gpio(self) -> None:
         """Set up all GPIO devices"""
@@ -438,7 +448,8 @@ class App(Gtk.Application):
             start = self.window.scenario_buffer.get_start_iter()
             end = self.window.scenario_buffer.get_end_iter()
             scenario_description = self.window.scenario_buffer.get_text(start, end)
-            save_dict = FileOperations.create_scenario_save_dict(self.model, scenario_description)
+            selected_tags_list = list(self.window.tag_selector.selected_tags_dict.keys())
+            save_dict = FileOperations.create_scenario_save_dict(self.model, scenario_description, selected_tags_list)
 
         else:
             self.window.show_error_alert("Speichern fehlgeschlagen", "Unbekannter Fehler mit der Dateiendung")
@@ -474,7 +485,10 @@ class App(Gtk.Application):
         """Load the file. If it is a building file, apply the configuration. If it is a scenario, load the corresponding
         building file first. Returns True if the operation was successful, otherwise False"""
         try:
-            load_dict, file_type = FileOperations.open_file(file)
+            if FileOperations.open_file(file):
+                load_dict, file_type = FileOperations.open_file(file)
+            else:
+                return False
 
         except JSONDecodeError:
             self.window.show_error_alert("Fehler beim Laden der Datei",
@@ -495,6 +509,7 @@ class App(Gtk.Application):
                 self.clear_alarms()
                 self.delete_all()
                 FileOperations.load_building_config(self.model, load_dict, self.circuit_ops.add, self.detector_ops.add)
+                self.window.tag_selector.reset()
                 self.clear_undo()
                 self.clear_redo()
                 self.print_detector_state()
@@ -537,7 +552,8 @@ class App(Gtk.Application):
                                           self.window.circuit_dict,
                                           self.detector_action_group,
                                           self.model,
-                                          self.window.scenario_buffer)
+                                          self.window.scenario_buffer,
+                                          self.window.tag_selector.reset)
             self.clear_redo()
             self.clear_undo()
 
@@ -563,9 +579,20 @@ class App(Gtk.Application):
             self.lcd.add_alarm(detector)
         self.update_leds()
 
+    def on_launch_scenario_browser_clicked(self, *args) -> None:
+        """Present a scenario browser window"""
+        self.window.show_scenario_browser(DEFAULT_FILE_PATH, TAG_FILE_PATH, self.load_file)
+
+    def on_define_tags_clicked(self, *args) -> None:
+        """Present a tag definition window"""
+        self.window.show_tag_definition_window(TAG_FILE_PATH)
+
     def on_rollback_clicked(self, *args) -> None:
         """Present a list of all commits returned by the commit getter function"""
         directory = self.last_file.get_parent()
+        if directory is None:
+            return
+
         commit_list = FileOperations.get_commits_for_dir(directory, Gio.File.new_for_path(DEFAULT_FILE_PATH))
 
         # Display an error if the directory is not a repository
@@ -760,7 +787,8 @@ class App(Gtk.Application):
         if old_state:
             action.set_state(GLib.Variant.new_boolean(False))
             # Deactivate protected actions
-            self._set_actions_enabled(("save_scenario", "save_building", "rollback"), False)
+            self._set_actions_enabled(("save_scenario", "save_building", "rollback", "define_tags"), False)
+            self.window.save_menubutton.set_visible(False)
         else:
             if UNLOCK_CODE is None:
                 self.confirm_unlock(action, None)
@@ -772,7 +800,8 @@ class App(Gtk.Application):
         if code == UNLOCK_CODE:
             unlock_action.set_state(GLib.Variant.new_boolean(True))
             # Activate protected actions
-            self._set_actions_enabled(("save_scenario", "save_building", "rollback"), True)
+            self._set_actions_enabled(("save_scenario", "save_building", "rollback", "define_tags"), True)
+            self.window.save_menubutton.set_visible(True)
             return True
         else:
             return False

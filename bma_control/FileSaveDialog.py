@@ -6,13 +6,14 @@
 
 import gi
 gi.require_version('Gtk', '4.0')
-from gi.repository import Gio, Gtk, GLib
+from gi.repository import Gio, Gtk
+from pathlib import Path
 
 
 class FileSaveDialog(Gtk.FileDialog):
     """When initiated, present a FileDialog to choose a location to save to. On confirmation of the selection,
     call the method to write data."""
-    def __init__(self, file_type, last_dir=Gio.File.new_for_path("/home/lfs-bma"), last_name=""):
+    def __init__(self, file_type, last_dir=Gio.File.new_for_path(str(Path.home())), last_name=""):
         super().__init__(accept_label="Speichern",
                                      initial_folder=last_dir,
                                      modal=True)

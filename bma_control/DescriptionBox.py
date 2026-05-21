@@ -11,7 +11,7 @@ from gi.repository import Gtk
 
 class DescriptionBox(Gtk.Box):
     """Contains a label and a textview. Can be used where the user can edit a description."""
-    def __init__(self, default_text: str="", max_length: int=None, label: str="Beschreibung") -> None:
+    def __init__(self, default_text: str="", max_length: int=None, label: str="Beschreibung:") -> None:
         super().__init__(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
         self.description_label = Gtk.Label(label=label)
         self.append(self.description_label)

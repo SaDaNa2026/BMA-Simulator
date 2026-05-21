@@ -10,6 +10,7 @@ from git import Repo, InvalidGitRepositoryError, NULL_TREE
 import gi
 gi.require_version('Gtk', '4.0')
 from gi.repository import Gio, GLib
+from gi.repository.Gio import File
 
 
 class FileOperations:
@@ -17,11 +18,19 @@ class FileOperations:
     def get_file_extension(file_path: str) -> str:
         """Returns the file extension (everything after the last dot) for a given file path"""
         # Find the last dot in the file path
-        dot_pos = file_path.rfind('.')
+        dot_pos = file_path.rfind(".")
         # The extension is everything after the last dot. Return empty string if there is no dot
-        file_extension = file_path[dot_pos + 1:] if dot_pos != -1 else ""
+        return file_path[dot_pos + 1:] if dot_pos != -1 else ""
 
-        return file_extension
+    @staticmethod
+    def get_filename_without_extension(file_path: str) -> str:
+        """Removes parent directories and extensions from a file path to get the file name"""
+        # Find the last slash
+        slash_pos = file_path.rfind("/")
+        file_name = file_path[slash_pos + 1:] if slash_pos != -1 else ""
+        # Find the last dot. Everything after it is the extension and needs to be removed
+        dot_pos = file_name.rfind(".")
+        return file_name[:dot_pos] if dot_pos > 0 else ""
 
     @staticmethod
     def retrieve_open_file(dialog, result):
@@ -30,24 +39,29 @@ class FileOperations:
         return file
 
     @staticmethod
-    def open_file(file):
+    def open_file(file: File) -> tuple[dict, str] | None:
         """Parse the data from the provided file and decide how to load it."""
         print(f"Opening: {file.get_path()}")
 
-        with open(file, "r") as file_dict:
+        file_path = file.get_path()
+
+        if not file_path:
+            return None
+
+        with open(file_path, "r") as file_dict:
             # Load building information
             load_dict = json.load(file_dict)
 
-            filename = file.get_path()
-            file_extension = Path(filename).suffix.lstrip(".")
-            if file_extension != "building" and file_extension != "scenario":
-                raise ValueError("Es können nur Dateien geladen werden, die auf .building oder .scenario enden")
+        file_extension = FileOperations.get_file_extension(file_path)
+        if file_extension not in ("building", "scenario"):
+            raise ValueError("Es können nur Dateien geladen werden, die auf .building oder .scenario enden")
 
-            return load_dict, file_extension
+        return load_dict, file_extension
 
     @staticmethod
     def get_building_config_for_scenario(scenario_file, scenario_load_dict, load_scenario_callback):
-        """Callback for get_scenario_directory. Finds the .building files in the directory and returns the file path.
+        """Callback for get_scenario_directory. Finds the .building files in the directory and calls
+        load_scenario callback with the result.
         Throws an error if there is not exactly one .building file."""
         directory = Gio.file_new_for_path(scenario_file.get_parent().get_path())
         building_file_found = False
@@ -60,23 +74,7 @@ class FileOperations:
                                         "oder einem übergeordneten Verzeichnis wie die gewählte .scenario-Datei "
                                         "eine .building-Datei existiert.")
 
-            children = directory.enumerate_children(
-                'standard::name',
-                Gio.FileQueryInfoFlags.NONE,
-                None
-            )
-
-            # A list to store the paths to the ".building" files in the directory
-            building_file_list = []
-
-            for child_info in children:
-                child_name = child_info.get_name()
-                child_extension = FileOperations.get_file_extension(child_name)
-
-                if child_extension == "building":
-                    # Get the filepath of the child and add it to building_file_list
-                    file_path = str(directory.get_path()) + "/" + child_name
-                    building_file_list.append(file_path)
+            building_file_list = FileOperations.list_building_files(directory)
 
             # Check if exactly one .building file was found
             match len(building_file_list):
@@ -86,12 +84,80 @@ class FileOperations:
                 case 1:
                     building_file_found = True
                     # Load the building_config file that has been found
-                    building_file = Gio.file_new_for_path(building_file_list[0])
+                    building_file = building_file_list[0]
                     load_scenario_callback(building_file, scenario_load_dict)
 
                 case _:
                     raise FileNotFoundError(f"Es wurden {len(building_file_list)} .building-Dateien gefunden.\nStellen Sie "
                                      f"sicher, dass pro Verzeichnis nur eine .building-Datei existiert.")
+
+    @staticmethod
+    def list_building_files(directory: File) -> list[File]:
+        """List all *.building files in the provided directory. Returns an empty list if directory is not a directory"""
+        file_type = directory.query_file_type(
+            Gio.FileQueryInfoFlags.NONE,
+            None
+        )
+
+        if file_type != Gio.FileType.DIRECTORY:
+            return []
+
+        children = directory.enumerate_children(
+            'standard::name',
+            Gio.FileQueryInfoFlags.NONE,
+            None
+        )
+
+        # A list to store the ".building" files in the directory
+        building_file_list: list = []
+
+        for child_info in children:
+            child_name = child_info.get_name()
+            child_extension = FileOperations.get_file_extension(child_name)
+
+            if child_extension == "building":
+                # Get the child file
+                child_file = directory.get_child(child_name)
+                building_file_list.append(child_file)
+        return building_file_list
+
+    @staticmethod
+    def list_child_scenarios(directory: File) -> list[File]:
+        """Recursively collect all *.scenario files"""
+        scenario_list: list = []
+
+        file_type = directory.query_file_type(
+            Gio.FileQueryInfoFlags.NONE,
+            None
+        )
+
+        # Base case: regular file
+        if file_type == Gio.FileType.REGULAR:
+            path = directory.get_path()
+
+            if path and FileOperations.get_file_extension(path) == "scenario":
+                scenario_list.append(directory)
+
+            return scenario_list
+
+        # Ignore anything that is not a directory
+        if file_type != Gio.FileType.DIRECTORY:
+            return scenario_list
+
+        # Recursive case: directory
+        children = directory.enumerate_children(
+            "standard::name",
+            Gio.FileQueryInfoFlags.NONE,
+            None
+        )
+
+        for child_info in children:
+            child_file = directory.get_child(child_info.get_name())
+            scenario_list.extend(
+                FileOperations.list_child_scenarios(child_file)
+            )
+
+        return scenario_list
 
     @staticmethod
     def load_building_config(model, load_dict, add_circuit_function, add_detector_function):
@@ -125,7 +191,12 @@ class FileOperations:
         print("File loaded successfully")
 
     @staticmethod
-    def apply_scenario(load_dict, circuit_dict, detector_action_group, model, scenario_description_textbuffer):
+    def apply_scenario(load_dict,
+                       circuit_dict,
+                       detector_action_group,
+                       model,
+                       scenario_description_textbuffer,
+                       tag_selector_reset):
         """Set all detectors listed in load_dict to active"""
         # Add extinguisher alarm support
         for number_list in load_dict["active_detector_list"]:
@@ -226,6 +297,14 @@ class FileOperations:
         model.set_history_time_offset(load_dict["settings"]["history_time_offset"])
         model.set_history_time_absolute(tuple(load_dict["settings"]["history_time_absolute"]))
 
+        # Apply scenario tags
+        try:
+            tag_ids: tuple = tuple(load_dict["tag_ids"])
+        except KeyError:
+            tag_ids: tuple = ()
+
+        tag_selector_reset(tag_ids)
+
     @staticmethod
     def retrieve_save_file(dialog, result):
         """Retrieve the save path from the file dialog."""
@@ -266,17 +345,29 @@ class FileOperations:
             repo.index.commit(message or "Update files")
 
     @staticmethod
-    def get_commits_for_dir(directory, recursion_limit):
+    def get_commits_for_dir(directory: File, recursion_limit: File):
         """Returns a list of all commits for the provided directory containing tuples with commit date and message.
         Recursively tries parent directories until the provided limit (or the home directory) is reached.
         Returns None if the directory is not a git repository."""
+        # Check for valid syntax
+        if directory is None:
+            return None
+        directory_path = directory.get_path()
+        if directory_path is None:
+            return None
+
         repo = None
-        while (not (directory == Path.home() or directory == recursion_limit.get_parent())) and repo is None:
+        while (not (directory_path == Path.home() or directory_path == recursion_limit.get_path())) and repo is None:
             try:
-                print(directory)
-                repo = Repo(directory)
+                repo = Repo(directory_path)
             except InvalidGitRepositoryError:
+                # Change into parent directory. Return None if that fails
                 directory = directory.get_parent()
+                if directory is None:
+                    return None
+                directory_path = directory.get_path()
+                if directory_path is None:
+                    return None
 
         if repo is None:
             return None
@@ -330,7 +421,7 @@ class FileOperations:
 
 
     @staticmethod
-    def create_scenario_save_dict(model, scenario_description: str) -> dict:
+    def create_scenario_save_dict(model, scenario_description: str, selected_tag_ids: list) -> dict:
         """Create a dictionary that contains a list of active detectors and a description."""
         save_dict = {"active_detector_list": model.get_active_detectors(),
                      "disabled_detector_list": model.get_disabled_detectors(),
@@ -342,5 +433,6 @@ class FileOperations:
                                   "history_time_mode": model.get_history_time_mode(),
                                   "history_time_offset": model.get_history_time_offset(),
                                   "history_time_absolute": model.get_history_time_absolute()},
-                     "scenario_description": scenario_description}
+                     "scenario_description": scenario_description,
+                     "tag_ids": selected_tag_ids}
         return save_dict
