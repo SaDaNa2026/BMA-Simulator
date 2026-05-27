@@ -53,12 +53,12 @@ Das Freischaltelement verhält sich wie ein physischer Melder, nur hat es die Me
 
 Die Benutzeroberfläche ist grundsätzlich in vier Bereiche gegliedert:
 
-- Kopfleiste: Menüs für Aktionen, die die ganze Anwendung betreffen.
-- Fußleiste: Informationen über ausgelöste, abgeschaltete und in der Historie befindliche Melder. 
+- **Kopfleiste:** Menüs für Aktionen, die die ganze Anwendung betreffen.
+- **Fußleiste:** Informationen über ausgelöste, abgeschaltete und in der Historie befindliche Melder. 
     Die Reihenfolge der Anzeige entspricht der auf dem FAT.
-- Rechte Seitenleiste: Anzeige bzw. Bearbeitung der Szenariobeschreibung und der Filter-Tags für das Szenario. 
+- **Rechte Seitenleiste:** Anzeige bzw. Bearbeitung der Szenariobeschreibung und der Filter-Tags für das Szenario. 
     Die Seitenleiste kann durch Greifen und Ziehen des linken Rands in der Breite verändert werden.
-- Zentrale Arbeitsfläche: Anzeige aller Meldergruppen und Melder mit Auslöseschaltern.
+- **Zentrale Arbeitsfläche:** Anzeige aller Meldergruppen und Melder mit Auslöseschaltern.
 
 ## Auslösen von Meldern
 
@@ -107,19 +107,19 @@ Beispiel für eine mögliche Dateistruktur (Ordner sind normal gesetzt, Dateien 
 ### Öffnen von Dateien
 
 Zum Laden von vorkonfigurierten Gebäuden oder Szenarien kann die entsprechende Funktion 
-unter dem Button "Datei" ausgewählt werden oder mit dem Tastenkürzel Strg+O aktiviert werden. 
+unter dem Button "Öffnen" ausgewählt werden oder mit dem Tastenkürzel Strg+O aktiviert werden. 
 Das Laden eines Szenarios lädt automatisch die entsprechende Gebäudekonfiguration.
 
 ### Szenario-Browser
 
 Um schnell und einfach passende Szenarios für die eigenen Anforderungen zu finden, gibt es den Szenario-Browser. 
-Er lässt sich über das Öffnen-Menü in der Kopfleiste oder die Tastenkombination Strg+F starten und dient dazu, 
-Szenarien nach Gebäude und Kategorie (Tags) gefiltert anzuzeigen und zu laden.
+Er lässt sich im Menü unter dem Button "Öffnen" in der Kopfleiste oder die Tastenkombination Strg+F starten und dient 
+dazu, Szenarien nach Gebäude und Kategorie (Tags) gefiltert anzuzeigen und zu laden.
 
 Die Benutzeroberfläche des Szenario-Browsers ist in drei Bereiche aufgeteilt: 
 
 - **Verfügbare Szenarien:** In der linken Seitenleiste werden nach Gebäude gruppiert alle Szenarien angezeigt, 
-    die den ausgewählten Filtern entsprechen. Die SUchleiste dient dazu, nach Gebäudename zu filtern. 
+    die den ausgewählten Filtern entsprechen. Die Suchleiste dient dazu, nach Gebäudename zu filtern. 
     Ein Klick auf einen angezeigten Szenario-Namen wählt das entsprechende Szenario aus.
 - **Filter-Tags:** Am oberen Rand lässt sich mit dem Button "Filter-Tags" ein Menü ausklappen, in dem alle verfügbaren 
     Tags angezeigt werden. Daraus lassen sich beliebig viele auswählen, welche dann rechts neben dem Button aufgelistet 
@@ -135,12 +135,12 @@ Der Szenario-Browser schließt sich dann automatisch.
 Um Chaos in der Dateistruktur oder sogar Datenverlust durch Fehlbedienung zu vermeiden, sind die Funktionen 
 zum Speichern und Wiederherstellen des Dateistands mit einer PIN gesichert. 
 Über den Button "Speicherfunktionen freischalten" im Hauptmenü können sie aktiviert werden. 
-Dann stehen folgende Funktionen zur Verfügung:
+Dann stehen unter dem Button "Speicherfunktionen" folgende Funktionen zur Verfügung:
 
 #### Speichern
 
 Beim Speichern ist zwischen Gebäudekonfiguration (Strg+G) und Szenario (Strg+S) zu unterscheiden. 
-Beide Optionen sind auch unter dem Button "Datei" verfügbar. 
+Beide Optionen sind auch unter dem Button "Speicherfunktionen" verfügbar. 
 Unabhängig davon müssen dann zuerst die Änderungen seit dem letzten Speichern beschrieben werden. 
 Dies ist für ein eventuelles Zurücksetzen des Dateistands sehr wichtig, um Veränderungen nachvollziehen 
 zu können, und sollte daher gewissenhaft betrieben werden.
@@ -163,21 +163,21 @@ führt also dazu, dass der Tag in den entsprechenden Szenarien nicht mehr gefund
 Mit der Funktion "Szenario-Tags verwalten" lässt sich die Tag-Datei sicher bearbeiten. 
 Folgende Aktionen stehen zur Verfügung:
 
-- **Neue Tags hinzufügen:** Ganz unten in der Liste der Tags befindet sich ein Button zum Hinzufügen eines neuen Tags.
+- ***Neue Tags hinzufügen:*** Ganz unten in der Liste der Tags befindet sich ein Button zum Hinzufügen eines neuen Tags.
     Hierdurch wird ein neuer Tag mit leerem Namen hinzugefügt.
-- **Tags löschen:** Ein Tag kann gelöscht werden, indem das x-Symbol ganz rechts in der jeweiligen Zeile angeklickt wird.
-- **Tags umbenennen:** Dazu einfach in das entsprechende Textfeld klicken und den Namen ändern. Bitte nicht allzu 
+- ***Tags löschen:*** Ein Tag kann gelöscht werden, indem das x-Symbol ganz rechts in der jeweiligen Zeile angeklickt wird.
+- ***Tags umbenennen:*** Dazu einfach in das entsprechende Textfeld klicken und den Namen ändern. Bitte nicht allzu 
     lange Namen vergeben, damit die Tags sauber dargestellt werden können.
-- **Reihenfolge ändern:** Über die Buttons mit Pfeil nach oben bzw. unten kann der jeweilige Tag in der Liste verschoben 
+- ***Reihenfolge ändern:*** Über die Buttons mit Pfeil nach oben bzw. unten kann der jeweilige Tag in der Liste verschoben 
     werden. Es empfiehlt sich, Tags thematisch anzuordnen.
-- **Speichern:** Ein Klick auf diese Schaltfläche schreibt die aktuelle Konfiguration in die Tag-Datei.
+- ***Speichern:*** Ein Klick auf diese Schaltfläche schreibt die aktuelle Konfiguration in die Tag-Datei.
 
 Alle Aktionen außer dem Umbenennen lassen sich über die Schaltflächen in der Kopfleiste des Fensters oder die 
 entsprechenden Tastenkürzel (siehe Abschnitt "Tastenkürzel") rückgängig machen und wiederherstellen.
 
 #### Dateistand wiederherstellen
 
-Diese Option findet sich unter dem Button "Datei". Falls ungewollte Änderungen 
+Diese Option findet sich unter dem Button "Speicherfunktionen". Falls ungewollte Änderungen 
 an Dateien gespeichert wurden oder es anderweitig notwendig ist, lässt sich somit ein Ordner auf einen 
 älteren Stand zurücksetzen. Dazu muss erst eine Datei aus dem betreffenden Ordner geladen werden, 
 um festzulegen, welcher Ordner zurückgesetzt werden soll.
@@ -201,44 +201,37 @@ vorgenommenen Änderungen beim nächsten Speichervorgang im betreffenden Ordner 
 Um versehentliches Bearbeiten der Gebäudekonfiguration zu verhindern und die Benutzeroberfläche 
 aufgeräumt zu halten, ist der Bearbeitungsmodus standardmäßig deaktiviert. Wenn der Bearbeitungsmodus 
 deaktiviert ist, können als einzige Aktion Melder ausgelöst werden und natürlich alle Funktionen 
-des FAT und FBF genutzt werden.
+am FAT und FBF selbst genutzt werden.
 
-Der Bearbeitungsmodus kann unter dem Button "Datei" oder mit dem Tastenkürzel Strg+E aktiviert werden. 
+Der Bearbeitungsmodus kann im Hauptmenü (drei Striche, oben links) oder mit dem Tastenkürzel Strg+E aktiviert werden. 
 Es stehen dann folgende Funktionen zur Verfügung:
 
 ### Button "Bearbeiten"
 
-1. Meldergruppe hinzufügen:  
-    Fügt eine Meldergruppe mit der definierten Nummer hinzu. Diese muss zwischen 1 und 99999 liegen.
-2. Gebäudebeschreibung bearbeiten:  
-    Die Gebäudebeschreibung wird im Ruhezustand im LCD des FAT angezeigt. 
+1. ***Meldergruppe hinzufügen:*** Fügt eine Meldergruppe mit der definierten Nummer hinzu. Diese muss zwischen 1 und 99999 liegen.
+2. ***Gebäudebeschreibung bearbeiten:*** Die Gebäudebeschreibung wird im Ruhezustand im LCD des FAT angezeigt. 
     Mit dieser Funktion lässt sie sich ändern.
-3. FBF:  
-    Hier finden sich Schalter, um die LEDs auf dem FBF zu steuern. Die LEDs werden nur aktiviert, 
+3. ***FBF:*** Hier finden sich Schalter, um die LEDs auf dem FBF zu steuern. Die LEDs werden nur aktiviert, 
     falls ein Alarm anliegt.
     Die Einstellung wird im Szenario gespeichert.
-4. Abschaltung leeren:  
-    Löscht alle Einträge aus der Abschaltung.
-5. Historie leeren:  
-    Löscht alle Einträge aus der Historie.
+4. ***Abschaltung leeren:*** Löscht alle Einträge aus der Abschaltung.
+5. ***Historie leeren:*** Löscht alle Einträge aus der Historie.
 
 ### Rechtsklick auf Meldergruppen-Nummer
 
-1. Melder hinzufügen:  
+1. ***Melder hinzufügen:***  
     Fügt einen Melder mit der angegebenen Nummer (1-99) und Beschreibung hinzu.
-2. Meldergruppe löschen
+2. ***Meldergruppe löschen***
 
 ### Rechtsklick auf Melder
 
-1. Beschreibung bearbeiten
-2. Abschaltung:  
-    Schaltet den Melder ab. Dadurch wird ein eventuell am Melder anliegender Alarm abgeschaltet und 
+1. ***Beschreibung bearbeiten***
+2. ***Abschaltung:*** Schaltet den Melder ab. Dadurch wird ein eventuell am Melder anliegender Alarm abgeschaltet und 
     der Melder in der Anzeigeebene der Abschaltung angezeigt. Diese Einstellung wird im Szenario gespeichert.
-3. In Historie:  
-    Legt fest, ob der Melder in der Historie erscheint. Diese Einstellung wird im Szenario gespeichert. 
+3. ***In Historie:*** Legt fest, ob der Melder in der Historie erscheint. Diese Einstellung wird im Szenario gespeichert. 
     Zur besseren Übersicht werden Nummer und Beschreibung von Meldern in der Historie farblich abgehoben. 
     Die in der Historie angezeigte Zeit kann über die Einstellungen angepasst werden.
-4. Melder löschen
+4. ***Melder löschen***
 
 Abschaltung und Historie sind auch bei ausgeschaltetem Bearbeitungsmodus verfügbar.
 
@@ -260,16 +253,16 @@ seit dem letzten Laden rückgängig gemacht werden können.
 Die Anwendungseinstellungen können über das Hauptmenü oben links, unter dem sich auch die Hilfe befindet, geöffnet werden. 
 Alternativ funktioniert auch die Tastenkombination Strg+P oder Strg+Komma. Folgende Einstellungen sind verfügbar:
 
-- Zeit für die Historie: Bestimmt, welche Uhrzeit in der Historie angezeigt werden soll. 
+- ***Zeit für die Historie***: Bestimmt, welche Uhrzeit in der Historie angezeigt werden soll. 
     Diese Einstellung wird im Szenario gespeichert.
   - Automatisch: Die angezeigte Uhrzeit berechnet sich aus der jeweils aktuellen Zeit minus der eingegebenen Differenz.
   - Benutzerdefiniert: Hier kann jede beliebige Uhrzeit eingegeben werden, die dann unabhängig 
     von der aktuellen Zeit angezeigt wird. Dadurch können z.B. Nachtszenarien dargestellt werden.
-- Summer bei Alarm aktivieren: Der Summer wird, wie bei einer echten BMA, bei jedem neu ausgelösten Melder aktiviert. 
+- ***Summer bei Alarm aktivieren***: Der Summer wird, wie bei einer echten BMA, bei jedem neu ausgelösten Melder aktiviert. 
     Diese Einstellung bietet die Möglichkeit, den Summer für die gesamte Dauer der aktuellen Sitzung abzuschalten. 
     Das ist nützlich, wenn Szenarien konfiguriert werden. 
     Die Einstellung wird bei jedem Programmstart auf "EIN" zurückgesetzt.
-- Blitzleuchte bei Alarm aktivieren: Die Blitzleuchte ist standardmäßig eingeschaltet, solange ein Alarm anliegt. 
+- ***Blitzleuchte bei Alarm aktivieren***: Die Blitzleuchte ist standardmäßig eingeschaltet, solange ein Alarm anliegt. 
     Das Zurückstellen der BMA schaltet sie wieder aus.  
     Über diese Einstellung kann die Blitzleuchte komplett deaktiviert werden. 
     Bei jedem Programmstart wird sie auf "EIN" zurückgesetzt.
@@ -285,18 +278,18 @@ um unerwartetes Verhalten zu vermeiden.*
 Alle Tastenkürzel sind neben dem entsprechenden Button mit der gleichen Funktion aufgeführt. 
 Hier eine Übersicht aller Tastenkürzel:
 
-- F1: Öffnet diese Hilfe-Datei
-- Strg+P / Strg+Komma: Einstellungs-Fenster öffnen
-- Strg+G: Gebäudekonfiguration speichern
-- Strg+S: Szenario speichern
-- Strg+O: Datei öffnen (Gebäudekonfiguration / Szenario)
-- Strg+F: Szenario-Browser starten
-- Strg+E: Bearbeitungsmodus aktivieren
-- Strg+Z: Letzte Änderung rückgängig machen
-- Strg+Umschalt+Z / Strg+Y: Letzte rückgängig gemachte Änderung wiederherstellen
-- Strg+I: Meldegruppe hinzufügen
-- Strg+B: Gebäudebeschreibung bearbeiten
-- Strg+L: FBF-Einstellungen bearbeiten
+- **F1**: Öffnet diese Hilfe-Datei
+- **Strg+P / Strg+Komma**: Einstellungs-Fenster öffnen
+- **Strg+G**: Gebäudekonfiguration speichern
+- **Strg+S**: Szenario speichern
+- **Strg+O**: Datei öffnen (Gebäudekonfiguration / Szenario)
+- **Strg+F**: Szenario-Browser starten
+- **Strg+E**: Bearbeitungsmodus aktivieren
+- **Strg+Z**: Letzte Änderung rückgängig machen
+- **Strg+Umschalt+Z / Strg+Y**: Letzte rückgängig gemachte Änderung wiederherstellen
+- **Strg+I**: Meldegruppe hinzufügen
+- **Strg+B**: Gebäudebeschreibung bearbeiten
+- **Strg+L**: FBF-Einstellungen bearbeiten
 
 ### Linksklick-Kombinationen
 
@@ -305,9 +298,9 @@ existieren einige Kombinationen aus Tastendruck und Linksklick auf den gewünsch
 In der folgenden Liste ist die Taste aufgeführt, die mit dem Linksklick kombiniert wird, 
 und die jeweils ausgelöste Funktion im Kontextmenü.
 
-- Strg: Abschaltung
-- Umschalt: In Historie
-- Alt: Melder bearbeiten (Funktioniert nur, wenn der Bearbeitungsmodus eingeschaltet ist)
+- **Strg**: Abschaltung
+- **Umschalt**: In Historie
+- **Alt**: Melder bearbeiten (Funktioniert nur, wenn der Bearbeitungsmodus eingeschaltet ist)
 
 *Tipp: Nicht auf den Schalter, sondern die Meldernummer oder Beschreibung klicken, um den Melder nicht 
 ungewollt auszulösen.*
