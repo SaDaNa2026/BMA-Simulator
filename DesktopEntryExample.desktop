@@ -14,4 +14,5 @@ Name[de]=BMA-Simulator
 Icon=/foo/bar/BMA-Simulator/icon.png
 Comment=Application to control the BMA simulator
 Comment[de]=Anwendung zur Steuerung des BMA-Simulators
-Exec=/foo/bar/StartScriptExample.sh
+MimeType=text/plain
+Exec=/foo/bar/StartScriptExample.sh %f

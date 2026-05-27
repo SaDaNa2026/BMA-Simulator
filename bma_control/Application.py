@@ -11,6 +11,7 @@ import gpiozero
 from pathlib import Path
 
 import gi
+
 gi.require_version('Gtk', '4.0')
 gi.require_version('GLib', '2.0')
 from gi.repository import Gtk, Gio, GLib, Gdk
@@ -26,7 +27,6 @@ from MCPController import MCPController
 from mcp23017 import *
 from LEDController import LEDController
 from PhysicalDetector import PhysicalDetector
-
 
 # -----------------------------------------------CONSTANTS--------------------------------------------------------------
 # Set the default path that should show up when a file chooser dialog is opened
@@ -60,18 +60,19 @@ PERMANENT_DETECTORS: tuple = ((22, True, (1, 1, "Druckknopfmelder FIZ")),
                               (None, None, (0, 1, "Löschanlage")))
 
 # Set the GPIO pin that the relay for the flashing light (Blitzleuchte) is connected to. None deactivates the functionality
-FLASH_RELAY_PIN: int|None = 26
+FLASH_RELAY_PIN: int | None = 26
 
 
 # ----------------------------------------------APPLICATION-------------------------------------------------------------
 class App(Gtk.Application):
     def __init__(self, **kwargs):
-        super().__init__(application_id="com.github.SaDaNa2026.BMA_Simulator", **kwargs)
-        self.connect('activate', self.on_activate)
-        self.connect('shutdown', self.on_shutdown)
+        super().__init__(application_id="com.github.SaDaNa2026.BMA_Simulator",
+                         flags=Gio.ApplicationFlags.HANDLES_OPEN,
+                         **kwargs)
 
         permanent_detectors = [detector[2] for detector in PERMANENT_DETECTORS]
-        self.model = BuildingModel(building_description=DEFAULT_BUILDING_DESCRIPTION, permanent_detectors=permanent_detectors)
+        self.model = BuildingModel(building_description=DEFAULT_BUILDING_DESCRIPTION,
+                                   permanent_detectors=permanent_detectors)
 
         # Create a placeholder to memorize opened files
         self.last_file: File = Gio.File.new_for_path(DEFAULT_FILE_PATH)
@@ -171,6 +172,25 @@ class App(Gtk.Application):
                                  detector_action_group=self.detector_action_group,
                                  tag_file_path=TAG_FILE_PATH)
 
+        # Initialize GPIO and serial devices
+        try:
+            self._init_gpio()
+
+            self._init_i2c()
+
+        except OSError as e:
+            GLib.idle_add(self.window.show_error_alert, str(e),
+                          "Stellen Sie sicher, dass die Platinen richtig angeschlossen\n"
+                          "und auf den Platinen alle Port Expander korrekt verbunden sind.\n\n"
+                          "Die App wird im aktuellen Zustand nicht erwartungsgemäß funktionieren.")
+
+        except gpiozero.exc.BadPinFactory:
+            GLib.idle_add(self.window.show_error_alert, "GPIO-Initialisierung fehlgeschlagen",
+                          "Stellen Sie sicher, dass die lgpio-Bibliothek installiert ist.\n"
+                          "Dabei auch die manuell zu installierende Bibliothek in C beachten.\n\n"
+                          "Dieser Fehler kann auch dadurch verursacht werden, dass diese Anwendung auf "
+                          "Hardware ausgeführt wird, die keine GPIO-Funktionalität bietet.")
+
     def _init_gpio(self) -> None:
         """Set up all GPIO devices"""
         # Set up the relay for the flashing light
@@ -181,7 +201,7 @@ class App(Gtk.Application):
         self.physical_detector_list = []
         for detector_tuple in PERMANENT_DETECTORS:
             gpio_pin: int | None = detector_tuple[0]
-            pull_up: bool | None  = detector_tuple[1]
+            pull_up: bool | None = detector_tuple[1]
             circuit_number = detector_tuple[2][0]
             detector_number = detector_tuple[2][1]
             if gpio_pin is not None and pull_up is not None:
@@ -239,30 +259,19 @@ class App(Gtk.Application):
         self.led_fat.on("working")
         self.led_fbf.on("working")
 
-    def on_activate(self, app) -> None:
-        """Present the main window on startup. Then try to connect to the hardware"""
-        self.window.set_application(app)
+    def do_activate(self) -> None:
+        """Present the main window"""
+        self.window.set_application(self)
         self.window.present()
 
-        # Initialize GPIO and serial devices
-        try:
-            self._init_gpio()
+    def do_open(self, files: list, n_files: int, hint) -> None:
+        """Present the main window and open the first file in the given files list"""
+        self.window.set_application(self)
+        self.window.present()
 
-            self._init_i2c()
+        self.load_file(files[0])
 
-        except OSError as e:
-            self.window.show_error_alert(str(e), "Stellen Sie sicher, dass die Platinen richtig angeschlossen\n"
-                                                 "und auf den Platinen alle Port Expander korrekt verbunden sind.\n\n"
-                                                 "Die App wird im aktuellen Zustand nicht erwartungsgemäß funktionieren.")
-
-        except gpiozero.exc.BadPinFactory:
-            self.window.show_error_alert("GPIO-Initialisierung fehlgeschlagen",
-                                         "Stellen Sie sicher, dass die lgpio-Bibliothek installiert ist.\n"
-                                         "Dabei auch die manuell zu installierende Bibliothek in C beachten.\n\n"
-                                         "Dieser Fehler kann auch dadurch verursacht werden, dass diese Anwendung auf "
-                                         "Hardware ausgeführt wird, die keine GPIO-Funktionalität bietet.")
-
-    def on_shutdown(self, app) -> None:
+    def do_shutdown(self) -> None:
         """Clean up the hardware interface when the application is closed"""
         self.lcd.clear()
         self.led_fat.shutdown()
@@ -362,7 +371,8 @@ class App(Gtk.Application):
         modifier_state = gesture.get_current_event_state()
 
         if modifier_state == Gdk.ModifierType.CONTROL_MASK:
-            enable_action = self.detector_action_group.lookup_action(f"enable_detector_{circuit_number}_{detector_number}")
+            enable_action = self.detector_action_group.lookup_action(
+                f"enable_detector_{circuit_number}_{detector_number}")
             enable_action.activate()
 
         if modifier_state == Gdk.ModifierType.SHIFT_MASK:
@@ -478,7 +488,6 @@ class App(Gtk.Application):
             if not e.message == "Dismissed by user":
                 self.window.show_error_alert("Öffnen fehlgeschlagen", e.message)
             return
-        self.last_file = file
         self.load_file(file)
 
     def load_file(self, file) -> bool:
@@ -538,6 +547,7 @@ class App(Gtk.Application):
                 self.window.show_error_alert(f"Öffnen fehlgeschlagen", str(e))
                 return False
 
+        self.last_file = file
         return True
 
     def load_scenario_callback(self, building_file, scenario_load_dict: dict) -> None:
@@ -858,7 +868,8 @@ class App(Gtk.Application):
 
         active_detector_text = self.generate_text(active_detector_list)
         disabled_detector_text = self.generate_text(disabled_detector_list)
-        history_detector_text = f"{self.model.get_history_time_string()}\n\r" + self.generate_text(history_detector_list)
+        history_detector_text = f"{self.model.get_history_time_string()}\n\r" + self.generate_text(
+            history_detector_list)
 
         self.window.active_console.buffer.set_text(active_detector_text)
         self.window.disabled_console.buffer.set_text(disabled_detector_text)
@@ -974,4 +985,3 @@ class App(Gtk.Application):
             self.led_fbf.on("fire_controls_off")
         else:
             self.led_fbf.off("fire_controls_off")
-
