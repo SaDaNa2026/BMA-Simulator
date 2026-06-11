@@ -138,13 +138,11 @@ class LCDController(CharLCD):
         self.current_screen = 1
         self.visible_dict.clear()
 
-        # Insert the new alarm at the bottom
-        self.visible_dict["bottom"] = detector
-
         # Set the first alarm to the first detector
-        first_alarm = self.model.get_active_detectors()[0]
-        if not detector == first_alarm:
-            self.visible_dict["top"] = first_alarm
+        active_detectors = self.model.get_active_detectors()
+        self.visible_dict["top"] = active_detectors[0]
+        if len(active_detectors) > 1:
+             self.visible_dict["bottom"] = active_detectors[-1]
 
         self.refresh()
 
@@ -153,10 +151,10 @@ class LCDController(CharLCD):
         disabled_detectors = self.model.get_disabled_detectors()
         if self.current_screen == 2 and len(disabled_detectors) > 0:
             self.visible_dict.clear()
-            self.visible_dict["bottom"] = disabled_detectors[-1]
+            self.visible_dict["top"] = disabled_detectors[0]
 
             if len(disabled_detectors) > 1:
-                self.visible_dict["top"] = disabled_detectors[0]
+                self.visible_dict["bottom"] = disabled_detectors[-1]
 
         self.refresh()
 
@@ -330,27 +328,28 @@ class LCDController(CharLCD):
         if len(self.visible_dict) > 2:
             raise ValueError("visible_dict may not have more than 2 entries")
 
-        if self.current_screen == 1:
-            self.clear()
-            for position in self.visible_dict:
-                self._write_message(self.visible_dict[position], position, "alarm")
+        match self.current_screen:
+            case 1:
+                self.clear()
+                for position in self.visible_dict:
+                    self._write_message(self.visible_dict[position], position, "alarm")
 
-        elif self.current_screen == 2:
-            self.clear()
-            for position in self.visible_dict:
-                self._write_message(self.visible_dict[position], position, "disabled")
+            case 2:
+                self.clear()
+                for position in self.visible_dict:
+                    self._write_message(self.visible_dict[position], position, "disabled")
 
-        elif self.current_screen == 3:
-            self.clear()
-            self.cursor_pos = (0, 12)
-            self.write_string("Historie")
-            self.cursor_pos = (1, 15)
-            self.write_string(self.model.get_history_time_string())
-            if self.visible_dict["bottom"] == "history_empty":
-                self.cursor_pos = (3, 6)
-                self.write_string("Keine Einträge")
-            else:
-                self._write_message(self.visible_dict["bottom"], "bottom", "history")
+            case 3:
+                self.clear()
+                self.cursor_pos = (0, 12)
+                self.write_string("Historie")
+                self.cursor_pos = (1, 15)
+                self.write_string(self.model.get_history_time_string())
+                if self.visible_dict["bottom"] == "history_empty":
+                    self.cursor_pos = (3, 6)
+                    self.write_string("Keine Einträge")
+                else:
+                    self._write_message(self.visible_dict["bottom"], "bottom", "history")
 
     def test(self):
         """Fill the screen with blocks to test all pixels"""
