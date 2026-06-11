@@ -740,6 +740,10 @@ class App(Gtk.Application):
         for detector in self.physical_detector_list:
             detector.last_state = False
 
+        # Clear Undo and Redo to avoid inconsistent states
+        self.clear_undo()
+        self.clear_redo()
+
         self.print_detector_state()
         self.lcd.reset()
         self.update_leds()
