@@ -55,7 +55,7 @@ UNLOCK_CODE: str | None = "124440"
 # Format: ((GPIO_pin: int | None, pullup: bool | None, (circuit_number: int, detector_number: int, detector_description: str)))
 # CAUTION: The model does not check this list, so any value can be assigned (especially circuit or detector number == 0).
 #          Be aware of the possible unexpected results of assigning to illegal values.
-PERMANENT_DETECTORS: tuple = ((22, True, (1, 1, "Druckknopfmelder FIZ")),
+PERMANENT_DETECTORS: tuple = ((22, True, (0, 2, "Druckknopfmelder FIZ")),
                               (19, True, (0, 0, "Freischaltelement")),
                               (None, None, (0, 1, "Löschanlage")))
 
