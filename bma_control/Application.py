@@ -70,6 +70,7 @@ class App(Gtk.Application):
         super().__init__(application_id="com.github.SaDaNa2026.BMA_Simulator",
                          flags=Gio.ApplicationFlags.HANDLES_OPEN,
                          **kwargs)
+        self.connect("shutdown", self.shutdown)
 
         permanent_detectors = [detector[2] for detector in PERMANENT_DETECTORS]
         self.model = BuildingModel(building_description=DEFAULT_BUILDING_DESCRIPTION,
@@ -272,7 +273,7 @@ class App(Gtk.Application):
 
         self.load_file(files[0])
 
-    def do_shutdown(self) -> None:
+    def shutdown(self, app) -> None:
         """Clean up the hardware interface when the application is closed"""
         self.lcd.clear()
         self.led_fat.shutdown()
