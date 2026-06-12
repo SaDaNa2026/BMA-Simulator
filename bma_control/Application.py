@@ -74,7 +74,8 @@ class App(Gtk.Application):
 
         permanent_detectors = [detector[2] for detector in PERMANENT_DETECTORS]
         self.model = BuildingModel(building_description=DEFAULT_BUILDING_DESCRIPTION,
-                                   permanent_detectors=permanent_detectors)
+                                   permanent_detectors=permanent_detectors,
+                                   fire_extinguisher_definition=FIRE_EXTINGUISHERS)
 
         # Create a placeholder to memorize opened files
         self.last_file: File = Gio.File.new_for_path(DEFAULT_FILE_PATH)
