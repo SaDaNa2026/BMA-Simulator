@@ -60,10 +60,6 @@ class BuildingFrame(Gtk.Frame):
         try:
             open_value = FileOperations.open_file(scenario_file)
         except JSONDecodeError:
-            self.error_dialog_function("Szenariodatei invalide",
-                                       f"Stellen Sie sicher, dass {scenario_file.get_path()} dem "
-                                       f"JSON-Standard entspricht",
-                                       self.get_parent())
             return []
 
         if open_value is None:
