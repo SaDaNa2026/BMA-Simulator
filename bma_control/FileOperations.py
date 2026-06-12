@@ -330,12 +330,14 @@ class FileOperations:
     def commit_changes(file: Gio.File, message: str) -> None:
         """Commit changes to git."""
         # Get the repo
-        file_path = Path(str(file.get_path())).resolve()
-        repo_dir = file_path.parent
+        repo_dir_path = file.get_parent().get_path()
+        if repo_dir_path is None:
+            raise NotADirectoryError
+
         try:
-            repo = Repo(repo_dir, search_parent_directories=True)
+            repo = Repo(repo_dir_path, search_parent_directories=True)
         except InvalidGitRepositoryError:
-            repo = Repo.init(repo_dir)
+            repo = Repo.init(repo_dir_path)
 
         # Stage all files in the directory
         repo.git.add(A=True)

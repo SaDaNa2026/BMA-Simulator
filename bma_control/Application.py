@@ -473,6 +473,10 @@ class App(Gtk.Application):
             self.window.show_error_alert("Keine Schreibrechte im gewählten Verzeichnis", str(e))
             return
 
+        except NotADirectoryError:
+            self.window.show_error_alert("Repository nicht gefunden", "Änderungen werden trotzdem gespeichert, aber "
+                                         "tauchen nicht im Änderungsverlauf auf.")
+
     def on_open_clicked(self, *args) -> None:
         """Show a FileOpenDialog"""
         last_dir = self.get_last_dir()
