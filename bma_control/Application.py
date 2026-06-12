@@ -55,9 +55,9 @@ UNLOCK_CODE: str | None = "124440"
 # Format: ((GPIO_pin: int | None, pullup: bool | None, (circuit_number: int, detector_number: int, detector_description: str)))
 # CAUTION: The model does not check this list, so any value can be assigned (especially circuit or detector number == 0).
 #          Be aware of the possible unexpected results of assigning to illegal values.
-PERMANENT_DETECTORS: tuple = ((22, True, (0, 2, "Druckknopfmelder FIZ")),
-                              (19, True, (0, 0, "Freischaltelement")),
-                              (None, None, (0, 1, "Löschanlage")))
+PERMANENT_DETECTORS: tuple = ((22, True, (10, 3, "Druckknopfmelder FIZ")),
+                              (19, True, (10, 1, "Freischaltelement")),
+                              (None, None, (10, 2, "Löschanlage")))
 
 # Set the GPIO pin that the relay for the flashing light (Blitzleuchte) is connected to. None deactivates the functionality
 FLASH_RELAY_PIN: int | None = 26
@@ -585,8 +585,6 @@ class App(Gtk.Application):
 
         self.print_detector_state()
         self.lcd.reset()
-        for detector in self.model.get_active_detectors():
-            self.lcd.add_alarm(detector)
         self.update_leds()
 
     def on_launch_scenario_browser_clicked(self, *args) -> None:

@@ -178,9 +178,7 @@ class LCDController(CharLCD):
         active_detector_list = self.model.get_active_detectors()
         if len(active_detector_list) > 0:
             self.current_screen = 1
-            self.add_alarm(active_detector_list[0])
-            if len(active_detector_list) > 1:
-                self.add_alarm(active_detector_list[-1])
+            self.add_alarm(active_detector_list[-1])
 
         else:
             self.current_screen = 0
