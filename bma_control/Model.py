@@ -352,7 +352,7 @@ class BuildingModel:
             raise TypeError("state must be bool")
         self.extinguisher_triggered = state
         # Activate the hidden detector belonging to the extinguishers
-        circuit_number, detector_number, _ = self.fire_extinguisher_definition[1]
+        circuit_number, detector_number, _ = self.fire_extinguisher_definition[2]
         self.set_detector_alarm_status(circuit_number, detector_number, state)
 
     def get_extinguisher_triggered(self) -> bool:

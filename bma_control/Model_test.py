@@ -389,6 +389,13 @@ class TestBuildingModel(unittest.TestCase):
         perm_model.set_detector_alarm_status(1, 1, True)
         self.assertEqual(perm_model.get_active_detectors(exclude_permanent=True), [(1, 1)])
 
+    def test_fire_extinguishers_triggered(self):
+        extinguishers = (None, None, (10, 2, "Löschanlage"))
+        permanent_detectors = [extinguishers[2]]
+        model = BuildingModel(permanent_detectors=permanent_detectors, fire_extinguisher_definition=extinguishers)
+        model.set_extinguisher_triggered(True)
+        self.assertEqual(model.get_active_detectors(), [(10, 2)])
+
 
 if __name__ == '__main__':
     unittest.main()
