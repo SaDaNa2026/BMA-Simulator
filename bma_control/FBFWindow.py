@@ -68,8 +68,6 @@ class FBFWindow(ModalWindow):
         action.set_state(parameter)
         state = parameter.get_boolean()
         self.model.set_extinguisher_triggered(state)
-        # Activate the hidden detector belonging to the extinguishers
-        self.model.set_detector_alarm_status(0, 1, state)
         self.app.print_detector_state()
         self.app.lcd.reset()
         self.app.update_leds()

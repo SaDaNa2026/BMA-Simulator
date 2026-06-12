@@ -289,9 +289,6 @@ class FileOperations:
         model.set_ue_off(load_dict["settings"]["ue_off"])
         model.set_fire_controls_off(load_dict["settings"]["fire_controls_off"])
 
-        # Set alarm status of the hidden extinguisher detector
-        model.set_detector_alarm_status(0, 1, extinguisher_triggered)
-
         # Apply history time settings
         model.set_history_time_mode(load_dict["settings"]["history_time_mode"])
         model.set_history_time_offset(load_dict["settings"]["history_time_offset"])

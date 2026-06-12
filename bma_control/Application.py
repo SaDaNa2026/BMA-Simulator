@@ -55,9 +55,10 @@ UNLOCK_CODE: str | None = "124440"
 # Format: ((GPIO_pin: int | None, pullup: bool | None, (circuit_number: int, detector_number: int, detector_description: str)))
 # CAUTION: The model does not check this list, so any value can be assigned (especially circuit or detector number == 0).
 #          Be aware of the possible unexpected results of assigning to illegal values.
+FIRE_EXTINGUISHERS: tuple = (None, None, (10, 2, "Löschanlage"))
 PERMANENT_DETECTORS: tuple = ((22, True, (10, 3, "Druckknopfmelder FIZ")),
                               (19, True, (10, 1, "Freischaltelement")),
-                              (None, None, (10, 2, "Löschanlage")))
+                              FIRE_EXTINGUISHERS)
 
 # Set the GPIO pin that the relay for the flashing light (Blitzleuchte) is connected to. None deactivates the functionality
 FLASH_RELAY_PIN: int | None = 26

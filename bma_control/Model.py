@@ -66,6 +66,7 @@ class BuildingModel:
     disabled_detector_list: List[tuple] = field(default_factory=list)
     history_detector_list: List[tuple] = field(default_factory=list)
     extinguisher_triggered: bool = field(default=False)
+    fire_extinguisher_definition: tuple = field(default_factory=tuple)
     acoustic_signals_off: bool = field(default=False)
     ue_off: bool = field(default=False)
     fire_controls_off: bool = field(default=False)
@@ -350,6 +351,9 @@ class BuildingModel:
         if not isinstance(state, bool):
             raise TypeError("state must be bool")
         self.extinguisher_triggered = state
+        # Activate the hidden detector belonging to the extinguishers
+        circuit_number, detector_number, _ = self.fire_extinguisher_definition[1]
+        self.set_detector_alarm_status(circuit_number, detector_number, state)
 
     def get_extinguisher_triggered(self) -> bool:
         return self.extinguisher_triggered
