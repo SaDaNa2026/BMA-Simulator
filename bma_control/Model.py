@@ -324,11 +324,15 @@ class BuildingModel:
         detector_tuple: tuple = (circuit_number, detector_number)
         return (detector_tuple in self.active_detector_list) and (detector_tuple not in self.disabled_detector_list)
 
-    def get_active_detectors(self) -> list:
+    def get_active_detectors(self, exclude_permanent: bool = False) -> list:
         return_list = []
         for detector_tuple in self.active_detector_list:
-            if detector_tuple not in self.disabled_detector_list:
-                return_list.append(detector_tuple)
+            if detector_tuple in self.disabled_detector_list:
+                continue
+            if exclude_permanent and detector_tuple in self.permanent_detectors:
+                continue
+
+            return_list.append(detector_tuple)
 
         return return_list
 

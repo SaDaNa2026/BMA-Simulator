@@ -282,7 +282,7 @@ class FileOperations:
         # Set the scenario description
         scenario_description_textbuffer.set_text(load_dict["scenario_description"])
 
-        # Set LEDs
+        # Set Settings
         extinguisher_triggered = load_dict["settings"]["extinguisher_triggered"]
         model.set_extinguisher_triggered(extinguisher_triggered)
         model.set_acoustic_signals_off(load_dict["settings"]["acoustic_signals_off"])
@@ -423,7 +423,7 @@ class FileOperations:
     @staticmethod
     def create_scenario_save_dict(model, scenario_description: str, selected_tag_ids: list) -> dict:
         """Create a dictionary that contains a list of active detectors and a description."""
-        save_dict = {"active_detector_list": model.get_active_detectors(),
+        save_dict = {"active_detector_list": model.get_active_detectors(exclude_permanent=True),
                      "disabled_detector_list": model.get_disabled_detectors(),
                      "history_detector_list": model.get_history_detectors(),
                      "settings": {"extinguisher_triggered": model.get_extinguisher_triggered(),

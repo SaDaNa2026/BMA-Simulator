@@ -382,6 +382,13 @@ class TestBuildingModel(unittest.TestCase):
         self.model.set_detector_alarm_status(5, 6, True, -23)
         print(self.model.get_active_detectors())
 
+    def test_active_detectors_for_saving(self):
+        perm_model = BuildingModel(permanent_detectors=[(10, 3, "Druckknopfmelder FIZ")])
+        perm_model.add_circuit(1)
+        perm_model.add_detector(1, 1)
+        perm_model.set_detector_alarm_status(1, 1, True)
+        self.assertEqual(perm_model.get_active_detectors(exclude_permanent=True), [(1, 1)])
+
 
 if __name__ == '__main__':
     unittest.main()
