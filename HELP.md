@@ -216,6 +216,8 @@ Es stehen dann folgende Funktionen zur Verfügung:
     Die Einstellung wird im Szenario gespeichert.
 4. ***Abschaltung leeren:*** Löscht alle Einträge aus der Abschaltung.
 5. ***Historie leeren:*** Löscht alle Einträge aus der Historie.
+6. ***Leere Datei erstellen:*** Erstellt ein leeres Gebäude. Alle ungespeicherten Änderungen am aktuellen Gebäude 
+    gehen durch diese Aktion verloren.
 
 ### Rechtsklick auf Meldergruppen-Nummer
 

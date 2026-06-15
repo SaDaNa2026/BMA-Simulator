@@ -115,7 +115,8 @@ class App(Gtk.Application):
                                ("edit_building", self.on_edit_building_clicked, None),
                                ("edit_fbf", self.on_edit_fbf_clicked, None),
                                ("clear_disabled", self.on_clear_disabled_clicked, None),
-                               ("clear_history", self.on_clear_history_clicked, None)]
+                               ("clear_history", self.on_clear_history_clicked, None),
+                               ("clear_all", self.on_clear_all_clicked, None)]
 
         hidden_action_entries = [("previous_alarm", self.on_previous_message_clicked, None),
                                  ("next_alarm", self.on_next_message_clicked, None)]
@@ -531,7 +532,6 @@ class App(Gtk.Application):
                 self.print_detector_state()
                 self.lcd.reset()
                 self.update_leds()
-                self.is_reset = False
 
             except KeyError as e:
                 print(f"KeyError: {e}")
@@ -758,6 +758,22 @@ class App(Gtk.Application):
 
     def on_clear_history_clicked(self, *args) -> None:
         self.detector_ops.clear_history()
+
+    def on_clear_all_clicked(self, *args) -> None:
+        self.window.show_clear_all_confirmation(self.clear_all)
+
+    def clear_all(self, dialog, result, *args):
+        button = dialog.choose_finish(result)
+        if button == 1:
+            self.delete_all()
+            self.model.clear_data()
+            self.model.set_building_description(DEFAULT_BUILDING_DESCRIPTION)
+            self.last_file = Gio.File.new_for_path(DEFAULT_FILE_PATH)
+            self.is_reset = False
+            self.lcd.clear()
+            self.update_leds()
+            self.clear_undo()
+            self.clear_redo()
 
     def on_undo_clicked(self, *args) -> None:
         """Pop the top entry of undo_stack and execute it"""

@@ -202,6 +202,15 @@ class MainWindow(Gtk.ApplicationWindow):
         self.tag_definition_window = TagDefinitionWindow(self, tag_file_path, self.show_error_alert, self.tag_selector)
         self.tag_definition_window.present()
 
+    def show_clear_all_confirmation(self, clear_callback) -> None:
+        Gtk.AlertDialog(buttons=["Abbrechen", "Fortfahren"],
+                        cancel_button=0,
+                        default_button=0,
+                        detail="Falls Sie fortfahren, gehen alle ungespeicherten Änderungen an Szenario und "
+                               "Gebäudekonfiguration verloren.",
+                        message="Leere Datei erstellen?",
+                        modal=True).choose(self, callback=clear_callback)
+
     def sort_circuits(self, child1, child2, user_data) -> int:
         """Sorting function for the circuits inside main_box."""
         circuit1 = child1.get_child()

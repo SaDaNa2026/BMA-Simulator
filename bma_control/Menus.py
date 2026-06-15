@@ -56,7 +56,8 @@ class EditMenu(TupleAddMenu):
                           ("Gebäudebeschreibung bearbeiten...", "edit.edit_building"),
                           ("FBF...", "edit.edit_fbf"),
                           ("Abschaltung leeren", "edit.clear_disabled"),
-                          ("Historie leeren", "edit.clear_history")))
+                          ("Historie leeren", "edit.clear_history"),
+                          ("Leere Datei erstellen", "edit.clear_all")))
 
 
 class CircuitContextMenu(Gio.Menu):
